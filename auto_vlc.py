@@ -6,10 +6,11 @@ import os, time
 import magic
 
 class UiPlayer(tk.Frame):
-    thread = None    
     # Main window
     window = None
+    
     isFullScreen = False
+    isRunning = False
     isFrame1Turn = False
     MediaPlayer1 = None
     MediaPlayer2 = None
@@ -21,8 +22,6 @@ class UiPlayer(tk.Frame):
         self.window.title("MainUI")
         self.window.geometry("400x300")
         
-        self.window.protocol("WM_DELETE_WINDOW", self.OnClose)  # XXX unnecessary (on macOS)
-        
         self.frame1 = tk.Frame(self.window, bg="red", width=200, height=150)
         self.frame2 = tk.Frame(self.window, bg="blue", width=200, height=150)
         self.frame1.pack(fill="both", expand=True)
@@ -32,6 +31,7 @@ class UiPlayer(tk.Frame):
             self.window.attributes("-fullscreen", not isFullScreen)
             isFullScreen = not isFullScreen
         self.window.bind("<F11>", ToggleFullScreen)
+        self.isRunning = True
 
     def _Play(self, player, media, frame, otherframe):
         player.set_media(media)
@@ -49,7 +49,7 @@ class UiPlayer(tk.Frame):
         def FadeInThread():
             player.audio_set_volume(0)
             volume = player.audio_get_volume()
-            while (volume < 100):
+            while (volume < 100 and self.isRunning):
                 print("FadeInThread Volume : " + str(volume))
                 volume = volume + 5
                 player.audio_set_volume(volume)
@@ -57,35 +57,37 @@ class UiPlayer(tk.Frame):
 
         def FadeOutThread():
             volume = player.audio_get_volume()
-            while (volume > 0):
+            while (volume > 0 and self.isRunning):
                 print("FadeOutThread Volume : " + str(volume))
                 volume = volume - 5
                 player.audio_set_volume(volume)
                 time.sleep(0.5)
+            player.stop()
         fadein_thread = threading.Thread(target=FadeInThread)
         fadein_thread.start()
 
-        while (player.get_position() < 0.80):
+        while (player.get_position() < 0.80 and self.isRunning):
             time.sleep(1)
             print("Current media playing time "+("{:.2f}".format(player.get_position()*100))+"%")
-
         threading.Thread(target=FadeOutThread).start()
 
 
     def Play(self, media):
-        self.isFrame1Turn = not self.isFrame1Turn
-        # 2 frames to enable crossfading between clips : a frame for each clip
-        if (self.isFrame1Turn):
-            self._Play(self.MediaPlayer1, media, self.frame1, self.frame2)
-        else:
-            self._Play(self.MediaPlayer2, media, self.frame2, self.frame1)
+        if self.isRunning:
+            # 2 frames to enable crossfading between clips : a frame for each clip
+            if (self.MediaPlayer2.is_playing()):
+                self._Play(self.MediaPlayer1, media, self.frame1, self.frame2)
+            else:
+                self._Play(self.MediaPlayer2, media, self.frame2, self.frame1)
 
-    def OnClose(self):
-        print("Close")
-        self.thread.join()
+    def Stop(self):
+        self.isRunning = False
+        self.window.destroy()
+
 
 
 class MainSequencer():
+    isRunning = False
 
     def __init__(self, UiPlayer, VlcInstance):
         self.UiPlayer = UiPlayer
@@ -94,31 +96,36 @@ class MainSequencer():
     # Launch the UI on a different thread
     def LaunchSequencer(self):
         self.thread = threading.Thread(target=self.Sequencer)
+        self.isRunning = True
         self.thread.start()
 
 
     def Sequencer(self):
         #gather list of files
         fichiers = os.listdir("res/clips/")
+        while self.isRunning:
+            for i, fichier in enumerate(fichiers):
+                # TODO not start everyfile directly 
+                # Have some static (dynamic ?) sequencing capabilities
+                # For example : 
+                # [
+                #   -> Music  : res/clip -> Take random videos from here *2
+                #   -> Jingle : res/jingle -> jingle video for the TV
+                #   -> Ads    : res/ads -> Take random videos from here 
+                # ]
 
-        for i, fichier in enumerate(fichiers):
-            # TODO not start everyfile directly 
-            # Have some static (dynamic ?) sequencing capabilities
-            # For example : 
-            # [
-            #   -> Music  : res/clip -> Take random videos from here *2
-            #   -> Jingle : res/jingle -> jingle video for the TV
-            #   -> Ads    : res/ads -> Take random videos from here 
-            # ]
+                # TODO Read the actual beginning and end timestamps from a file
+                # TODO from that file, if needed fadein and/or fadeout
+                # Csv : filename,startimestamp, endtimestamp, is_audio_fadein, is_audio_fadeout
 
-            # TODO Read the actual beginning and end timestamps from a file
-            # TODO from that file, if needed fadein and/or fadeout
-            # Csv : filename,startimestamp, endtimestamp, is_audio_fadein, is_audio_fadeout
-
-            print("Lecture de " + fichier)
-            if ("Media" in magic.from_file("res/clips/"+fichier)):
-                media = self.VlcInstance.media_new("res/clips/"+fichier)
-                self.UiPlayer.Play(media)
+                print("Lecture de " + fichier)
+                if ("Media" in magic.from_file("res/clips/"+fichier)):
+                    media = self.VlcInstance.media_new("res/clips/"+fichier)
+                    self.UiPlayer.Play(media)
+    def Stop(self):
+        self.isRunning = False
+        self.UiPlayer.Stop()
+        self.VlcInstance.release()
 
 # VLC player
 args = ['--aout=directsound', '--directx-volume=0.35']
@@ -130,9 +137,16 @@ player1 = Instance.media_player_new()
 player2 = Instance.media_player_new()
 
 root = tk.Tk()
-player = UiPlayer(tkroot=root, MediaPlayer1=player1, MediaPlayer2=player2)
 
+
+player = UiPlayer(tkroot=root, MediaPlayer1=player1, MediaPlayer2=player2)
 sequencer = MainSequencer(UiPlayer = player, VlcInstance = Instance)
+
+
+def OnClose():
+    sequencer.Stop()
+
+root.protocol("WM_DELETE_WINDOW", OnClose)  # XXX unnecessary (on macOS)
 
 sequencer.LaunchSequencer()
 
