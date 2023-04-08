@@ -46,15 +46,21 @@ fichiers = os.listdir("res")
 def Play(player, media, frame, otherframe):
     player.set_media(media)
     window.after(0, lambda:otherframe.pack_forget())
-    window.after(0, lambda:frame.pack())
+    window.after(0, lambda:frame.pack(fill="both", expand=True))
     h = frame.winfo_id()  # .winfo_visualid()?
+    # TODO Linux comp
     player.set_hwnd(h)
+    
     # TODO have a possibility of going to the next video
+    # Different frame for direct control
+
     player.play()
     # TODO Set to the full frame size
+
+    print(player.video_get_aspect_ratio())
     player.set_fullscreen(True)
     
-    # TODO Read the actual beginning and end timestamps from a file
+
     player.set_position(0.75) 
     def FadeInThread():
         player.audio_set_volume(0)
@@ -82,7 +88,22 @@ def Play(player, media, frame, otherframe):
     threading.Thread(target=FadeOutThread).start()
 
 for i, fichier in enumerate(fichiers):
+    # TODO not start everyfile directly 
+    # Have some static (dynamic ?) sequencing capabilities
+    # For example : 
+    # [
+    #   -> Music  : res/clip -> Take random videos from here *2
+    #   -> Jingle : res/jingle -> jingle video for the TV
+    #   -> Ads    : res/ads -> Take random videos from here 
+    # ]
+
+    # TODO Read the actual beginning and end timestamps from a file
+    # TODO from that file, if needed fadein and/or fadeout
+    # Csv : filename,startimestamp, endtimestamp, is_audio_fadein, is_audio_fadeout
+
     print("Lecture de "+fichier)
+    
+    
     media = Instance.media_new("res/"+fichier)
     if (i % 2):
         Play(player1, media, frame1, frame2)
