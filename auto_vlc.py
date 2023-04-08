@@ -7,19 +7,26 @@ import os, time
 
 # Main window
 window = None
+isFullScreen = False
 
 # Launch the UI on a different thread
 def launch_ui():
     global window
     window = tk.Tk()
-    window.title("Frame")
+    window.title("MainUI")
     window.geometry("400x300")
-        
     frame1 = tk.Frame(window, bg="red", width=200, height=150)
     frame2 = tk.Frame(window, bg="blue", width=200, height=150)
     frame1.pack(fill="both", expand=True)
     frame2.pack(fill="both", expand=True)
+
+    def ToggleFullScreen(event=None):
+        global isFullScreen
+        window.attributes("-fullscreen", not isFullScreen)
+        isFullScreen = not isFullScreen
+    window.bind("<F11>", ToggleFullScreen)
     window.mainloop()
+
 
 thread = threading.Thread(target=launch_ui)
 thread.start()
@@ -39,6 +46,7 @@ frame2 = window.winfo_children()[1]
 player1 = Instance.media_player_new()
 player2 = Instance.media_player_new()
 
+
 #gather list of files
 fichiers = os.listdir("res")
 
@@ -55,12 +63,6 @@ def Play(player, media, frame, otherframe):
     # Different frame for direct control
 
     player.play()
-    # TODO Set to the full frame size
-
-    print(player.video_get_aspect_ratio())
-    player.set_fullscreen(True)
-    
-
     player.set_position(0.75) 
     def FadeInThread():
         player.audio_set_volume(0)

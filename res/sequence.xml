@@ -1,0 +1,17 @@
+<Document>
+  <Title>"JJ Birthday Sequence"</Title>
+  <Sequence control_metadata="metadata.csv">
+    <Repeat nb_time="ever" >
+      <Repeat nb_time="3" >
+        <!-- Select a random clip that has not played in the last hour -->
+        <RandomVideo path="clips" reselect_timeout="60" />
+      </Repeat>
+      <Video path="jingle/jingle.mp4" />
+      <Repeat nb_time="2" >
+        <!-- Select a random ad that has not played in the last 15 minutes -->
+        <RandomVideo path="ads" reselect_timeout="15" />
+      </Repeat>
+      <Video path="jingle/jingle.mp4" />
+    </Repeat>
+  </Sequence>
+</Document>
