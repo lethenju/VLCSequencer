@@ -25,7 +25,7 @@ thread = threading.Thread(target=launch_ui)
 thread.start()
 
 # VLC player
-args = []
+args = ['--aout=directsound', '--directx-volume=0.35']
 vlc.print_version()
 vlc.print_python()
 
@@ -55,10 +55,31 @@ def Play(player, media, frame, otherframe):
     player.set_fullscreen(True)
     
     # TODO Read the actual beginning and end timestamps from a file
-    player.set_position(0.70) 
+    player.set_position(0.75) 
+    def FadeInThread():
+        player.audio_set_volume(0)
+        volume = player.audio_get_volume()
+        while (volume < 100):
+            print("FadeInThread Volume : " + str(volume))
+            volume = volume + 5
+            player.audio_set_volume(volume)
+            time.sleep(0.5)
+
+    def FadeOutThread():
+        volume = player.audio_get_volume()
+        while (volume > 0):
+            print("FadeOutThread Volume : " + str(volume))
+            volume = volume - 5
+            player.audio_set_volume(volume)
+            time.sleep(0.5)
+    fadein_thread = threading.Thread(target=FadeInThread)
+    fadein_thread.start()
+
     while (player.get_position() < 0.80):
         time.sleep(1)
         print("Current media playing time "+("{:.2f}".format(player.get_position()*100))+"%")
+
+    threading.Thread(target=FadeOutThread).start()
 
 for i, fichier in enumerate(fichiers):
     print("Lecture de "+fichier)
