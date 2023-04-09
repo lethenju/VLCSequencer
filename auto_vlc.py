@@ -1,6 +1,7 @@
 
 import vlc
 import tkinter as tk
+from tkinter import ttk
 import threading
 import os
 import time
@@ -22,6 +23,7 @@ class UiPlayer():
     
     is_fullscreen_flag = False  # True if this window is in fullscreen on the main monitor
     is_running_flag = False     # Flag to kill application carefully
+    is_muted = False
 
     vlc_instance = None
     metadata_manager = None
@@ -56,7 +58,7 @@ class UiPlayer():
         for i, _ in enumerate(self.media_frames):
             self.media_frames[i].ui_frame.pack(fill="both", expand=True)
 
-        def toggle_full_screen(event=None):
+        def toggle_full_screen(*unused):
             global is_fullscreen_flag
             self.window.attributes("-fullscreen", not is_fullscreen_flag)
             is_fullscreen_flag = not is_fullscreen_flag
@@ -96,8 +98,10 @@ class UiPlayer():
             while (volume < 100 and self.is_running_flag):
                 print("fade_in Volume : " + str(volume))
                 volume = volume + 5
-                player.audio_set_volume(volume)
+                if not self.is_muted:
+                    player.audio_set_volume(volume)
                 time.sleep(0.5)
+        
 
         def fade_out_thread():
             """! Thread to handle fade out on this player"""
@@ -110,7 +114,7 @@ class UiPlayer():
             player.stop()
         if fade_in:
             threading.Thread(target=fade_in_thread).start()
-        else:
+        elif not self.is_muted:
             player.audio_set_volume(100)
 
         # Fix : If the end is the actual end, we may never reach it.
@@ -136,7 +140,7 @@ class UiPlayer():
         if self.is_running_flag:
 
             media = self.vlc_instance.media_new(path)
-            
+
             # TODO Blockingless parsing time : thread ?
             media.parse_with_options(1,0)
             # Blocking the parsing time
@@ -160,6 +164,26 @@ class UiPlayer():
                                             fade_out = metadata.fade_out)
             else:
                 self._play_on_specific_frame(media, index_media_players=index_to_be_played)
+    
+    def _get_active_media_player(self):
+        # Get the active player
+        index_active_player =  self.media_frames[1].media_player.is_playing()
+        return self.media_frames[index_active_player].media_player
+
+    def pause_resume(self):
+        player = self._get_active_media_player()
+        player.pause()
+        pass
+        
+    def mute_trigger(self):
+        player = self._get_active_media_player()
+        if  player.audio_get_volume() != 0:
+            self.current_volume = player.audio_get_volume()
+            self.is_muted = True
+            player.audio_set_volume(0)
+        else:
+            self.is_muted = False
+            player.audio_set_volume(self.current_volume)
 
     def kill(self):
         """! Kill the window and release the vlc instance """
@@ -193,9 +217,7 @@ class MainSequencer():
         while self.is_running_flag:
             # TODO UiSequenceManager get sequence
             # get_next_video()
-            # MetaDataManager get Metadata
-            # self.ui_player.play(path, begin_s, end_s, is_fadein, is_fadeout)
-
+            
             for i, fichier in enumerate(fichiers):
                 print("Playing " + fichier)
                 # Verify its a Media file before trying to play it 
@@ -210,14 +232,38 @@ class UiSequenceManager:
 
         Open a UI to visualize and modify the sequence 
     """
-    def __init__(self, path):
+    ui_player = None
+    def __init__(self, tkroot, ui_player, path):
         """! The Sequence manager initializer
             @param path : path the sequence file 
             @return An instance of a UiSequenceManager
         """
+        self.ui_player =ui_player
         # start UI 
+
+        # panel to hold buttons
+        self.buttons_panel = tk.Toplevel(tkroot)
+        self.buttons_panel.title("")
+        self.is_buttons_panel_anchor_active = False
+
+        buttons = ttk.Frame(self.buttons_panel)
+
+        self.pause_button= ttk.Button(buttons, text="Pause/Resume", command=self.on_pause)
+        self.mute_button = ttk.Button(buttons, text="Mute/Unmute", command=self.on_mute)
+        self.pause_button.pack(side=tk.LEFT)
+        self.mute_button.pack(side=tk.LEFT)
+        buttons.pack(side=tk.BOTTOM, fill=tk.X)
         # Read file
         pass
+
+
+    def on_pause(self, *unused):
+        self.ui_player.pause_resume()
+        pass
+    def on_mute(self, *unused):
+        self.ui_player.mute_trigger()
+        pass
+
     def build_sequence():
         pass
     def get_next_video():
@@ -271,6 +317,10 @@ class MetaDataManager:
                     )
     
     def get_metadata(self, video_name):
+        """! Get the stored metadata about the video in parameter 
+            @param video_name : name of the video (as stored in the metadata csv)
+            @return a MetaDataEntry structure
+        """
         it = list(filter(lambda meta: (meta.video_name==video_name), self.metadata_list))
         if len(it) == 0:
             print ("ERROR ! No metadata entries found for video " + video_name)
@@ -303,6 +353,9 @@ class MainManager:
         metadata_manager = MetaDataManager(path="res/metadata.csv")
 
         player = UiPlayer(tkroot=self.root, vlc_instance=instance, metadata_manager=metadata_manager)
+
+        self.sequence_manager = UiSequenceManager(tkroot=self.root, ui_player=player, path="res/sequence.xml")
+        
         self.sequencer = MainSequencer(ui_player=player)
 
         def on_close():
