@@ -7,6 +7,7 @@ import os
 import time
 import magic
 import csv
+import xml.etree.ElementTree as ET
 
 class UiPlayer():
     """! Main UI Window
@@ -171,6 +172,7 @@ class UiPlayer():
         return self.media_frames[index_active_player].media_player
 
     def pause_resume(self):
+        #TODO pause the fade mechanisms as well
         player = self._get_active_media_player()
         player.pause()
         pass
@@ -212,12 +214,14 @@ class MainSequencer():
 
 
     def sequencer_thread(self):
+
+        return
         #gather list of files
         fichiers = os.listdir("res/clips/")
         while self.is_running_flag:
             # TODO UiSequenceManager get sequence
             # get_next_video()
-            
+
             for i, fichier in enumerate(fichiers):
                 print("Playing " + fichier)
                 # Verify its a Media file before trying to play it 
@@ -233,6 +237,10 @@ class UiSequenceManager:
         Open a UI to visualize and modify the sequence 
     """
     ui_player = None
+    sequence_view = None
+    sequence_data = None
+    xml_root = None
+    title = ""
     def __init__(self, tkroot, ui_player, path):
         """! The Sequence manager initializer
             @param path : path the sequence file 
@@ -242,31 +250,101 @@ class UiSequenceManager:
         # start UI 
 
         # panel to hold buttons
-        self.buttons_panel = tk.Toplevel(tkroot)
-        self.buttons_panel.title("")
-        self.is_buttons_panel_anchor_active = False
+        self.ui_sequence_manager = tk.Toplevel(tkroot)
+        self.ui_sequence_manager.title("Sequence Manager")
 
-        buttons = ttk.Frame(self.buttons_panel)
+        buttons = ttk.Frame(self.ui_sequence_manager)
 
-        self.pause_button= ttk.Button(buttons, text="Pause/Resume", command=self.on_pause)
-        self.mute_button = ttk.Button(buttons, text="Mute/Unmute", command=self.on_mute)
+        self.pause_button= ttk.Button(buttons, text="Pause/Resume", command=self.ui_player.pause_resume)
+        self.mute_button = ttk.Button(buttons, text="Mute/Unmute", command= self.ui_player.mute_trigger)
         self.pause_button.pack(side=tk.LEFT)
         self.mute_button.pack(side=tk.LEFT)
         buttons.pack(side=tk.BOTTOM, fill=tk.X)
+
+        self.sequence_view = ttk.Frame(self.ui_sequence_manager,width=1000, height=500)
+        self.sequence_view.pack(side=tk.TOP, fill=tk.X)
+
         # Read file
-        pass
+        tree = ET.parse(path)
+        self.xml_root = tree.getroot()
+    
+    class SequenceBlock:
+        child_sequence = []
+        block_type = None
+        block_args = None
+        def __init__(self, block_type, block_args = None):
+            self.block_type = block_type
+            self.block_args = block_args
+
+        def add_block(self, block):
+            self.child_sequence.append(block)
+
+        def __str__(self):
+            str_childs = "[ " + str(len(self.child_sequence)) + " childs ] "
+
+            if self.block_type == "repeat":
+                return str_childs + "Repeat " + self.block_args + " times"
+            if self.block_type == "video":
+                return str_childs + "Video : " + self.block_args
+            if self.block_type == "randomvideo":
+                return (str_childs + "RandomVideo from dir : " + self.block_args[0]
+                                + " and timeout " + self.block_args[1])
+            if self.block_type is not None:
+                return self.block_type 
+            return "Block unknown .. Error"
+        
+    def _build_sequence(self, sequence_xml_node, sequence_data_node):
+        for child in sequence_xml_node:
+            print(child.tag, child.attrib)
+            if child.tag == "Repeat":
+                nb_times = child.attrib['nb_time']
+                #block = self.SequenceBlock("repeat", nb_times)
+                for i in range(int(nb_times)):
+                    self._build_sequence(sequence_xml_node=child, sequence_data_node=sequence_data_node)
+                #sequence_data_node.add_block(block)
+            if child.tag == "Video":
+                path = child.attrib['path']
+                block = self.SequenceBlock("video", path)
+                sequence_data_node.add_block(block)
+            if child.tag == "RandomVideo":
+                path = child.attrib['path']
+                reselect_timeout = child.attrib['reselect_timeout']
+                block = self.SequenceBlock("randomvideo", (path, reselect_timeout))
+                sequence_data_node.add_block(block)
+                 
+    def _flatten_sequence(self, sequence_data_node):
+        """! Resolves the repeat blocks by flattening the loops """
+        for child in sequence_data_node.child_sequence:
+            print(child)
+            print("=== And its childs : ")
+            for child_2 in child.child_sequence:
+                print(child_2)
+            print("=== STOP")
 
 
-    def on_pause(self, *unused):
-        self.ui_player.pause_resume()
-        pass
-    def on_mute(self, *unused):
-        self.ui_player.mute_trigger()
-        pass
+            #if (len(child.child_sequence) > 0):
 
-    def build_sequence():
-        pass
-    def get_next_video():
+        
+
+    def load_sequence(self):
+        if self.xml_root is None:
+            return
+        assert(self.xml_root.tag == 'Document')
+        for child in self.xml_root:
+            print(child.tag, child.attrib)
+            if child.tag == "Title":
+                print("Title of the sequence : " + child.text)
+                self.title = child.text
+            if child.tag == "Sequence":
+                print("Sequence found!")
+                
+                self.sequence_data = self.SequenceBlock("sequence")
+                self._build_sequence(sequence_xml_node=child,
+                                     sequence_data_node=self.sequence_data)
+        self._flatten_sequence(self.sequence_data)
+
+
+    def get_next_video(self):
         pass
 
 class MetaDataManager:
@@ -329,12 +407,6 @@ class MetaDataManager:
                 print ("WARNING ! Multiple metadata entries for video " + video_name + ". Taking first one")
             return it[0]
 
-        
-        
-
-
-
-
 class MainManager:
     """! Main manager of the program
          
@@ -346,17 +418,14 @@ class MainManager:
     def __init__(self):
         """! The main manager initializer"""
         self.root = tk.Tk()
-
-        # VLC player
+        # These arguments allow audio crossfading : each player has an individual sound
         instance = vlc.Instance(['--aout=directsound', '--directx-volume=0.35'])
-
         metadata_manager = MetaDataManager(path="res/metadata.csv")
-
         player = UiPlayer(tkroot=self.root, vlc_instance=instance, metadata_manager=metadata_manager)
-
         self.sequence_manager = UiSequenceManager(tkroot=self.root, ui_player=player, path="res/sequence.xml")
-        
         self.sequencer = MainSequencer(ui_player=player)
+
+        self.sequence_manager.load_sequence()
 
         def on_close():
             self.sequencer.kill()
