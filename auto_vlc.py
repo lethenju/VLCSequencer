@@ -7,6 +7,7 @@ import os
 import time
 import magic
 import csv
+import random
 import xml.etree.ElementTree as ET
 
 class UiPlayer():
@@ -201,10 +202,12 @@ class MainSequencer():
 
     is_running_flag = False
     ui_player =  None
+    ui_sequencer = None
     thread = None
 
-    def __init__(self, ui_player):
+    def __init__(self, ui_player, ui_sequencer):
         self.ui_player = ui_player
+        self.ui_sequencer = ui_sequencer
 
     # Launch the sequencer thread
     def launch_sequencer(self):
@@ -214,19 +217,9 @@ class MainSequencer():
 
 
     def sequencer_thread(self):
-
-        return
-        #gather list of files
-        fichiers = os.listdir("res/clips/")
-        while self.is_running_flag:
-            # TODO UiSequenceManager get sequence
-            # get_next_video()
-
-            for i, fichier in enumerate(fichiers):
-                print("Playing " + fichier)
-                # Verify its a Media file before trying to play it 
-                if ("Media" in magic.from_file("res/clips/" + fichier)):
-                    self.ui_player.play(path="res/clips/" + fichier)
+        while (self.is_running_flag):
+            path = self.ui_sequencer.get_next_video()
+            self.ui_player.play(path=path)
     def kill(self):
         self.is_running_flag = False
         self.ui_player.kill()
@@ -235,8 +228,9 @@ class SequenceBlock:
     child_sequence = []
     block_type = None
     block_args = None
-    
+    ui_frame = None
     def __init__(self, block_type, block_args = None):
+        self.ui_frame = None
         self.child_sequence = []
         self.block_type = block_type
         self.block_args = block_args
@@ -245,23 +239,21 @@ class SequenceBlock:
         self.child_sequence.append(block)
 
     def __str__(self):
-        str_childs = "[ " + str(len(self.child_sequence)) + " childs ] "
-
         if self.block_type == "repeat":
-            return str_childs + "Repeat " + self.block_args + " times"
+            return "Repeat " + self.block_args + " times"
         if self.block_type == "video":
-            return str_childs + "Video : " + self.block_args
+            return "Video : " + self.block_args
         if self.block_type == "randomvideo":
-            return (str_childs + "RandomVideo from dir : " + self.block_args[0]
+            return ("RandomVideo from dir : " + self.block_args[0]
                             + " and timeout " + self.block_args[1])
         if self.block_type == "sequence":
-            sequence_description = (str_childs + "Sequence :\n")
+            sequence_description = ("Sequence :\n")
             for child in self.child_sequence:
                 sequence_description = sequence_description + child.__str__() + "\n"
             return sequence_description
         
         if self.block_type is not None:
-            return str_childs + " " + self.block_type 
+            return self.block_type 
         return "Block unknown .. Error"
     
 class UiSequenceManager:
@@ -274,6 +266,8 @@ class UiSequenceManager:
     sequence_data = None
     xml_root = None
     title = ""
+    index_playing_video = -1
+
     def __init__(self, tkroot, ui_player, path):
         """! The Sequence manager initializer
             @param path : path the sequence file 
@@ -344,12 +338,51 @@ class UiSequenceManager:
                 self._build_sequence(sequence_xml_node=child,
                                      sequence_data_node=self.sequence_data)
         self._flatten_sequence(self.sequence_data)
-
         print(self.sequence_data)
 
+        # Fill the UI
+        for i, child in enumerate(self.sequence_data.child_sequence):
+            child.ui_frame = tk.Frame(self.sequence_view, bg="white", width=400, height=50)
+            child.ui_frame.pack(side=tk.TOP, padx=10,  pady=20, fill=tk.BOTH, expand=True)
+            child.ui_frame.pack_propagate(False)
+            tk.Label(child.ui_frame, text=str(i)).pack(padx=5, pady=5,fill="none", expand=False)
+            tk.Label(child.ui_frame, text=child.__str__()).pack(padx=5, pady=5,fill="both", expand=True)
 
-    def get_next_video(self):
-        pass
+
+
+    def get_next_video(self):                        
+        if self.index_playing_video > -1:
+            # Reset frame options
+            self.sequence_data.child_sequence[self.index_playing_video].ui_frame.configure(bg="white")
+
+        # Incrementing the sequence and setting the selected frame in color
+        self.index_playing_video = (self.index_playing_video + 1) % len(self.sequence_data.child_sequence)
+        self.sequence_data.child_sequence[self.index_playing_video].ui_frame.configure(bg="blue")
+
+        # Gathering the video details
+        video =  self.sequence_data.child_sequence[self.index_playing_video]
+        if video.block_type == "randomvideo":
+            path    = video.block_args[0] 
+            timeout = video.block_args[1]
+            
+            # TODO implement timeout
+
+            #gather list of files
+            files = os.listdir("res/" + path)
+            video_found = None
+            while video_found is None:
+                file = files[random.randrange(len(files))]
+                complete_path = "res/" + path + "/" + file
+                print("Testing " + complete_path)
+                # Verify its a Media file before trying to play it 
+                if ("Media" in magic.from_file(complete_path)):
+                    video_found = complete_path
+            return video_found
+                        
+        elif video.block_type == "video":
+            path    = video.block_args
+            return  "res/" + path
+            
 
 class MetaDataManager:
     """! Reads and open up API to the video metadata csv
@@ -427,9 +460,9 @@ class MainManager:
         metadata_manager = MetaDataManager(path="res/metadata.csv")
         player = UiPlayer(tkroot=self.root, vlc_instance=instance, metadata_manager=metadata_manager)
         self.sequence_manager = UiSequenceManager(tkroot=self.root, ui_player=player, path="res/sequence.xml")
-        self.sequencer = MainSequencer(ui_player=player)
-
         self.sequence_manager.load_sequence()
+
+        self.sequencer = MainSequencer(ui_player=player, ui_sequencer=self.sequence_manager)
 
         def on_close():
             self.sequencer.kill()
