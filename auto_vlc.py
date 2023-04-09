@@ -30,20 +30,22 @@ class UiPlayer():
 
     vlc_instance = None
     metadata_manager = None
+    is_next_asked = False
 
     class MediaFrame:
         """! Structure that links a Tkinter frame with a Vlc media player """
         media_player = None # A Vlc media player
         ui_frame = None     # Tkinter frame
+
         def __init__(self, media_player, ui_frame):
             self.media_player = media_player
             self.ui_frame = ui_frame
 
     media_frames = None # List (tuple) of media frames
 
+
     def __init__(self, tkroot, vlc_instance, metadata_manager):
         """! Initialize the main display window """
-
         # Main window initialisation
         self.window = tkroot
         self.window.title("MainUI")
@@ -51,6 +53,8 @@ class UiPlayer():
 
         self.vlc_instance = vlc_instance
         self.metadata_manager = metadata_manager
+
+        self.is_next_asked = False
 
         # 2 players (one for each frame)
         # Initialize media frames with the players and new tk frames. Setting bg colors for debugging if something goes wrong
@@ -98,7 +102,7 @@ class UiPlayer():
             """! Thread to handle fade in on this player"""
             player.audio_set_volume(0)
             volume = player.audio_get_volume()
-            while (volume < 100 and self.is_running_flag):
+            while (volume < 100 and self.is_running_flag and not self.is_next_asked):
                 print("fade_in Volume : " + str(volume))
                 volume = volume + 5
                 if not self.is_muted:
@@ -109,7 +113,7 @@ class UiPlayer():
         def fade_out_thread():
             """! Thread to handle fade out on this player"""
             volume = player.audio_get_volume()
-            while (volume > 0 and self.is_running_flag):
+            while (volume > 0 and self.is_running_flag and not self.is_next_asked):
                 print("fade_out Volume : " + str(volume))
                 volume = volume - 5
                 player.audio_set_volume(volume)
@@ -126,7 +130,7 @@ class UiPlayer():
         else:
             end_position = 0.95
     
-        while (player.get_position() < end_position  and self.is_running_flag):
+        while (player.get_position() < end_position  and self.is_running_flag and not self.is_next_asked):
             time.sleep(1)
             print("Current media playing time "+("{:.2f}".format(player.get_position()*100))+"%")
 
@@ -134,6 +138,8 @@ class UiPlayer():
             threading.Thread(target=fade_out_thread).start()
         else:
             player.audio_set_volume(0)
+
+        self.is_next_asked = False
 
     def play(self, path):
         """! Main play API
@@ -189,14 +195,15 @@ class UiPlayer():
             self.is_muted = False
             player.audio_set_volume(self.current_volume)
 
+    def next(self):
+        self.is_next_asked = True
+
+
     def kill(self):
         """! Kill the window and release the vlc instance """
         self.is_running_flag = False
         self.window.destroy()        
         self.vlc_instance.release()
-
-
-
 
 class MainSequencer():
     """! Handle the sequencing of videos to be played back """
@@ -226,18 +233,18 @@ class MainSequencer():
         self.ui_player.kill()
 
 class SequenceBlock:
-    child_sequence = []
+    inner_sequence = []
     block_type = None
     block_args = None
     ui_frame = None
     def __init__(self, block_type, block_args = None):
         self.ui_frame = None
-        self.child_sequence = []
+        self.inner_sequence = []
         self.block_type = block_type
         self.block_args = block_args
 
     def add_block(self, block):
-        self.child_sequence.append(block)
+        self.inner_sequence.append(block)
 
     def __str__(self):
         if self.block_type == "repeat":
@@ -249,7 +256,7 @@ class SequenceBlock:
                             + " and timeout " + self.block_args[1])
         if self.block_type == "sequence":
             sequence_description = ("Sequence :\n")
-            for child in self.child_sequence:
+            for child in self.inner_sequence:
                 sequence_description = sequence_description + child.__str__() + "\n"
             return sequence_description
         
@@ -284,9 +291,12 @@ class UiSequenceManager:
         buttons = ttk.Frame(self.ui_sequence_manager)
 
         self.pause_button= ttk.Button(buttons, text="Pause/Resume", command=self.ui_player.pause_resume)
-        self.mute_button = ttk.Button(buttons, text="Mute/Unmute", command= self.ui_player.mute_trigger)
+        self.mute_button = ttk.Button(buttons, text="Mute/Unmute",  command= self.ui_player.mute_trigger)
+        self.next_button = ttk.Button(buttons, text="Next",         command= self.ui_player.next)
         self.pause_button.pack(side=tk.LEFT)
         self.mute_button.pack(side=tk.LEFT)
+        self.next_button.pack(side=tk.LEFT)
+    
         buttons.pack(side=tk.BOTTOM, fill=tk.X)
 
         self.sequence_view = ttk.Frame(self.ui_sequence_manager,width=1000, height=500)
@@ -315,13 +325,13 @@ class UiSequenceManager:
                  
     def _flatten_sequence(self, sequence_data_node):
         """! Resolves the repeat blocks by flattening the loops """
-        for i, child in enumerate(sequence_data_node.child_sequence):
-            if (child.block_type == "repeat"):
-                for _ in range(int(child.block_args)):
-                    for child_2 in child.child_sequence:
-                        self._flatten_sequence(child_2)
-                        sequence_data_node.child_sequence.insert(i, copy.copy(child_2))
-                sequence_data_node.child_sequence.remove(child)
+        for i, block in enumerate(sequence_data_node.inner_sequence):
+            if (block.block_type == "repeat"):
+                for _ in range(int(block.block_args)):
+                    for block_child in block.inner_sequence:
+                        self._flatten_sequence(block_child)
+                        sequence_data_node.inner_sequence.insert(i, copy.copy(block_child))
+                sequence_data_node.inner_sequence.remove(block)
 
     def load_sequence(self):
         if self.xml_root is None:
@@ -342,30 +352,30 @@ class UiSequenceManager:
         print(self.sequence_data)
 
         # Fill the UI
-        for i, child in enumerate(self.sequence_data.child_sequence):
-            child.ui_frame = tk.Frame(self.sequence_view, bg="white", width=400, height=50)
-            child.ui_frame.pack(side=tk.TOP, padx=10,  pady=20, fill=tk.BOTH, expand=True)
+        for i, child in enumerate(self.sequence_data.inner_sequence):
+            child.ui_frame = tk.Frame(self.sequence_view, bg="white", width=200, height=50)
+            child.ui_frame.pack(side=tk.LEFT, padx=10,  pady=20, fill=tk.BOTH, expand=True)
             child.ui_frame.pack_propagate(False)
             tk.Label(child.ui_frame, text=str(i)).pack(padx=5, pady=5,fill="none", expand=False)
-            tk.Label(child.ui_frame, text=child.__str__()).pack(padx=5, pady=5,fill="both", expand=True)
+            tk.Label(child.ui_frame, text=child.block_type).pack(padx=5, pady=5,fill="both", expand=True)
 
     def get_next_video(self):                        
         if self.index_playing_video > -1:
             # Reset frame options
-            self.sequence_data.child_sequence[self.index_playing_video].ui_frame.configure(bg="white")
+            self.sequence_data.inner_sequence[self.index_playing_video].ui_frame.configure(bg="white")
 
         # Incrementing the sequence and setting the selected frame in color
-        self.index_playing_video = (self.index_playing_video + 1) % len(self.sequence_data.child_sequence)
-        self.sequence_data.child_sequence[self.index_playing_video].ui_frame.configure(bg="blue")
+        self.index_playing_video = (self.index_playing_video + 1) % len(self.sequence_data.inner_sequence)
+        self.sequence_data.inner_sequence[self.index_playing_video].ui_frame.configure(bg="blue")
 
         # Gathering the video details
-        video =  self.sequence_data.child_sequence[self.index_playing_video]
+        video =  self.sequence_data.inner_sequence[self.index_playing_video]
         if video.block_type == "randomvideo":
             path    = video.block_args[0] 
             timeout = video.block_args[1]
             
             # TODO implement timeout
-
+            # TODO Build next videos in advance
             #gather list of files
             files = os.listdir("res/" + path)
             video_found = None
