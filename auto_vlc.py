@@ -5,8 +5,9 @@ import threading
 import os
 import time
 import magic
+import csv
 
-class UiPlayer(tk.Frame):
+class UiPlayer():
     """! Main UI Window
 
         Display the videos in 2 separate frames
@@ -23,6 +24,7 @@ class UiPlayer(tk.Frame):
     is_running_flag = False     # Flag to kill application carefully
 
     vlc_instance = None
+    metadata_manager = None
 
     class MediaFrame:
         """! Structure that links a Tkinter frame with a Vlc media player """
@@ -34,7 +36,7 @@ class UiPlayer(tk.Frame):
 
     media_frames = None # List (tuple) of media frames
 
-    def __init__(self, tkroot, vlc_instance):
+    def __init__(self, tkroot, vlc_instance, metadata_manager):
         """! Initialize the main display window """
 
         # Main window initialisation
@@ -43,6 +45,7 @@ class UiPlayer(tk.Frame):
         self.window.geometry("400x300")
 
         self.vlc_instance = vlc_instance
+        self.metadata_manager = metadata_manager
 
         # 2 players (one for each frame)
         # Initialize media frames with the players and new tk frames. Setting bg colors for debugging if something goes wrong
@@ -60,7 +63,8 @@ class UiPlayer(tk.Frame):
         self.window.bind("<F11>", toggle_full_screen)
         self.is_running_flag = True
 
-    def _play_on_specific_frame(self, media, index_media_players):
+    def _play_on_specific_frame(self, media, index_media_players, 
+                                begin_s = 0, end_s = 0, fade_in = False, fade_out= False):
         """! Main play function.
             @param media : The Vlc Media instance 
             @param index_media_players the index of the media frame to use this time
@@ -78,9 +82,13 @@ class UiPlayer(tk.Frame):
         # TODO Linux comp
         h = frame.winfo_id() 
         player.set_hwnd(h)
+        length_s =  media.get_duration()/1000
 
+        if end_s == 0:
+            end_s = length_s
         player.play()
-        player.set_position(0.75) 
+
+        player.set_position(begin_s/length_s) 
         def fade_in_thread():
             """! Thread to handle fade in on this player"""
             player.audio_set_volume(0)
@@ -100,13 +108,25 @@ class UiPlayer(tk.Frame):
                 player.audio_set_volume(volume)
                 time.sleep(0.5)
             player.stop()
-        threading.Thread(target=fade_in_thread).start()
+        if fade_in:
+            threading.Thread(target=fade_in_thread).start()
+        else:
+            player.audio_set_volume(100)
 
-        while (player.get_position() < 0.80 and self.is_running_flag):
+        # Fix : If the end is the actual end, we may never reach it.
+        if end_s != length_s:
+            end_position = end_s/length_s
+        else:
+            end_position = 0.95
+    
+        while (player.get_position() < end_position  and self.is_running_flag):
             time.sleep(1)
             print("Current media playing time "+("{:.2f}".format(player.get_position()*100))+"%")
-        threading.Thread(target=fade_out_thread).start()
 
+        if fade_out:
+            threading.Thread(target=fade_out_thread).start()
+        else:
+            player.audio_set_volume(0)
 
     def play(self, path):
         """! Main play API
@@ -114,12 +134,32 @@ class UiPlayer(tk.Frame):
             @param path : Path to the video file to play
         """
         if self.is_running_flag:
+
             media = self.vlc_instance.media_new(path)
-            # 2 frames to enable crossfading between clips : a frame for each clip
-            if (self.media_frames[0].media_player.is_playing()):
-                self._play_on_specific_frame(media, index_media_players=1)
+            
+            # TODO Blockingless parsing time : thread ?
+            media.parse_with_options(1,0)
+            # Blocking the parsing time
+            while self.is_running_flag:
+                if str(media.get_parsed_status()) == 'MediaParsedStatus.done':
+                    break
+            
+            # If media 0 is playing, the index has to be one, otherwise its 0
+            # so its equivalent to ask directly the question if the media 0 is playing
+            index_to_be_played = self.media_frames[0].media_player.is_playing()
+
+            # Try to get metadata about this video
+            name_of_file = path.split("/").pop()
+            metadata =  self.metadata_manager.get_metadata(video_name=name_of_file)
+            
+            if metadata is not None:
+                self._play_on_specific_frame(media, index_media_players=index_to_be_played, 
+                                            begin_s = metadata.timestamp_begin, 
+                                            end_s = metadata.timestamp_end, 
+                                            fade_in = metadata.fade_in, 
+                                            fade_out = metadata.fade_out)
             else:
-                self._play_on_specific_frame(media, index_media_players=0)
+                self._play_on_specific_frame(media, index_media_players=index_to_be_played)
 
     def kill(self):
         """! Kill the window and release the vlc instance """
@@ -151,29 +191,37 @@ class MainSequencer():
         #gather list of files
         fichiers = os.listdir("res/clips/")
         while self.is_running_flag:
+            # TODO UiSequenceManager get sequence
+            # get_next_video()
+            # MetaDataManager get Metadata
+            # self.ui_player.play(path, begin_s, end_s, is_fadein, is_fadeout)
+
             for i, fichier in enumerate(fichiers):
-                # TODO not start everyfile directly 
-                # Have some static (dynamic ?) sequencing capabilities
-                # For example : 
-                # [
-                #   -> Music  : res/clip -> Take random videos from here *2
-                #   -> Jingle : res/jingle -> jingle video for the TV
-                #   -> Ads    : res/ads -> Take random videos from here 
-                # ]
-                # Parse Sequence file
-                # And build an actual sequence
-                # Add a UI frame (on a different window) to preview (and control) the sequence
-
-                # TODO Read the actual beginning and end timestamps from a file
-                # TODO from that file, if needed fadein and/or fadeout
-                # Csv : filename,startimestamp, endtimestamp, is_audio_fadein, is_audio_fadeout
-
-                print("Lecture de " + fichier)
+                print("Playing " + fichier)
+                # Verify its a Media file before trying to play it 
                 if ("Media" in magic.from_file("res/clips/" + fichier)):
                     self.ui_player.play(path="res/clips/" + fichier)
     def kill(self):
         self.is_running_flag = False
         self.ui_player.kill()
+
+class UiSequenceManager:
+    """! Reads the sequence description and builds the video sequence 
+
+        Open a UI to visualize and modify the sequence 
+    """
+    def __init__(self, path):
+        """! The Sequence manager initializer
+            @param path : path the sequence file 
+            @return An instance of a UiSequenceManager
+        """
+        # start UI 
+        # Read file
+        pass
+    def build_sequence():
+        pass
+    def get_next_video():
+        pass
 
 class MetaDataManager:
     """! Reads and open up API to the video metadata csv
@@ -183,12 +231,58 @@ class MetaDataManager:
          and fade in/out options
          Gives also the volume to be set by video in order to have an equalized output
     """
+    class MetaDataEntry:
+        video_name      = ""
+        timestamp_begin = 0
+        timestamp_end = 0
+        fade_in = False
+        fade_out = False
+        def __init__(self, video_name, timestamp_begin, timestamp_end, fade_in, fade_out):
+            self.video_name      = video_name
+            self.timestamp_begin = timestamp_begin
+            self.timestamp_end = timestamp_end
+            self.fade_in = fade_in
+            self.fade_out = fade_out
+
+    metadata_list = []
+
     def __init__(self, path):
         """! The MetaData manager initializer
             @param path : path the csv metadata file 
             @return An instance of a MetaDataManager
         """
-        pass
+        with open(path, newline='') as csvfile:
+            csvdata = csv.reader(csvfile, delimiter=',')
+            for line in csvdata:
+                # The csv has to be well formed
+                assert(len(line) == 5)
+
+                # Format the timestamps in seconds
+                def get_sec(time_str):
+                    m, s = time_str.split(':')
+                    return int(m) * 60 + int(s)
+                
+                self.metadata_list.append(
+                    self.MetaDataEntry(video_name=line[0], 
+                                       timestamp_begin=get_sec(line[1]),
+                                       timestamp_end=get_sec(line[2]),
+                                       fade_in = line[3] == 'y',
+                                       fade_out = line[4] == 'y')
+                    )
+    
+    def get_metadata(self, video_name):
+        it = list(filter(lambda meta: (meta.video_name==video_name), self.metadata_list))
+        if len(it) == 0:
+            print ("ERROR ! No metadata entries found for video " + video_name)
+        else:
+            if len(it) > 1:
+                print ("WARNING ! Multiple metadata entries for video " + video_name + ". Taking first one")
+            return it[0]
+
+        
+        
+
+
 
 
 class MainManager:
@@ -206,7 +300,9 @@ class MainManager:
         # VLC player
         instance = vlc.Instance(['--aout=directsound', '--directx-volume=0.35'])
 
-        player = UiPlayer(tkroot=self.root, vlc_instance=instance)
+        metadata_manager = MetaDataManager(path="res/metadata.csv")
+
+        player = UiPlayer(tkroot=self.root, vlc_instance=instance, metadata_manager=metadata_manager)
         self.sequencer = MainSequencer(ui_player=player)
 
         def on_close():
