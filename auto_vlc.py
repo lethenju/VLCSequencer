@@ -9,6 +9,7 @@ import magic
 import csv
 import random
 import xml.etree.ElementTree as ET
+import copy
 
 class UiPlayer():
     """! Main UI Window
@@ -319,7 +320,7 @@ class UiSequenceManager:
                 for _ in range(int(child.block_args)):
                     for child_2 in child.child_sequence:
                         self._flatten_sequence(child_2)
-                        sequence_data_node.child_sequence.insert(i, child_2)
+                        sequence_data_node.child_sequence.insert(i, copy.copy(child_2))
                 sequence_data_node.child_sequence.remove(child)
 
     def load_sequence(self):
@@ -347,8 +348,6 @@ class UiSequenceManager:
             child.ui_frame.pack_propagate(False)
             tk.Label(child.ui_frame, text=str(i)).pack(padx=5, pady=5,fill="none", expand=False)
             tk.Label(child.ui_frame, text=child.__str__()).pack(padx=5, pady=5,fill="both", expand=True)
-
-
 
     def get_next_video(self):                        
         if self.index_playing_video > -1:
