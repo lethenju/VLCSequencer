@@ -231,6 +231,39 @@ class MainSequencer():
         self.is_running_flag = False
         self.ui_player.kill()
 
+class SequenceBlock:
+    child_sequence = []
+    block_type = None
+    block_args = None
+    
+    def __init__(self, block_type, block_args = None):
+        self.child_sequence = []
+        self.block_type = block_type
+        self.block_args = block_args
+
+    def add_block(self, block):
+        self.child_sequence.append(block)
+
+    def __str__(self):
+        str_childs = "[ " + str(len(self.child_sequence)) + " childs ] "
+
+        if self.block_type == "repeat":
+            return str_childs + "Repeat " + self.block_args + " times"
+        if self.block_type == "video":
+            return str_childs + "Video : " + self.block_args
+        if self.block_type == "randomvideo":
+            return (str_childs + "RandomVideo from dir : " + self.block_args[0]
+                            + " and timeout " + self.block_args[1])
+        if self.block_type == "sequence":
+            sequence_description = (str_childs + "Sequence :\n")
+            for child in self.child_sequence:
+                sequence_description = sequence_description + child.__str__() + "\n"
+            return sequence_description
+        
+        if self.block_type is not None:
+            return str_childs + " " + self.block_type 
+        return "Block unknown .. Error"
+    
 class UiSequenceManager:
     """! Reads the sequence description and builds the video sequence 
 
@@ -267,64 +300,33 @@ class UiSequenceManager:
         # Read file
         tree = ET.parse(path)
         self.xml_root = tree.getroot()
-    
-    class SequenceBlock:
-        child_sequence = []
-        block_type = None
-        block_args = None
-        def __init__(self, block_type, block_args = None):
-            self.block_type = block_type
-            self.block_args = block_args
-
-        def add_block(self, block):
-            self.child_sequence.append(block)
-
-        def __str__(self):
-            str_childs = "[ " + str(len(self.child_sequence)) + " childs ] "
-
-            if self.block_type == "repeat":
-                return str_childs + "Repeat " + self.block_args + " times"
-            if self.block_type == "video":
-                return str_childs + "Video : " + self.block_args
-            if self.block_type == "randomvideo":
-                return (str_childs + "RandomVideo from dir : " + self.block_args[0]
-                                + " and timeout " + self.block_args[1])
-            if self.block_type is not None:
-                return self.block_type 
-            return "Block unknown .. Error"
         
     def _build_sequence(self, sequence_xml_node, sequence_data_node):
         for child in sequence_xml_node:
-            print(child.tag, child.attrib)
             if child.tag == "Repeat":
                 nb_times = child.attrib['nb_time']
-                #block = self.SequenceBlock("repeat", nb_times)
-                for i in range(int(nb_times)):
-                    self._build_sequence(sequence_xml_node=child, sequence_data_node=sequence_data_node)
-                #sequence_data_node.add_block(block)
+                block = SequenceBlock("repeat", nb_times)
+                self._build_sequence(sequence_xml_node=child, sequence_data_node=block)
+                sequence_data_node.add_block(block)
             if child.tag == "Video":
                 path = child.attrib['path']
-                block = self.SequenceBlock("video", path)
+                block = SequenceBlock("video", path)
                 sequence_data_node.add_block(block)
             if child.tag == "RandomVideo":
                 path = child.attrib['path']
                 reselect_timeout = child.attrib['reselect_timeout']
-                block = self.SequenceBlock("randomvideo", (path, reselect_timeout))
+                block = SequenceBlock("randomvideo", (path, reselect_timeout))
                 sequence_data_node.add_block(block)
                  
     def _flatten_sequence(self, sequence_data_node):
         """! Resolves the repeat blocks by flattening the loops """
-        for child in sequence_data_node.child_sequence:
-            print(child)
-            print("=== And its childs : ")
-            for child_2 in child.child_sequence:
-                print(child_2)
-            print("=== STOP")
-
-
-            #if (len(child.child_sequence) > 0):
-
-        
+        for i, child in enumerate(sequence_data_node.child_sequence):
+            if (child.block_type == "repeat"):
+                for _ in range(int(child.block_args)):
+                    for child_2 in child.child_sequence:
+                        self._flatten_sequence(child_2)
+                        sequence_data_node.child_sequence.insert(i, child_2)
+                sequence_data_node.child_sequence.remove(child)
 
     def load_sequence(self):
         if self.xml_root is None:
@@ -338,10 +340,12 @@ class UiSequenceManager:
             if child.tag == "Sequence":
                 print("Sequence found!")
                 
-                self.sequence_data = self.SequenceBlock("sequence")
+                self.sequence_data = SequenceBlock("sequence")
                 self._build_sequence(sequence_xml_node=child,
                                      sequence_data_node=self.sequence_data)
         self._flatten_sequence(self.sequence_data)
+
+        print(self.sequence_data)
 
 
     def get_next_video(self):
