@@ -103,7 +103,7 @@ class UiPlayer():
             volume = player.audio_get_volume()
             while (volume < 100 and self.is_running_flag and not self.is_next_asked):
                 print("fade_in Volume : " + str(volume))
-                volume = volume + 5
+                volume = min(volume + 5, 100) 
                 if not self.is_muted:
                     player.audio_set_volume(volume)
                 time.sleep(0.5)
@@ -355,6 +355,7 @@ class UiSequenceManager:
             # Verify its a Media file before trying to play it 
 
             # TODO Verify the clip hasnt played since "timeout" minutes
+            # Search history + last programmed videos
             if ("Media" in magic.from_file(complete_path)):
                 video_found = complete_path
         return video_found
@@ -456,9 +457,9 @@ class MetaDataManager:
         def __init__(self, video_name, timestamp_begin, timestamp_end, fade_in, fade_out):
             self.video_name      = video_name
             self.timestamp_begin = timestamp_begin
-            self.timestamp_end = timestamp_end
-            self.fade_in = fade_in
-            self.fade_out = fade_out
+            self.timestamp_end   = timestamp_end
+            self.fade_in         = fade_in
+            self.fade_out        = fade_out
 
     metadata_list = []
 
@@ -511,7 +512,7 @@ class MainManager:
         """! The main manager initializer"""
         self.root = tk.Tk()
         # These arguments allow audio crossfading : each player has an individual sound
-        instance = vlc.Instance(['--aout=directsound', '--directx-volume=0.35'])
+        instance = vlc.Instance(['--aout=directsound', '--directx-volume=1.00'])
         metadata_manager = MetaDataManager(path="res/metadata.csv")
         player = UiPlayer(tkroot=self.root, vlc_instance=instance, metadata_manager=metadata_manager)
         self.sequence_manager = UiSequenceManager(tkroot=self.root, vlc_instance=instance, ui_player=player, path="res/sequence.xml")
