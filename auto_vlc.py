@@ -266,6 +266,7 @@ class UiSequenceManager:
     """
     ui_player = None
     sequence_view = None
+    history_view = None
     sequence_data = None
     xml_root = None
     vlc_instance = None # To get true metadata about the video (length..)
@@ -298,6 +299,17 @@ class UiSequenceManager:
 
         self.sequence_view = ttk.Frame(self.ui_sequence_manager,width=1000, height=500)
         self.sequence_view.pack(side=tk.TOP, fill=tk.X)
+        
+        self.history_view = ttk.Frame(self.ui_sequence_manager,width=1000, height=600)
+        self.history_view.pack(side=tk.TOP, fill=tk.X)
+
+        scrollbar = tk.Scrollbar(self.history_view)
+        scrollbar.pack( side = tk.RIGHT, fill = tk.Y )
+
+        self.history_listbox = tk.Listbox(self.history_view, yscrollcommand = scrollbar.set, width= 200 )
+
+        self.history_listbox.pack( side = tk.LEFT, fill = tk.BOTH )
+        scrollbar.config( command = self.history_listbox.yview )
 
         # Read file
         tree = ET.parse(path)
@@ -395,6 +407,7 @@ class UiSequenceManager:
 
         # Fill the UI
         for i, block in enumerate(self.sequence_data.inner_sequence):
+            # TODO light colors for each block_type
             block.ui_frame = tk.Frame(self.sequence_view, bg="white", width=200, height=50)
             block.ui_frame.pack(side=tk.LEFT, padx=10,  pady=20, fill=tk.BOTH, expand=True)
             block.ui_frame.pack_propagate(False)
@@ -408,8 +421,10 @@ class UiSequenceManager:
     def get_next_video(self):                        
         if self.index_playing_video > -1:
             # Reset frame options
-            self.sequence_data.inner_sequence[self.index_playing_video].ui_frame.configure(bg="white")
-        
+            self.sequence_data.inner_sequence[self.index_playing_video].ui_frame.configure(bg="white")        
+            # Add to the history
+            self.history_listbox.insert(tk.ANCHOR, self.sequence_data.inner_sequence[self.index_playing_video].path)
+
         # Resolve the sext sequence
         if self.index_playing_video == len(self.sequence_data.inner_sequence) - 1:
             self._resolve_sequence()
