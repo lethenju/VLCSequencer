@@ -72,7 +72,7 @@ class UiPlayer():
         self.window.bind("<F11>", toggle_full_screen)
         self.is_running_flag = True
 
-    def _play_on_specific_frame(self, media, index_media_players, 
+    def _play_on_specific_frame(self, media, index_media_players, length_s,
                                 begin_s = 0, end_s = 0, fade_in = False, fade_out= False):
         """! Main play function.
             @param media : The Vlc Media instance 
@@ -91,7 +91,6 @@ class UiPlayer():
         # TODO Linux comp
         h = frame.winfo_id() 
         player.set_hwnd(h)
-        length_s =  media.get_duration()/1000
 
         if end_s == 0:
             end_s = length_s
@@ -141,7 +140,7 @@ class UiPlayer():
 
         self.is_next_asked = False
 
-    def play(self, path):
+    def play(self, path, length_s):
         """! Main play API
 
             @param path : Path to the video file to play
@@ -150,13 +149,6 @@ class UiPlayer():
 
             media = self.vlc_instance.media_new(path)
 
-            # TODO Blockingless parsing time : thread ?
-            media.parse_with_options(1,0)
-            # Blocking the parsing time
-            while self.is_running_flag:
-                if str(media.get_parsed_status()) == 'MediaParsedStatus.done':
-                    break
-            
             # If media 0 is playing, the index has to be one, otherwise its 0
             # so its equivalent to ask directly the question if the media 0 is playing
             index_to_be_played = self.media_frames[0].media_player.is_playing()
@@ -167,12 +159,13 @@ class UiPlayer():
             
             if metadata is not None:
                 self._play_on_specific_frame(media, index_media_players=index_to_be_played, 
+                                            length_s = length_s,
                                             begin_s = metadata.timestamp_begin, 
                                             end_s = metadata.timestamp_end, 
                                             fade_in = metadata.fade_in, 
                                             fade_out = metadata.fade_out)
             else:
-                self._play_on_specific_frame(media, index_media_players=index_to_be_played)
+                self._play_on_specific_frame(media,index_media_players=index_to_be_played,  length_s = length_s)
     
     def _get_active_media_player(self):
         # Get the active player
@@ -226,8 +219,8 @@ class MainSequencer():
 
     def sequencer_thread(self):
         while (self.is_running_flag):
-            path = self.ui_sequencer.get_next_video()
-            self.ui_player.play(path=path)
+            (path, length_s) = self.ui_sequencer.get_next_video()
+            self.ui_player.play(path=path, length_s=length_s)
     def kill(self):
         self.is_running_flag = False
         self.ui_player.kill()
@@ -237,8 +230,10 @@ class SequenceBlock:
     block_type = None
     block_args = None
     ui_frame = None
+    ui_label = None
     def __init__(self, block_type, block_args = None):
         self.ui_frame = None
+        self.ui_label = None
         self.inner_sequence = []
         self.block_type = block_type
         self.block_args = block_args
@@ -273,15 +268,17 @@ class UiSequenceManager:
     sequence_view = None
     sequence_data = None
     xml_root = None
+    vlc_instance = None # To get true metadata about the video (length..)
     title = ""
     index_playing_video = -1
 
-    def __init__(self, tkroot, ui_player, path):
+    def __init__(self, tkroot, vlc_instance, ui_player, path):
         """! The Sequence manager initializer
             @param path : path the sequence file 
             @return An instance of a UiSequenceManager
         """
-        self.ui_player =ui_player
+        self.ui_player = ui_player
+        self.vlc_instance = vlc_instance
         # start UI 
 
         # panel to hold buttons
@@ -333,6 +330,51 @@ class UiSequenceManager:
                         sequence_data_node.inner_sequence.insert(i, copy.copy(block_child))
                 sequence_data_node.inner_sequence.remove(block)
 
+    def _find_random_video(self, path, timeout):
+        #gather list of files
+        files = os.listdir("res/" + path)
+        video_found = None
+        while video_found is None:
+            file = files[random.randrange(len(files))]
+            complete_path = "res/" + path + "/" + file
+            print("Testing " + complete_path)
+            # Verify its a Media file before trying to play it 
+
+            # TODO Verify the clip hasnt played since "timeout" minutes
+            if ("Media" in magic.from_file(complete_path)):
+                video_found = complete_path
+        return video_found
+
+    def _resolve_sequence(self):
+        """! Chooses the random videos to be displayed, add length for each media and media info to blocks """
+        for i, video in enumerate(self.sequence_data.inner_sequence):
+            final_path = None
+            if (video.block_type == "randomvideo"):
+                path    = video.block_args[0] 
+                timeout = video.block_args[1]
+                final_path = self._find_random_video(path, timeout)
+                pass
+            if (video.block_type == "video"):    
+                final_path    = "res/"+ video.block_args
+
+            # Storing path in the block
+            video.path = final_path
+
+            media = self.vlc_instance.media_new(video.path)
+
+            media.parse_with_options(1,0)
+            # Blocking the parsing time
+            while True:
+                if str(media.get_parsed_status()) == 'MediaParsedStatus.done':
+                    break
+            video.length =  media.get_duration()/1000
+            # We do not need this media anymore
+            media.release()
+            
+            # Add also the name to the UI
+            video.ui_label.configure(text=video.path.split("/").pop())
+
+                
     def load_sequence(self):
         if self.xml_root is None:
             return
@@ -352,45 +394,33 @@ class UiSequenceManager:
         print(self.sequence_data)
 
         # Fill the UI
-        for i, child in enumerate(self.sequence_data.inner_sequence):
-            child.ui_frame = tk.Frame(self.sequence_view, bg="white", width=200, height=50)
-            child.ui_frame.pack(side=tk.LEFT, padx=10,  pady=20, fill=tk.BOTH, expand=True)
-            child.ui_frame.pack_propagate(False)
-            tk.Label(child.ui_frame, text=str(i)).pack(padx=5, pady=5,fill="none", expand=False)
-            tk.Label(child.ui_frame, text=child.block_type).pack(padx=5, pady=5,fill="both", expand=True)
+        for i, block in enumerate(self.sequence_data.inner_sequence):
+            block.ui_frame = tk.Frame(self.sequence_view, bg="white", width=200, height=50)
+            block.ui_frame.pack(side=tk.LEFT, padx=10,  pady=20, fill=tk.BOTH, expand=True)
+            block.ui_frame.pack_propagate(False)
+            tk.Label(block.ui_frame, text=str(i)).pack(padx=5, pady=5,fill="none", expand=False)
+            block.ui_label = tk.Label(block.ui_frame, text=block.block_type)
+            block.ui_label.pack(padx=5, pady=5,fill="both", expand=True)
+
+        # First sequence resolving. After each sequence iteration it will be called
+        self._resolve_sequence()
 
     def get_next_video(self):                        
         if self.index_playing_video > -1:
             # Reset frame options
             self.sequence_data.inner_sequence[self.index_playing_video].ui_frame.configure(bg="white")
+        
+        # Resolve the sext sequence
+        if self.index_playing_video == len(self.sequence_data.inner_sequence) - 1:
+            self._resolve_sequence()
 
         # Incrementing the sequence and setting the selected frame in color
         self.index_playing_video = (self.index_playing_video + 1) % len(self.sequence_data.inner_sequence)
         self.sequence_data.inner_sequence[self.index_playing_video].ui_frame.configure(bg="blue")
 
         # Gathering the video details
-        video =  self.sequence_data.inner_sequence[self.index_playing_video]
-        if video.block_type == "randomvideo":
-            path    = video.block_args[0] 
-            timeout = video.block_args[1]
-            
-            # TODO implement timeout
-            # TODO Build next videos in advance
-            #gather list of files
-            files = os.listdir("res/" + path)
-            video_found = None
-            while video_found is None:
-                file = files[random.randrange(len(files))]
-                complete_path = "res/" + path + "/" + file
-                print("Testing " + complete_path)
-                # Verify its a Media file before trying to play it 
-                if ("Media" in magic.from_file(complete_path)):
-                    video_found = complete_path
-            return video_found
-                        
-        elif video.block_type == "video":
-            path    = video.block_args
-            return  "res/" + path
+        video = self.sequence_data.inner_sequence[self.index_playing_video]
+        return (video.path, video.length)
             
 
 class MetaDataManager:
@@ -468,7 +498,7 @@ class MainManager:
         instance = vlc.Instance(['--aout=directsound', '--directx-volume=0.35'])
         metadata_manager = MetaDataManager(path="res/metadata.csv")
         player = UiPlayer(tkroot=self.root, vlc_instance=instance, metadata_manager=metadata_manager)
-        self.sequence_manager = UiSequenceManager(tkroot=self.root, ui_player=player, path="res/sequence.xml")
+        self.sequence_manager = UiSequenceManager(tkroot=self.root, vlc_instance=instance, ui_player=player, path="res/sequence.xml")
         self.sequence_manager.load_sequence()
 
         self.sequencer = MainSequencer(ui_player=player, ui_sequencer=self.sequence_manager)
