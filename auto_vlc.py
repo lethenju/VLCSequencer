@@ -271,6 +271,7 @@ class UiSequenceManager:
     xml_root = None
     vlc_instance = None # To get true metadata about the video (length..)
     title = ""
+    path_dirname = ""
     index_playing_video = -1
 
     def __init__(self, tkroot, vlc_instance, ui_player, path):
@@ -312,6 +313,7 @@ class UiSequenceManager:
         scrollbar.config( command = self.history_listbox.yview )
 
         # Read file
+        self.path_dirname = os.path.dirname(path)
         tree = ET.parse(path)
         self.xml_root = tree.getroot()
         
@@ -344,11 +346,11 @@ class UiSequenceManager:
 
     def _find_random_video(self, path, timeout):
         #gather list of files
-        files = os.listdir("res/" + path)
+        files = os.listdir(self.path_dirname + "/" + path)
         video_found = None
         while video_found is None:
             file = files[random.randrange(len(files))]
-            complete_path = "res/" + path + "/" + file
+            complete_path = self.path_dirname + "/" + path + "/" + file
             print("Testing " + complete_path)
             # Verify its a Media file before trying to play it 
 
@@ -367,11 +369,10 @@ class UiSequenceManager:
                 final_path = self._find_random_video(path, timeout)
                 pass
             if (video.block_type == "video"):    
-                final_path    = "res/"+ video.block_args
+                final_path    = self.path_dirname + "/"+ video.block_args
 
             # Storing path in the block
             video.path = final_path
-
             media = self.vlc_instance.media_new(video.path)
 
             media.parse_with_options(1,0)
