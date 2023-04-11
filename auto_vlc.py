@@ -274,6 +274,8 @@ class UiSequenceManager:
     ui_player = None
     sequence_view = None
     history_view = None
+    history_listbox = None
+    history_knownvideos = {}
     sequence_data = None
     xml_root = None
     vlc_instance = None  # To get true metadata about the video (length..)
@@ -363,6 +365,8 @@ class UiSequenceManager:
         # gather list of files
         files = os.listdir(self.path_dirname + "/" + path)
         video_found = None
+
+        # TODO Test if there is at least a video file in files
         while video_found is None:
             file = files[random.randrange(len(files))]
             complete_path = self.path_dirname + "/" + path + "/" + file
@@ -387,19 +391,30 @@ class UiSequenceManager:
             if (video.block_type == "video"):
                 final_path = self.path_dirname + "/" + video.block_args
 
+            if not os.path.isfile(final_path):
+                print(final_path + " : The video doesnt exist ! ")
+                exit(-1)
+
             # Storing path in the block
             video.path = final_path
-            media = self.vlc_instance.media_new(video.path)
+            if (video.path in self.history_knownvideos):
+                video.length = self.history_knownvideos[video.path]
+                print(video.path + " : Video length already found : "+ str(video.length))
+            else:
+                print(video.path + " : Video length doesnt exist ")
+                media = self.vlc_instance.media_new(video.path)
+                # TODO Store the media parsing data if we have and gather the already known ones
+                media.parse_with_options(1, 0)
+                # Blocking the parsing time
+                while True:
+                    if str(media.get_parsed_status()) == 'MediaParsedStatus.done':
+                        break
+                video.length = media.get_duration()/1000
 
-            # TODO Store the media parsing data if we have and gather the already known ones
-            media.parse_with_options(1, 0)
-            # Blocking the parsing time
-            while True:
-                if str(media.get_parsed_status()) == 'MediaParsedStatus.done':
-                    break
-            video.length = media.get_duration()/1000
-            # We do not need this media anymore
-            media.release()
+                # For now the dictionnary only stores the length
+                self.history_knownvideos[video.path] = video.length
+                # We do not need this media anymore
+                media.release()
 
             # Add also the name to the UI
             video.ui_label.configure(text=video.path.split("/").pop())
