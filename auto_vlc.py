@@ -478,7 +478,7 @@ class MetaDataManager:
                 def get_sec(time_str):
                     m, s = time_str.split(':')
                     return int(m) * 60 + int(s)
-                
+
                 self.metadata_list.append(
                     self.MetaDataEntry(video_name=line[0], 
                                        timestamp_begin=get_sec(line[1]),
@@ -486,7 +486,7 @@ class MetaDataManager:
                                        fade_in = line[3] == 'y',
                                        fade_out = line[4] == 'y')
                     )
-    
+
     def get_metadata(self, video_name):
         """! Get the stored metadata about the video in parameter 
             @param video_name : name of the video (as stored in the metadata csv)
@@ -513,6 +513,9 @@ class MainManager:
         self.root = tk.Tk()
         # These arguments allow audio crossfading : each player has an individual sound
         instance = vlc.Instance(['--aout=directsound', '--directx-volume=1.00'])
+        #instance = vlc.Instance('--verbose 3')
+        assert (instance is not None)
+
         metadata_manager = MetaDataManager(path="res/metadata.csv")
         player = UiPlayer(tkroot=self.root, vlc_instance=instance, metadata_manager=metadata_manager)
         self.sequence_manager = UiSequenceManager(tkroot=self.root, vlc_instance=instance, ui_player=player, path="res/sequence.xml")
