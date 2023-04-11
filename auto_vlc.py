@@ -8,6 +8,7 @@ import time
 import magic
 import csv
 import random
+import sys
 import xml.etree.ElementTree as ET
 import copy
 
@@ -89,9 +90,11 @@ class UiPlayer():
             0, lambda: self.media_frames[1 - index_media_players].ui_frame.pack_forget())
         self.window.after(0, lambda: frame.pack(fill="both", expand=True))
 
-        # TODO Linux comp
         h = frame.winfo_id()
-        player.set_hwnd(h)
+        if sys.platform.startswith('win'):
+            player.set_hwnd(h)
+        else:
+            player.set_xwindow(h)
 
         if end_s == 0:
             end_s = length_s
