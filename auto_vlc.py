@@ -239,10 +239,12 @@ class SequenceBlock:
     block_args = None
     ui_frame = None
     ui_label = None
+    ui_id_label = None
 
     def __init__(self, block_type, block_args=None):
         self.ui_frame = None
         self.ui_label = None
+        self.ui_id_label = None
         self.inner_sequence = []
         self.block_type = block_type
         self.block_args = block_args
@@ -299,6 +301,12 @@ class UiSequenceManager:
         self.ui_sequence_manager = tk.Toplevel(tkroot)
         self.ui_sequence_manager.title("Sequence Manager")
 
+        # Configuration des colonnes et des lignes
+        self.ui_sequence_manager.grid_rowconfigure(0, weight=1)
+        self.ui_sequence_manager.grid_rowconfigure(1, weight=1)
+        self.ui_sequence_manager.grid_columnconfigure(0, weight=1)
+        self.ui_sequence_manager.grid_columnconfigure(1, weight=1)
+
         buttons = ttk.Frame(self.ui_sequence_manager)
 
         self.pause_button = ttk.Button(
@@ -307,19 +315,20 @@ class UiSequenceManager:
             buttons, text="Mute/Unmute",  command=self.ui_player.mute_trigger)
         self.next_button = ttk.Button(
             buttons, text="Next",         command=self.ui_player.next)
-        self.pause_button.pack(side=tk.LEFT)
-        self.mute_button.pack(side=tk.LEFT)
-        self.next_button.pack(side=tk.LEFT)
 
-        buttons.pack(side=tk.BOTTOM, fill=tk.X)
+        self.pause_button.grid(column=0, row=0)
+        self.mute_button.grid(column=1, row=0)
+        self.next_button.grid(column=2, row=0)
+
+        buttons.grid(column=0, row=1, columnspan=3, sticky="we")
 
         self.sequence_view = ttk.Frame(
             self.ui_sequence_manager, width=1000, height=500)
-        self.sequence_view.pack(side=tk.TOP, fill=tk.X)
+        self.sequence_view.grid(column=0, row=0, columnspan=3, sticky="we")
 
         self.history_view = ttk.Frame(
             self.ui_sequence_manager, width=1000, height=600)
-        self.history_view.pack(side=tk.TOP, fill=tk.X)
+        self.history_view.grid(column=0, row=2, columnspan=3, sticky="we")
 
         scrollbar = tk.Scrollbar(self.history_view)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
@@ -402,11 +411,11 @@ class UiSequenceManager:
             video.path = final_path
             if (video.path in self.history_knownvideos):
                 video.length = self.history_knownvideos[video.path]
-                print(video.path + " : Video length already found : "+ str(video.length))
+                print(video.path + " : Video length already found : " +
+                      str(video.length))
             else:
                 print(video.path + " : Video length doesnt exist ")
                 media = self.vlc_instance.media_new(video.path)
-                # TODO Store the media parsing data if we have and gather the already known ones
                 media.parse_with_options(1, 0)
                 # Blocking the parsing time
                 while True:
@@ -443,14 +452,27 @@ class UiSequenceManager:
         # Fill the UI
         for i, block in enumerate(self.sequence_data.inner_sequence):
             # TODO light colors for each block_type
+            # App colors : #DD6E42
+            # #E8DAB2
+            # #4F6D7A
+            # #C0D6DF
+            # #EAEAEA
+            bg_color = "#EAEAEA"
+            if block.block_type == "randomvideo":
+                bg_color = "#E8DAB2"
+            elif block.block_type == "video":
+                bg_color = "#4F6D7A"
             block.ui_frame = tk.Frame(
-                self.sequence_view, bg="white", width=200, height=50)
+                self.sequence_view, bg=bg_color, width=200, height=100)
             block.ui_frame.pack(side=tk.LEFT, padx=10,
                                 pady=20, fill=tk.BOTH, expand=True)
             block.ui_frame.pack_propagate(False)
-            tk.Label(block.ui_frame, text=str(i)).pack(
+            block.ui_id_label = tk.Label(
+                block.ui_frame, text=str(i), bg=bg_color)
+            block.ui_id_label.pack(
                 padx=5, pady=5, fill="none", expand=False)
-            block.ui_label = tk.Label(block.ui_frame, text=block.block_type)
+            block.ui_label = tk.Label(
+                block.ui_frame, text=block.block_type, bg=bg_color)
             block.ui_label.pack(padx=5, pady=5, fill="both", expand=True)
 
         # First sequence resolving. After each sequence iteration it will be called
@@ -459,11 +481,22 @@ class UiSequenceManager:
     def get_next_video(self):
         if self.index_playing_video > -1:
             # Reset frame options
-            self.sequence_data.inner_sequence[self.index_playing_video].ui_frame.configure(
-                bg="white")
+            video = self.sequence_data.inner_sequence[self.index_playing_video]
+            bg_color = "#EAEAEA"
+            if video.block_type == "randomvideo":
+                bg_color = "#E8DAB2"
+            elif video.block_type == "video":
+                bg_color = "#4F6D7A"
+
+            video.ui_frame.configure(
+                bg=bg_color)
+            video.ui_label.configure(
+                bg=bg_color)
+            video.ui_id_label.configure(
+                bg=bg_color)
             # Add to the history
             self.history_listbox.insert(
-                tk.ANCHOR, self.sequence_data.inner_sequence[self.index_playing_video].path)
+                tk.ANCHOR, video.path)
 
         # Resolve the sext sequence
         if self.index_playing_video == len(self.sequence_data.inner_sequence) - 1:
@@ -472,11 +505,15 @@ class UiSequenceManager:
         # Incrementing the sequence and setting the selected frame in color
         self.index_playing_video = (
             self.index_playing_video + 1) % len(self.sequence_data.inner_sequence)
-        self.sequence_data.inner_sequence[self.index_playing_video].ui_frame.configure(
-            bg="blue")
+        video = self.sequence_data.inner_sequence[self.index_playing_video]
+        video.ui_frame.configure(
+            bg="#DD6E42")
+        video.ui_label.configure(
+            bg="#DD6E42")
+        video.ui_id_label.configure(
+            bg="#DD6E42")
 
         # Gathering the video details
-        video = self.sequence_data.inner_sequence[self.index_playing_video]
         return (video.path, video.length)
 
 
@@ -581,6 +618,8 @@ class MainManager:
         """! mainloop of the program
         """
         self.sequencer.launch_sequencer()
+        # Works only on windows ?
+        # self.root.wm_attributes("-transparentcolor", '#ab23ff')
         self.root.mainloop()
 
 
