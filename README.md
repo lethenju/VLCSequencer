@@ -1,11 +1,11 @@
-# AutoVLC
+# VLCSequencer
 
 
 ## Requirements and installation
 
 ### For Windows
 
-### For Linux 
+### For Linux
 
 ```bash
 sudo apt install vlc libvlc-dev
