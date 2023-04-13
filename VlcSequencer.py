@@ -234,6 +234,12 @@ class MainSequencer():
 
 
 class SequenceBlock:
+    """! Describe a sequence block : a video or a block of videos
+
+    Used by the Sequence loader to read the sequence description file and flatten
+    the description loops, resolve random videos. Used afterward as the main sequence, 
+    with its UI and block logic"""
+
     inner_sequence = []
     block_type = None
     block_args = None
@@ -462,17 +468,20 @@ class UiSequenceManager:
                 bg_color = "#E8DAB2"
             elif block.block_type == "video":
                 bg_color = "#4F6D7A"
+            # TODO rounded corners
             block.ui_frame = tk.Frame(
                 self.sequence_view, bg=bg_color, width=200, height=100)
             block.ui_frame.pack(side=tk.LEFT, padx=10,
                                 pady=20, fill=tk.BOTH, expand=True)
             block.ui_frame.pack_propagate(False)
+            # TODO Different font, font size and different colors depending on the background (maybe)
+
             block.ui_id_label = tk.Label(
-                block.ui_frame, text=str(i), bg=bg_color)
+                block.ui_frame, text=str(i), bg=bg_color, fg="black")
             block.ui_id_label.pack(
                 padx=5, pady=5, fill="none", expand=False)
             block.ui_label = tk.Label(
-                block.ui_frame, text=block.block_type, bg=bg_color)
+                block.ui_frame, text=block.block_type, bg=bg_color, fg="black")
             block.ui_label.pack(padx=5, pady=5, fill="both", expand=True)
 
         # First sequence resolving. After each sequence iteration it will be called
