@@ -32,7 +32,7 @@ class UiPlayer():
 
     vlc_instance = None
     metadata_manager = None
-    index_current_playing_frame = None
+    nb_video_played = 0
     is_next_asked = False
 
     class MediaFrame:
@@ -57,7 +57,7 @@ class UiPlayer():
         self.metadata_manager = metadata_manager
 
         self.is_next_asked = False
-        self.index_current_playing_frame = None
+        self.nb_video_played = 0
 
         # 2 players (one for each frame)
         # Initialize media frames with the players and new tk frames. Setting bg colors for debugging if something goes wrong
@@ -69,9 +69,8 @@ class UiPlayer():
             self.media_frames[i].ui_frame.pack(fill="both", expand=True)
 
         def toggle_full_screen(*unused):
-            global is_fullscreen_flag
-            self.window.attributes("-fullscreen", not is_fullscreen_flag)
-            is_fullscreen_flag = not is_fullscreen_flag
+            self.window.attributes("-fullscreen", not self.is_fullscreen_flag)
+            self.is_fullscreen_flag = not self.is_fullscreen_flag
         self.window.bind("<F11>", toggle_full_screen)
         self.is_running_flag = True
 
@@ -106,9 +105,15 @@ class UiPlayer():
 
         def fade_in_thread():
             """! Thread to handle fade in on this player"""
+            # The playing video musnt change during the thread !
+            nb_video_played = self.nb_video_played
+
             player.audio_set_volume(0)
+            time.sleep(0.5) # Let some time for the vlc instance to set the volume. Fixes high volume spikes
+
             volume = player.audio_get_volume()
-            while (volume < 100 and self.is_running_flag and not self.is_next_asked):
+            while (volume < 100 and self.is_running_flag and not self.is_next_asked
+                     and nb_video_played < self.nb_video_played + 2):
                 print("fade_in Volume : " + str(volume))
                 volume = min(volume + 5, 100)
                 if not self.is_muted:
@@ -117,8 +122,11 @@ class UiPlayer():
 
         def fade_out_thread():
             """! Thread to handle fade out on this player"""
+            # The playing video musnt change twice during the thread !
+            nb_video_played = self.nb_video_played
             volume = player.audio_get_volume()
-            while (volume > 0 and self.is_running_flag and not self.is_next_asked):
+            while (volume > 0 and self.is_running_flag and not self.is_next_asked
+                   and nb_video_played < self.nb_video_played + 2):
                 print("fade_out Volume : " + str(volume))
                 volume = volume - 5
                 player.audio_set_volume(volume)
@@ -142,7 +150,8 @@ class UiPlayer():
             
             if (player.get_position() < 0):
                 # Problem on the video
-                self.kill()
+                player.stop()
+                self.is_next_asked = True
                 break
 
         if fade_out:
@@ -161,15 +170,10 @@ class UiPlayer():
 
             media = self.vlc_instance.media_new(path)
 
-            # First media
-            if self.index_current_playing_frame is None:
-                self.index_current_playing_frame = 0
-            elif self.index_current_playing_frame is 0:
-                self.index_current_playing_frame = 1
-            elif self.index_current_playing_frame is 1:
-                self.index_current_playing_frame = 0
-                
-            print("Playing on frame number "+str(self.index_current_playing_frame))
+            self.nb_video_played = self.nb_video_played + 1
+        
+            print("Total video played "+str(self.nb_video_played))
+            print("Playing on frame number "+str(self.nb_video_played % 2))
 
             # Try to get metadata about this video
             name_of_file = path.split("/").pop()
@@ -177,7 +181,7 @@ class UiPlayer():
                 video_name=name_of_file)
 
             if metadata is not None:
-                self._play_on_specific_frame(media, index_media_players=self.index_current_playing_frame,
+                self._play_on_specific_frame(media, index_media_players=self.nb_video_played % 2,
                                              length_s=length_s,
                                              begin_s=metadata.timestamp_begin,
                                              end_s=metadata.timestamp_end,
@@ -185,11 +189,11 @@ class UiPlayer():
                                              fade_out=metadata.fade_out)
             else:
                 self._play_on_specific_frame(
-                    media, index_media_players=self.index_current_playing_frame,  length_s=length_s)
+                    media, index_media_players=self.nb_video_played % 2,  length_s=length_s)
 
     def _get_active_media_player(self):
         # Get the active player
-        return self.media_frames[self.index_current_playing_frame].media_player
+        return self.media_frames[self.nb_video_played % 2].media_player
 
     def pause_resume(self):
         # TODO pause the fade mechanisms as well
@@ -325,7 +329,7 @@ class UiSequenceManager:
         self.ui_sequence_manager.grid_columnconfigure(0, weight=1)
         self.ui_sequence_manager.grid_columnconfigure(1, weight=1)
 
-        buttons = ttk.Frame(self.ui_sequence_manager)
+        buttons = ttk.LabelFrame(self.ui_sequence_manager, text="Playback Control")
 
         self.pause_button = ttk.Button(
             buttons, text="Pause/Resume", command=self.ui_player.pause_resume)
@@ -340,12 +344,12 @@ class UiSequenceManager:
 
         buttons.grid(column=0, row=1, columnspan=3, sticky="we")
 
-        self.sequence_view = ttk.Frame(
-            self.ui_sequence_manager, width=1000, height=500)
+        self.sequence_view = ttk.LabelFrame(
+            self.ui_sequence_manager, width=1000, height=500, text="Sequence View")
         self.sequence_view.grid(column=0, row=0, columnspan=3, sticky="we")
 
-        self.history_view = ttk.Frame(
-            self.ui_sequence_manager, width=1000, height=600)
+        self.history_view = ttk.LabelFrame(
+            self.ui_sequence_manager, width=1000, height=600, text="History")
         self.history_view.grid(column=0, row=2, columnspan=3, sticky="we")
 
         scrollbar = tk.Scrollbar(self.history_view)
