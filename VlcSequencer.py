@@ -32,6 +32,7 @@ class UiPlayer():
 
     vlc_instance = None
     metadata_manager = None
+    index_current_playing_frame = None
     is_next_asked = False
 
     class MediaFrame:
@@ -56,6 +57,7 @@ class UiPlayer():
         self.metadata_manager = metadata_manager
 
         self.is_next_asked = False
+        self.index_current_playing_frame = None
 
         # 2 players (one for each frame)
         # Initialize media frames with the players and new tk frames. Setting bg colors for debugging if something goes wrong
@@ -137,6 +139,11 @@ class UiPlayer():
             time.sleep(1)
             print("Current media playing time " +
                   ("{:.2f}".format(player.get_position()*100))+"%")
+            
+            if (player.get_position() < 0):
+                # Problem on the video
+                self.kill()
+                break
 
         if fade_out:
             threading.Thread(target=fade_out_thread).start()
@@ -154,9 +161,15 @@ class UiPlayer():
 
             media = self.vlc_instance.media_new(path)
 
-            # If media 0 is playing, the index has to be one, otherwise its 0
-            # so its equivalent to ask directly the question if the media 0 is playing
-            index_to_be_played = self.media_frames[0].media_player.is_playing()
+            # First media
+            if self.index_current_playing_frame is None:
+                self.index_current_playing_frame = 0
+            elif self.index_current_playing_frame is 0:
+                self.index_current_playing_frame = 1
+            elif self.index_current_playing_frame is 1:
+                self.index_current_playing_frame = 0
+                
+            print("Playing on frame number "+str(self.index_current_playing_frame))
 
             # Try to get metadata about this video
             name_of_file = path.split("/").pop()
@@ -164,7 +177,7 @@ class UiPlayer():
                 video_name=name_of_file)
 
             if metadata is not None:
-                self._play_on_specific_frame(media, index_media_players=index_to_be_played,
+                self._play_on_specific_frame(media, index_media_players=self.index_current_playing_frame,
                                              length_s=length_s,
                                              begin_s=metadata.timestamp_begin,
                                              end_s=metadata.timestamp_end,
@@ -172,12 +185,11 @@ class UiPlayer():
                                              fade_out=metadata.fade_out)
             else:
                 self._play_on_specific_frame(
-                    media, index_media_players=index_to_be_played,  length_s=length_s)
+                    media, index_media_players=self.index_current_playing_frame,  length_s=length_s)
 
     def _get_active_media_player(self):
         # Get the active player
-        index_active_player = self.media_frames[1].media_player.is_playing()
-        return self.media_frames[index_active_player].media_player
+        return self.media_frames[self.index_current_playing_frame].media_player
 
     def pause_resume(self):
         # TODO pause the fade mechanisms as well
