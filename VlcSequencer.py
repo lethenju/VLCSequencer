@@ -263,6 +263,7 @@ class SequenceBlock:
     ui_frame = None
     ui_label = None
     ui_id_label = None
+    last_playback = 0
 
     def __init__(self, block_type, block_args=None):
         self.ui_frame = None
@@ -271,6 +272,7 @@ class SequenceBlock:
         self.inner_sequence = []
         self.block_type = block_type
         self.block_args = block_args
+        last_playback = 0
 
     def add_block(self, block):
         self.inner_sequence.append(block)
@@ -440,7 +442,21 @@ class UiSequenceManager:
             # TODO Verify the clip hasnt played since "timeout" minutes
             # Search history + last programmed videos
             if ("Media" in magic.from_file(complete_path)):
-                video_found = complete_path
+                if complete_path in self.history_knownvideos:
+                    video = self.history_knownvideos[complete_path]
+                    # TODO We're on the sequencing algorithm, made in advance.
+                    # We need to add the length of programmed videos to the now parameter
+                    now = time.time()
+                    
+                    print ("Already known video... Last playback on "  + str(video.last_playback) + " and timeout " + str(int(timeout)*60)+"s")
+                    if (video.last_playback + int(timeout)*60 < now ):
+                       video_found = complete_path
+                       #self.history_knownvideos[complete_path].last_playback = time.time()
+                    else:
+                        print("Last playback too recent.. ")
+                else:
+                    print("Unknown video for now, validating playback")
+                    video_found = complete_path
         return video_found
 
     def _resolve_sequence(self):
@@ -462,11 +478,11 @@ class UiSequenceManager:
             # Storing path in the block
             video.path = final_path
             if (video.path in self.history_knownvideos):
-                video.length = self.history_knownvideos[video.path]
-                print(video.path + " : Video length already found : " +
+                video.length = self.history_knownvideos[video.path].length
+                print(video.path + " : Video already found : " +
                       str(video.length))
             else:
-                print(video.path + " : Video length doesnt exist ")
+                print(video.path + " : Video doesnt exist ")
                 media = self.vlc_instance.media_new(video.path)
                 media.parse_with_options(1, 0)
                 # Blocking the parsing time
@@ -475,8 +491,8 @@ class UiSequenceManager:
                         break
                 video.length = media.get_duration()/1000
 
-                # For now the dictionnary only stores the length
-                self.history_knownvideos[video.path] = video.length
+                # Store video in the dictionarry
+                self.history_knownvideos[video.path] = copy.copy(video)
                 # We do not need this media anymore
                 media.release()
 
