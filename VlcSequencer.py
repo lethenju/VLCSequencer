@@ -274,6 +274,27 @@ class SequenceBlock:
     def add_block(self, block):
         self.inner_sequence.append(block)
 
+    def get_color(self):
+        """! Returns the hex code of the video block """
+        # https://coolors.co/dd6e42-e8dab2-4f6d7a-c0d6df-eaeaea
+        bg_color = "#EAEAEA"
+        if self.block_type == "randomvideo":
+            bg_color = "#FF6529"
+        elif self.block_type == "video":
+            bg_color = "#B33300"
+        return bg_color
+    
+    def get_color_used(self):
+        """! Returns the hex code of the video block once it has been played """
+        bg_color = "#EAEAEA"
+        if self.block_type == "randomvideo":
+            bg_color = "#C47F64"
+        elif self.block_type == "video":
+            bg_color = "#774C3C"
+        return bg_color
+
+
+
     def __str__(self):
         if self.block_type == "repeat":
             return "Repeat " + self.block_args + " times"
@@ -473,31 +494,20 @@ class UiSequenceManager:
 
         # Fill the UI
         for i, block in enumerate(self.sequence_data.inner_sequence):
-            # TODO light colors for each block_type
-            # App colors : #DD6E42
-            # #E8DAB2
-            # #4F6D7A
-            # #C0D6DF
-            # #EAEAEA
-            bg_color = "#EAEAEA"
-            if block.block_type == "randomvideo":
-                bg_color = "#E8DAB2"
-            elif block.block_type == "video":
-                bg_color = "#4F6D7A"
             # TODO rounded corners
             block.ui_frame = tk.Frame(
-                self.sequence_view, bg=bg_color, width=200, height=100)
+                self.sequence_view, bg=block.get_color(), width=200, height=100)
             block.ui_frame.pack(side=tk.LEFT, padx=10,
                                 pady=20, fill=tk.BOTH, expand=True)
             block.ui_frame.pack_propagate(False)
             # TODO Different font, font size and different colors depending on the background (maybe)
 
             block.ui_id_label = tk.Label(
-                block.ui_frame, text=str(i), bg=bg_color, fg="black")
+                block.ui_frame, text=str(i), bg=block.get_color(), fg="black")
             block.ui_id_label.pack(
                 padx=5, pady=5, fill="none", expand=False)
             block.ui_label = tk.Label(
-                block.ui_frame, text=block.block_type, bg=bg_color, fg="black")
+                block.ui_frame, text=block.block_type, bg=block.get_color(), fg="black")
             block.ui_label.pack(padx=5, pady=5, fill="both", expand=True)
 
         # First sequence resolving. After each sequence iteration it will be called
@@ -507,36 +517,36 @@ class UiSequenceManager:
         if self.index_playing_video > -1:
             # Reset frame options
             video = self.sequence_data.inner_sequence[self.index_playing_video]
-            bg_color = "#EAEAEA"
-            if video.block_type == "randomvideo":
-                bg_color = "#E8DAB2"
-            elif video.block_type == "video":
-                bg_color = "#4F6D7A"
-
             video.ui_frame.configure(
-                bg=bg_color)
+                bg=video.get_color_used())
             video.ui_label.configure(
-                bg=bg_color)
+                bg=video.get_color_used())
             video.ui_id_label.configure(
-                bg=bg_color)
+                bg=video.get_color_used())
             # Add to the history
-            self.history_listbox.insert(
-                tk.ANCHOR, video.path)
+            self.history_listbox.insert(0, video.path)
 
         # Resolve the sext sequence
         if self.index_playing_video == len(self.sequence_data.inner_sequence) - 1:
             self._resolve_sequence()
+            for block in self.sequence_data.inner_sequence:
+                block.ui_frame.configure(
+                    bg=block.get_color())
+                block.ui_label.configure(
+                    bg=block.get_color())
+                block.ui_id_label.configure(
+                    bg=block.get_color())
 
         # Incrementing the sequence and setting the selected frame in color
         self.index_playing_video = (
             self.index_playing_video + 1) % len(self.sequence_data.inner_sequence)
         video = self.sequence_data.inner_sequence[self.index_playing_video]
         video.ui_frame.configure(
-            bg="#DD6E42")
+            bg="#F5C5B2")
         video.ui_label.configure(
-            bg="#DD6E42")
+            bg="#F5C5B2")
         video.ui_id_label.configure(
-            bg="#DD6E42")
+            bg="#F5C5B2")
 
         # Gathering the video details
         return (video.path, video.length)
