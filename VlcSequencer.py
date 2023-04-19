@@ -109,11 +109,12 @@ class UiPlayer():
             nb_video_played = self.nb_video_played
 
             player.audio_set_volume(0)
-            time.sleep(0.5) # Let some time for the vlc instance to set the volume. Fixes high volume spikes
+            # Let some time for the vlc instance to set the volume. Fixes high volume spikes
+            time.sleep(0.5)
 
             volume = player.audio_get_volume()
             while (volume < 100 and self.is_running_flag and not self.is_next_asked
-                     and nb_video_played < self.nb_video_played + 2):
+                   and nb_video_played < self.nb_video_played + 2):
                 print("fade_in Volume : " + str(volume))
                 volume = min(volume + 5, 100)
                 if not self.is_muted:
@@ -147,7 +148,7 @@ class UiPlayer():
             time.sleep(1)
             print("Current media playing time " +
                   ("{:.2f}".format(player.get_position()*100))+"%")
-            
+
             if (player.get_position() < 0):
                 # Problem on the video
                 player.stop()
@@ -171,7 +172,7 @@ class UiPlayer():
             media = self.vlc_instance.media_new(path)
 
             self.nb_video_played = self.nb_video_played + 1
-        
+
             print("Total video played "+str(self.nb_video_played))
             print("Playing on frame number "+str(self.nb_video_played % 2))
 
@@ -283,7 +284,7 @@ class SequenceBlock:
         elif self.block_type == "video":
             bg_color = "#B33300"
         return bg_color
-    
+
     def get_color_used(self):
         """! Returns the hex code of the video block once it has been played """
         bg_color = "#EAEAEA"
@@ -293,7 +294,14 @@ class SequenceBlock:
             bg_color = "#774C3C"
         return bg_color
 
-
+    def modify_color(self, color):
+        """! Modify background colors of the UI elements of the block """
+        self.ui_frame.configure(
+            bg=color)
+        self.ui_label.configure(
+            bg=color)
+        self.ui_id_label.configure(
+            bg=color)
 
     def __str__(self):
         if self.block_type == "repeat":
@@ -350,7 +358,8 @@ class UiSequenceManager:
         self.ui_sequence_manager.grid_columnconfigure(0, weight=1)
         self.ui_sequence_manager.grid_columnconfigure(1, weight=1)
 
-        buttons = ttk.LabelFrame(self.ui_sequence_manager, text="Playback Control")
+        buttons = ttk.LabelFrame(
+            self.ui_sequence_manager,  width=500, text="Playback Control")
 
         self.pause_button = ttk.Button(
             buttons, text="Pause/Resume", command=self.ui_player.pause_resume)
@@ -363,15 +372,15 @@ class UiSequenceManager:
         self.mute_button.grid(column=1, row=0)
         self.next_button.grid(column=2, row=0)
 
-        buttons.grid(column=0, row=1, columnspan=3, sticky="we")
+        buttons.grid(column=1, row=1,  sticky="we")
 
         self.sequence_view = ttk.LabelFrame(
             self.ui_sequence_manager, width=1000, height=500, text="Sequence View")
         self.sequence_view.grid(column=0, row=0, columnspan=3, sticky="we")
 
         self.history_view = ttk.LabelFrame(
-            self.ui_sequence_manager, width=1000, height=600, text="History")
-        self.history_view.grid(column=0, row=2, columnspan=3, sticky="we")
+            self.ui_sequence_manager, height=500,  text="History")
+        self.history_view.grid(column=0, row=1, sticky="we")
 
         scrollbar = tk.Scrollbar(self.history_view)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
@@ -517,12 +526,7 @@ class UiSequenceManager:
         if self.index_playing_video > -1:
             # Reset frame options
             video = self.sequence_data.inner_sequence[self.index_playing_video]
-            video.ui_frame.configure(
-                bg=video.get_color_used())
-            video.ui_label.configure(
-                bg=video.get_color_used())
-            video.ui_id_label.configure(
-                bg=video.get_color_used())
+            video.modify_color(video.get_color_used())
             # Add to the history
             self.history_listbox.insert(0, video.path)
 
@@ -530,23 +534,13 @@ class UiSequenceManager:
         if self.index_playing_video == len(self.sequence_data.inner_sequence) - 1:
             self._resolve_sequence()
             for block in self.sequence_data.inner_sequence:
-                block.ui_frame.configure(
-                    bg=block.get_color())
-                block.ui_label.configure(
-                    bg=block.get_color())
-                block.ui_id_label.configure(
-                    bg=block.get_color())
+                block.modify_color(block.get_color())
 
         # Incrementing the sequence and setting the selected frame in color
         self.index_playing_video = (
             self.index_playing_video + 1) % len(self.sequence_data.inner_sequence)
         video = self.sequence_data.inner_sequence[self.index_playing_video]
-        video.ui_frame.configure(
-            bg="#F5C5B2")
-        video.ui_label.configure(
-            bg="#F5C5B2")
-        video.ui_id_label.configure(
-            bg="#F5C5B2")
+        video.modify_color("#F5C5B2")
 
         # Gathering the video details
         return (video.path, video.length)
