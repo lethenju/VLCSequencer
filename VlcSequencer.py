@@ -261,12 +261,16 @@ class SequenceBlock:
     block_type = None
     block_args = None
     ui_frame = None
+    ui_playing_time = None
+    ui_video_frame = None
     ui_label = None
     ui_id_label = None
     last_playback = 0
 
     def __init__(self, block_type, block_args=None):
         self.ui_frame = None
+        self.ui_playing_time = None
+        self.ui_video_frame = None
         self.ui_label = None
         self.ui_id_label = None
         self.inner_sequence = []
@@ -298,7 +302,7 @@ class SequenceBlock:
 
     def modify_color(self, color):
         """! Modify background colors of the UI elements of the block """
-        self.ui_frame.configure(
+        self.ui_video_frame.configure(
             bg=color)
         self.ui_label.configure(
             bg=color)
@@ -334,6 +338,7 @@ class UiSequenceManager:
     history_view = None
     history_listbox = None
     history_knownvideos = {}
+    metadata_manager = None
     sequence_data = None
     xml_root = None
     vlc_instance = None  # To get true metadata about the video (length..)
@@ -341,13 +346,14 @@ class UiSequenceManager:
     path_dirname = ""
     index_playing_video = -1
 
-    def __init__(self, tkroot, vlc_instance, ui_player, path):
+    def __init__(self, tkroot, vlc_instance, ui_player, path, metadata_manager):
         """! The Sequence manager initializer
             @param path : path the sequence file 
             @return An instance of a UiSequenceManager
         """
         self.ui_player = ui_player
         self.vlc_instance = vlc_instance
+        self.metadata_manager = metadata_manager
         # start UI
 
         # panel to hold buttons
@@ -433,7 +439,7 @@ class UiSequenceManager:
           @param path : the path of the directory to search videos in
           @param timeout_m : Timeout of the needed video in minutes : 
                              the video must not be chosen if it has been chosen the last timeout_m minutes
-          @param time_programmed_s : Timestamp in the future for the programmed video, as its 
+          @param time_programmed_s : Timestamp in the future for the programmed video, when its gonna be played
         """
         # gather list of files
         files = os.listdir(self.path_dirname + "/" + path)
@@ -451,13 +457,10 @@ class UiSequenceManager:
             print("Testing " + complete_path)
             # Verify its a Media file before trying to play it
 
-            # TODO Verify the clip hasnt played since "timeout_m" minutes
-            # Search history + last programmed videos
             if ("Media" in magic.from_file(complete_path)):
                 if complete_path in self.history_knownvideos:
                     video = self.history_knownvideos[complete_path]
-                    # TODO We should also take into account the metadata-stored start playing time and end playing time
-                    # but for the sake of simplicity, for now we assume we'll play the new video entirely
+
                     print ("Already known video... Last playback on ", datetime.fromtimestamp(video.last_playback), " and timeout " + str(int(timeout_m)*60)+"s")
                     print (" and timestamp of the programmed video  ", datetime.fromtimestamp(time_programmed_s))
                     if (video.last_playback + int(timeout_m)*60 < time_programmed_s ):
@@ -476,6 +479,9 @@ class UiSequenceManager:
                 else:
                     # print("Unknown video for now, validating playback")
                     video_found = complete_path
+            else:
+                print("Not a video file")
+                forbidden_files.append(complete_path)
         return video_found
 
     def _resolve_sequence(self):
@@ -487,18 +493,27 @@ class UiSequenceManager:
             time_programmed_s = time.time()
             for j in range(0, i):
                 path_video = self.sequence_data.inner_sequence[j].path
-                length = self.history_knownvideos[path_video].length
                 
-                time_programmed_s = time_programmed_s + length
+                # Get the metadata to gather the actual programmed playing time of the videos
+                metadata = self.metadata_manager.get_metadata(
+                    video_name=path_video.split("/").pop())
+                if metadata.timestamp_end != 0:
+                    # If there is a end timestamp, we know the length is end - start
+                    playing_length_s = metadata.timestamp_end - metadata.timestamp_begin
+                else:
+                    # If theres a start we have to get the length and substract
+                    playing_length_s = self.history_knownvideos[path_video].length - metadata.timestamp_begin
+                    
+                time_programmed_s = time_programmed_s + playing_length_s
+
+            video.last_playback = time_programmed_s
 
             if (video.block_type == "randomvideo"):
                 path = video.block_args[0]
                 timeout = video.block_args[1]
                 final_path = self._find_random_video(path = path, timeout_m = timeout, time_programmed_s = time_programmed_s)
                 print("Video "+ final_path + " is programmed to be played on " , datetime.fromtimestamp(time_programmed_s))
-                video.last_playback = time_programmed_s
-                pass
-            if (video.block_type == "video"):
+            elif (video.block_type == "video"):
                 final_path = self.path_dirname + "/" + video.block_args
 
             if not os.path.isfile(final_path):
@@ -528,6 +543,10 @@ class UiSequenceManager:
 
             # Add also the name to the UI
             video.ui_label.configure(text=video.path.split("/").pop())
+            ui_playing_label_time = datetime.fromtimestamp(video.last_playback).time()
+            video.ui_playing_time.configure(text="{:02d}".format(ui_playing_label_time.hour)   + ":" +
+                                                 "{:02d}".format(ui_playing_label_time.minute) + ":" +
+                                                 "{:02d}".format(ui_playing_label_time.second))
 
     def load_sequence(self):
         if self.xml_root is None:
@@ -549,20 +568,26 @@ class UiSequenceManager:
 
         # Fill the UI
         for i, block in enumerate(self.sequence_data.inner_sequence):
-            # TODO rounded corners
             block.ui_frame = tk.Frame(
-                self.sequence_view, bg=block.get_color(), width=200, height=100)
+                self.sequence_view, width=200, height=120)
             block.ui_frame.pack(side=tk.LEFT, padx=10,
                                 pady=20, fill=tk.BOTH, expand=True)
+            block.ui_playing_time = tk.Label(block.ui_frame, text = block.last_playback)
+            block.ui_playing_time.pack(
+                padx=5, pady=5, fill="none", expand=False)
+            block.ui_video_frame = tk.Frame(
+                block.ui_frame, bg=block.get_color(), width=200, height=100)
+
             block.ui_frame.pack_propagate(False)
+            block.ui_video_frame.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
             # TODO Different font, font size and different colors depending on the background (maybe)
 
             block.ui_id_label = tk.Label(
-                block.ui_frame, text=str(i), bg=block.get_color(), fg="black")
+                block.ui_video_frame, text=str(i), bg=block.get_color(), fg="black")
             block.ui_id_label.pack(
                 padx=5, pady=5, fill="none", expand=False)
             block.ui_label = tk.Label(
-                block.ui_frame, text=block.block_type, bg=block.get_color(), fg="black")
+                block.ui_video_frame, text=block.block_type, bg=block.get_color(), fg="black")
             block.ui_label.pack(padx=5, pady=5, fill="both", expand=True)
 
         # First sequence resolving. After each sequence iteration it will be called
@@ -574,7 +599,11 @@ class UiSequenceManager:
             video = self.sequence_data.inner_sequence[self.index_playing_video]
             video.modify_color(video.get_color_used())
             # Add to the history
-            self.history_listbox.insert(0, video.path)
+            
+            time_last_playback = datetime.fromtimestamp(video.last_playback).time()
+            self.history_listbox.insert(0, "{:02d}".format(time_last_playback.hour)   + ":" +
+                                           "{:02d}".format(time_last_playback.minute) + ":" +
+                                           "{:02d}".format(time_last_playback.second) + " " + video.path)
 
         # Resolve the sext sequence
         if self.index_playing_video == len(self.sequence_data.inner_sequence) - 1:
@@ -678,7 +707,7 @@ class MainManager:
         player = UiPlayer(tkroot=self.root, vlc_instance=instance,
                           metadata_manager=metadata_manager)
         self.sequence_manager = UiSequenceManager(
-            tkroot=self.root, vlc_instance=instance, ui_player=player, path="res/sequence.xml")
+            tkroot=self.root, vlc_instance=instance, ui_player=player, path="res/sequence.xml", metadata_manager=metadata_manager)
         self.sequence_manager.load_sequence()
 
         self.sequencer = MainSequencer(
