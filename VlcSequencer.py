@@ -13,6 +13,15 @@ import xml.etree.ElementTree as ET
 import copy
 from datetime import datetime
 
+
+UI_BACKGROUND_COLOR = "#0d1117"
+UI_BLOCK_RANDOM_VIDEO_COLOR = "#c6cdd5"
+UI_BLOCK_NORMAL_VIDEO_COLOR = "#89929b"
+UI_BLOCK_SELECTED_VIDEO_FRAME_COLOR = "#77bdfb"
+UI_BLOCK_USED_VIDEO_FRAME_COLOR = "#21262d"
+UI_BLOCK_PLAYED_VIDEO_COLOR = "#161b22"
+
+
 class UiPlayer():
     """! Main UI Window
 
@@ -284,24 +293,29 @@ class SequenceBlock:
     def get_color(self):
         """! Returns the hex code of the video block """
         # https://coolors.co/dd6e42-e8dab2-4f6d7a-c0d6df-eaeaea
-        bg_color = "#EAEAEA"
-        if self.block_type == "randomvideo":
-            bg_color = "#FF6529"
-        elif self.block_type == "video":
-            bg_color = "#B33300"
-        return bg_color
+        bg_color = UI_BLOCK_PLAYED_VIDEO_COLOR
 
-    def get_color_used(self):
-        """! Returns the hex code of the video block once it has been played """
-        bg_color = "#EAEAEA"
         if self.block_type == "randomvideo":
-            bg_color = "#C47F64"
+            bg_color = UI_BLOCK_RANDOM_VIDEO_COLOR
         elif self.block_type == "video":
-            bg_color = "#774C3C"
+            bg_color = UI_BLOCK_NORMAL_VIDEO_COLOR
         return bg_color
-
+        
+    def select(self):
+        """! Select the video by putting a different background 
+                to the main ui frame of the block
+        """
+        self.ui_frame.configure(
+            bg=UI_BLOCK_SELECTED_VIDEO_FRAME_COLOR)
+        self.ui_playing_time.configure(
+            bg=UI_BLOCK_SELECTED_VIDEO_FRAME_COLOR)
+        
     def modify_color(self, color):
         """! Modify background colors of the UI elements of the block """
+        self.ui_frame.configure(
+            bg=UI_BLOCK_USED_VIDEO_FRAME_COLOR)
+        self.ui_playing_time.configure(
+            bg=UI_BLOCK_USED_VIDEO_FRAME_COLOR)
         self.ui_video_frame.configure(
             bg=color)
         self.ui_label.configure(
@@ -358,6 +372,7 @@ class UiSequenceManager:
     title = "" 
     path_dirname = ""
     index_playing_video = -1
+    is_running_flag = False
 
     def __init__(self, tkroot, vlc_instance, ui_player, path, metadata_manager):
         """! The Sequence manager initializer
@@ -367,46 +382,66 @@ class UiSequenceManager:
         self.ui_player = ui_player
         self.vlc_instance = vlc_instance
         self.metadata_manager = metadata_manager
-        # start UI
+        self.is_running_flag = True
 
-        # panel to hold buttons
+        # start UI
         self.ui_sequence_manager = tk.Toplevel(tkroot)
         self.ui_sequence_manager.title("Sequence Manager")
 
-        self.ui_sequence_manager.grid_rowconfigure(0, weight=1)
-        self.ui_sequence_manager.grid_rowconfigure(1, weight=1)
-        self.ui_sequence_manager.grid_columnconfigure(0, weight=1)
-        self.ui_sequence_manager.grid_columnconfigure(1, weight=1)
+        self.main_clock_view =  tk.Frame(
+            self.ui_sequence_manager, width=1000, height=200, background=UI_BACKGROUND_COLOR)
+        self.main_clock_view.pack(side=tk.TOP,  fill=tk.BOTH)
 
-        self.ui_playback_control_view = ttk.LabelFrame(
-            self.ui_sequence_manager,  width=500, text="Playback Control")
+        lbl = tk.Label(self.main_clock_view, font=('calibri', 60, 'bold'), background=UI_BACKGROUND_COLOR, foreground='white')
+        lbl.pack(side=tk.TOP,  fill=tk.BOTH, pady=50)
 
-        self.pause_button = ttk.Button(
-            self.ui_playback_control_view, text="Pause/Resume", command=self.ui_player.pause_resume)
-        self.mute_button = ttk.Button(
-            self.ui_playback_control_view, text="Mute/Unmute",  command=self.ui_player.mute_trigger)
-        self.next_button = ttk.Button(
-            self.ui_playback_control_view, text="Next",         command=self.ui_player.next)
+        # Launch clock thread
+        def update_clock():
+            while (self.is_running_flag):
+                string = time.strftime('%H:%M:%S')
+                lbl.config(text=string)
+                time.sleep(1)
+        
+        threading.Thread(target=update_clock).start()
 
-        self.pause_button.grid(column=0, row=0)
-        self.mute_button.grid(column=1, row=0)
-        self.next_button.grid(column=2, row=0)
+        self.sequence_view = tk.Frame(
+            self.ui_sequence_manager, width=1000, height=500, background=UI_BACKGROUND_COLOR)
+        self.sequence_view.pack(side=tk.TOP,  fill=tk.BOTH)
 
-        self.ui_playback_control_view.grid(column=1, row=1,  sticky="we")
+        self.ui_playback_control_view = tk.Frame(
+            self.ui_sequence_manager,  width=500,  background=UI_BACKGROUND_COLOR)
 
-        self.sequence_view = ttk.LabelFrame(
-            self.ui_sequence_manager, width=1000, height=500, text="Sequence View")
-        self.sequence_view.grid(column=0, row=0, columnspan=3, sticky="we")
+        self.pause_button = tk.Button(
+            self.ui_playback_control_view, text="Pause/Resume", command=self.ui_player.pause_resume, 
+                padx=10, pady=10, font=('calibri', 12),
+                fg="white",
+                bg=UI_BACKGROUND_COLOR)
+        self.mute_button = tk.Button(
+            self.ui_playback_control_view, text="Mute/Unmute",  command=self.ui_player.mute_trigger,
+                padx=10, pady=10, font=('calibri', 12),
+                fg="white",
+                bg=UI_BACKGROUND_COLOR)
+        self.next_button = tk.Button(
+            self.ui_playback_control_view, text="Next",         command=self.ui_player.next, foreground="white",
+                padx=10, pady=10, font=('calibri', 12),
+                fg="white",
+                bg=UI_BACKGROUND_COLOR)
 
-        self.history_view = ttk.LabelFrame(
-            self.ui_sequence_manager, height=500,  text="History")
-        self.history_view.grid(column=0, row=1, sticky="we")
+        self.pause_button.grid(column=0, row=0, padx=10, pady=10)
+        self.mute_button.grid(column=1, row=0, padx=10, pady=10)
+        self.next_button.grid(column=2, row=0, padx=10, pady=10)
+
+        self.ui_playback_control_view.pack(side=tk.TOP,  fill=tk.BOTH)
+
+        self.history_view = tk.Frame(
+            self.ui_sequence_manager, height=500, background=UI_BACKGROUND_COLOR)
+        self.history_view.pack(side=tk.TOP,  fill=tk.BOTH)
 
         scrollbar = tk.Scrollbar(self.history_view)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
         self.history_listbox = tk.Listbox(
-            self.history_view, yscrollcommand=scrollbar.set, width=200)
+            self.history_view, yscrollcommand=scrollbar.set, width=200, background=UI_BACKGROUND_COLOR, foreground="white")
 
         self.history_listbox.pack(side=tk.LEFT, fill=tk.BOTH)
         scrollbar.config(command=self.history_listbox.yview)
@@ -508,12 +543,15 @@ class UiSequenceManager:
                 # Get the metadata to gather the actual programmed playing time of the videos
                 metadata = self.metadata_manager.get_metadata(
                     video_name=path_video.split("/").pop())
-                if metadata.timestamp_end != 0:
-                    # If there is a end timestamp, we know the length is end - start
-                    playing_length_s = metadata.timestamp_end - metadata.timestamp_begin
+                if metadata is not None:
+                    if metadata.timestamp_end != 0:
+                        # If there is a end timestamp, we know the length is end - start
+                        playing_length_s = metadata.timestamp_end - metadata.timestamp_begin
+                    else:
+                        # If theres a start we have to get the length and substract
+                        playing_length_s = self.history_knownvideos[path_video].length - metadata.timestamp_begin
                 else:
-                    # If theres a start we have to get the length and substract
-                    playing_length_s = self.history_knownvideos[path_video].length - metadata.timestamp_begin
+                    playing_length_s = self.history_knownvideos[path_video].length
                     
                 time_programmed_s = time_programmed_s + playing_length_s
 
@@ -553,7 +591,8 @@ class UiSequenceManager:
                 media.release()
 
             # Add also the name to the UI
-            video.ui_label.configure(text=video.path.split("/").pop())
+            # Split the path and get the name after the last '/' and get the name before the extension
+            video.ui_label.configure(text=video.path.split("/").pop().split(".")[0])
             ui_playing_label_time = datetime.fromtimestamp(video.last_playback).time()
             video.ui_playing_time.configure(text="{:02d}".format(ui_playing_label_time.hour)   + ":" +
                                                  "{:02d}".format(ui_playing_label_time.minute) + ":" +
@@ -582,10 +621,10 @@ class UiSequenceManager:
         # Fill the UI
         for i, block in enumerate(self.sequence_data.inner_sequence):
             block.ui_frame = tk.Frame(
-                self.sequence_view, width=200, height=120)
+                self.sequence_view, width=200, height=120, bg=UI_BACKGROUND_COLOR)
             block.ui_frame.pack(side=tk.LEFT, padx=10,
                                 pady=20, fill=tk.BOTH, expand=True)
-            block.ui_playing_time = tk.Label(block.ui_frame, text = block.last_playback)
+            block.ui_playing_time = tk.Label(block.ui_frame, text = block.last_playback,  font=('calibri', 12), bg=UI_BACKGROUND_COLOR, fg="white")
             block.ui_playing_time.pack(
                 padx=5, pady=5, fill="none", expand=False)
             block.ui_video_frame = tk.Frame(
@@ -593,14 +632,13 @@ class UiSequenceManager:
 
             block.ui_frame.pack_propagate(False)
             block.ui_video_frame.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
-            # TODO Different font, font size and different colors depending on the background (maybe)
 
             block.ui_id_label = tk.Label(
-                block.ui_video_frame, text=str(i), bg=block.get_color(), fg="black")
+                block.ui_video_frame, text=str(i), bg=block.get_color(), fg="black", font=('calibri', 20, "bold"))
             block.ui_id_label.pack(
                 padx=5, pady=5, fill="none", expand=False)
             block.ui_label = tk.Label(
-                block.ui_video_frame, text=block.block_type, bg=block.get_color(), fg="black")
+                block.ui_video_frame, text=block.block_type, bg=block.get_color(), fg="black", font=('calibri', 14))
             block.ui_label.pack(padx=5, pady=5, fill="both", expand=True)
 
         # First sequence resolving. After each sequence iteration it will be called
@@ -610,7 +648,7 @@ class UiSequenceManager:
         if self.index_playing_video > -1:
             # Reset frame options
             video = self.sequence_data.inner_sequence[self.index_playing_video]
-            video.modify_color(video.get_color_used())
+            video.modify_color(UI_BLOCK_PLAYED_VIDEO_COLOR)
             # Add to the history
             
             time_last_playback = datetime.fromtimestamp(video.last_playback).time()
@@ -623,15 +661,22 @@ class UiSequenceManager:
             self._resolve_sequence()
             for block in self.sequence_data.inner_sequence:
                 block.modify_color(block.get_color())
+                # Reset background colors
+                block.ui_frame.configure(bg=UI_BACKGROUND_COLOR)
+                block.ui_playing_time.configure(bg=UI_BACKGROUND_COLOR)
 
         # Incrementing the sequence and setting the selected frame in color
         self.index_playing_video = (
             self.index_playing_video + 1) % len(self.sequence_data.inner_sequence)
         video = self.sequence_data.inner_sequence[self.index_playing_video]
-        video.modify_color("#F5C5B2")
+        video.select()
 
         # Gathering the video details
         return (video.path, video.length)
+    
+    def kill(self):
+        self.is_running_flag = False
+        # TODO Stop tkinter frames
 
 
 class MetaDataManager:
@@ -727,6 +772,7 @@ class MainManager:
             ui_player=player, ui_sequencer=self.sequence_manager)
 
         def on_close():
+            self.sequence_manager.kill()
             self.sequencer.kill()
 
         self.root.protocol("WM_DELETE_WINDOW", on_close)
