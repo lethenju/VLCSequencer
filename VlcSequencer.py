@@ -11,6 +11,7 @@ import random
 import sys
 import xml.etree.ElementTree as ET
 import copy
+import inspect
 from datetime import datetime
 
 
@@ -24,14 +25,15 @@ UI_BLOCK_PLAYED_VIDEO_COLOR = "#161b22"
 ui_trace_listbox = None
 
 def PrintTraceInUi(*args):
-    print(args)
-    if ui_trace_listbox == None:
-        PrintTraceInUi("ERROR - UI not created (yet ?)")
-    else:
-        trace = ""
-        for arg in args:
-            trace = trace + arg.__str__()
-        ui_trace_listbox.insert(tk.ANCHOR, time.strftime('%H:%M:%S') + " " + trace)
+    function_caller_name = inspect.stack()[1].function
+    trace =  time.strftime('%H:%M:%S') + " " +  function_caller_name + "() : "
+    for arg in args:
+        trace = trace + arg.__str__()
+
+    print(trace)
+    if ui_trace_listbox is not None:
+
+        ui_trace_listbox.insert(tk.ANCHOR, " " + trace)
         ui_trace_listbox.yview(tk.END)
 
 
