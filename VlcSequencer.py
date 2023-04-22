@@ -11,7 +11,7 @@ import random
 import sys
 import xml.etree.ElementTree as ET
 import copy
-
+from datetime import datetime
 
 class UiPlayer():
     """! Main UI Window
@@ -425,37 +425,56 @@ class UiSequenceManager:
                         self._flatten_sequence(block_child)
                         sequence_data_node.inner_sequence.insert(
                             i, copy.copy(block_child))
+                block.inner_sequence = None
                 sequence_data_node.inner_sequence.remove(block)
 
-    def _find_random_video(self, path, timeout):
+    def _find_random_video(self, path, timeout_m, time_programmed_s):
+        """! Returns a video in the directory given by the path parameter and that hasnt played for timeout minutes 
+          @param path : the path of the directory to search videos in
+          @param timeout_m : Timeout of the needed video in minutes : 
+                             the video must not be chosen if it has been chosen the last timeout_m minutes
+          @param time_programmed_s : Timestamp in the future for the programmed video, as its 
+        """
         # gather list of files
         files = os.listdir(self.path_dirname + "/" + path)
+        # List of files that have been played too recently
+        forbidden_files = []
         video_found = None
 
         # TODO Test if there is at least a video file in files
         while video_found is None:
-            file = files[random.randrange(len(files))]
+            is_file_selected = False
+            while not is_file_selected:
+                file = files[random.randrange(len(files))]
+                is_file_selected = file not in forbidden_files
             complete_path = self.path_dirname + "/" + path + "/" + file
             print("Testing " + complete_path)
             # Verify its a Media file before trying to play it
 
-            # TODO Verify the clip hasnt played since "timeout" minutes
+            # TODO Verify the clip hasnt played since "timeout_m" minutes
             # Search history + last programmed videos
             if ("Media" in magic.from_file(complete_path)):
                 if complete_path in self.history_knownvideos:
                     video = self.history_knownvideos[complete_path]
-                    # TODO We're on the sequencing algorithm, made in advance.
-                    # We need to add the length of programmed videos to the now parameter
-                    now = time.time()
-                    
-                    print ("Already known video... Last playback on "  + str(video.last_playback) + " and timeout " + str(int(timeout)*60)+"s")
-                    if (video.last_playback + int(timeout)*60 < now ):
-                       video_found = complete_path
-                       #self.history_knownvideos[complete_path].last_playback = time.time()
+                    # TODO We should also take into account the metadata-stored start playing time and end playing time
+                    # but for the sake of simplicity, for now we assume we'll play the new video entirely
+                    print ("Already known video... Last playback on ", datetime.fromtimestamp(video.last_playback), " and timeout " + str(int(timeout_m)*60)+"s")
+                    print (" and timestamp of the programmed video  ", datetime.fromtimestamp(time_programmed_s))
+                    if (video.last_playback + int(timeout_m)*60 < time_programmed_s ):
+                        video_found = complete_path
+                        # Overriding the last playback to now + last programmed videos time
+                        self.history_knownvideos[complete_path].last_playback = time_programmed_s
                     else:
                         print("Last playback too recent.. ")
+                        # Forbid this video to be tested again
+                        forbidden_files.append(complete_path)
+                        if len(forbidden_files) == len(files):
+                            # TODO what do we do in this situation ? 
+                            print("ERROR ! All videos are forbidden !! Selecting ", complete_path , " anyway.." )
+                            video_found = complete_path
+                            self.history_knownvideos[complete_path].last_playback = time_programmed_s
                 else:
-                    print("Unknown video for now, validating playback")
+                    # print("Unknown video for now, validating playback")
                     video_found = complete_path
         return video_found
 
@@ -463,10 +482,21 @@ class UiSequenceManager:
         """! Chooses the random videos to be displayed, add length for each media and media info to blocks """
         for i, video in enumerate(self.sequence_data.inner_sequence):
             final_path = None
+            
+            # Resolves the timestamp in the future where we need to put the video
+            time_programmed_s = time.time()
+            for j in range(0, i):
+                path_video = self.sequence_data.inner_sequence[j].path
+                length = self.history_knownvideos[path_video].length
+                
+                time_programmed_s = time_programmed_s + length
+
             if (video.block_type == "randomvideo"):
                 path = video.block_args[0]
                 timeout = video.block_args[1]
-                final_path = self._find_random_video(path, timeout)
+                final_path = self._find_random_video(path = path, timeout_m = timeout, time_programmed_s = time_programmed_s)
+                print("Video "+ final_path + " is programmed to be played on " , datetime.fromtimestamp(time_programmed_s))
+                video.last_playback = time_programmed_s
                 pass
             if (video.block_type == "video"):
                 final_path = self.path_dirname + "/" + video.block_args
@@ -479,10 +509,10 @@ class UiSequenceManager:
             video.path = final_path
             if (video.path in self.history_knownvideos):
                 video.length = self.history_knownvideos[video.path].length
-                print(video.path + " : Video already found : " +
+                print(video.path + " : Known video, already parsed length " +
                       str(video.length))
             else:
-                print(video.path + " : Video doesnt exist ")
+                print(video.path + " : New video, reading attributes ")
                 media = self.vlc_instance.media_new(video.path)
                 media.parse_with_options(1, 0)
                 # Blocking the parsing time
@@ -491,7 +521,7 @@ class UiSequenceManager:
                         break
                 video.length = media.get_duration()/1000
 
-                # Store video in the dictionarry
+                # Store video in the dictionary
                 self.history_knownvideos[video.path] = copy.copy(video)
                 # We do not need this media anymore
                 media.release()
