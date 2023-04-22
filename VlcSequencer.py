@@ -22,6 +22,8 @@ UI_BLOCK_SELECTED_VIDEO_FRAME_COLOR = "#77bdfb"
 UI_BLOCK_USED_VIDEO_FRAME_COLOR = "#21262d"
 UI_BLOCK_PLAYED_VIDEO_COLOR = "#161b22"
 
+# Reference to the tkinter listbox used to gather the logs
+# TODO have a static module for that, and subscribe a listbox instead of relying on this one
 ui_trace_listbox = None
 
 def PrintTraceInUi(*args):
@@ -404,6 +406,8 @@ class UiSequenceManager:
 
     def __init__(self, tkroot, vlc_instance, ui_player, path, metadata_manager):
         """! The Sequence manager initializer
+            TODO too big initializer : multiple sections need to be in different submodules
+            
             @param path : path the sequence file 
             @return An instance of a UiSequenceManager
         """
@@ -440,6 +444,8 @@ class UiSequenceManager:
         self.ui_playback_control_view = tk.Frame(
             self.ui_sequence_manager,  width=500,  background=UI_BACKGROUND_COLOR)
 
+        # TODO Pausing the playback causes all the future timestamps to be computed again
+        #      Same for clicking on Next
         self.pause_button = tk.Button(
             self.ui_playback_control_view, text="Pause/Resume", command=self.ui_player.pause_resume, 
                 padx=10, pady=10, font=('calibri', 12),
@@ -548,7 +554,6 @@ class UiSequenceManager:
         forbidden_files = []
         video_found = None
 
-        # TODO Test if there is at least a video file in files
         while video_found is None:
             is_file_selected = False
             while not is_file_selected:
@@ -573,7 +578,6 @@ class UiSequenceManager:
                         # Forbid this video to be tested again
                         forbidden_files.append(complete_path)
                         if len(forbidden_files) == len(files):
-                            # TODO what do we do in this situation ? 
                             PrintTraceInUi("ERROR ! All videos are forbidden !! Selecting ", complete_path , " anyway.." )
                             video_found = complete_path
                             self.history_knownvideos[complete_path].last_playback = time_programmed_s
