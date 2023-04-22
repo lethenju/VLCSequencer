@@ -57,6 +57,9 @@ class UiPlayer():
     nb_video_played = 0
     is_next_asked = False
 
+    fade_out_thread_active = False
+    fade_in_thread_active = False
+
     class MediaFrame:
         """! Structure that links a Tkinter frame with a Vlc media player """
         media_player = None  # A Vlc media player
@@ -81,6 +84,8 @@ class UiPlayer():
         self.is_next_asked = False
         self.nb_video_played = 0
 
+        self.fade_out_thread_active = False
+        self.fade_in_thread_active = False
         # 2 players (one for each frame)
         # Initialize media frames with the players and new tk frames. Setting bg colors for debugging if something goes wrong
         self.media_frames = (self.MediaFrame(self.vlc_instance.media_player_new(),
@@ -128,6 +133,7 @@ class UiPlayer():
         def fade_in_thread():
             """! Thread to handle fade in on this player"""
             # The playing video musnt change during the thread !
+            self.fade_in_thread_active = True
             nb_video_played = self.nb_video_played
 
             player.audio_set_volume(0)
@@ -136,26 +142,33 @@ class UiPlayer():
 
             volume = player.audio_get_volume()
             while (volume < 100 and self.is_running_flag and not self.is_next_asked
-                   and nb_video_played < self.nb_video_played + 2):
+                   and nb_video_played < self.nb_video_played + 1):
                 PrintTraceInUi("fade_in Volume : " + str(volume))
                 volume = min(volume + 5, 100)
                 if not self.is_muted:
                     player.audio_set_volume(volume)
                 time.sleep(0.5)
+            self.fade_in_thread_active = False
 
         def fade_out_thread():
             """! Thread to handle fade out on this player"""
             # The playing video musnt change twice during the thread !
+            self.fade_out_thread_active = True
             nb_video_played = self.nb_video_played
             volume = player.audio_get_volume()
             while (volume > 0 and self.is_running_flag and not self.is_next_asked
-                   and nb_video_played < self.nb_video_played + 2):
+                   and nb_video_played < self.nb_video_played + 1):
                 PrintTraceInUi("fade_out Volume : " + str(volume))
                 volume = volume - 5
                 player.audio_set_volume(volume)
                 time.sleep(0.5)
-            player.stop()
-        if fade_in:
+            # If we changed 2 times of videos, we're on this player, we better not stop it
+            if not nb_video_played < self.nb_video_played + 1:
+                player.stop()
+            self.fade_out_thread_active = False
+
+        # We shouldnt launch multiple concurrent fade_in
+        if fade_in and not self.fade_in_thread_active:
             threading.Thread(target=fade_in_thread).start()
         elif not self.is_muted:
             player.audio_set_volume(100)
@@ -177,7 +190,8 @@ class UiPlayer():
                 break
             time.sleep(1)
 
-        if fade_out:
+        # We shouldnt launch multiple concurrent fade_out
+        if fade_out and not self.fade_out_thread_active:
             threading.Thread(target=fade_out_thread).start()
         else:
             player.audio_set_volume(0)
