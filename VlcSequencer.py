@@ -333,16 +333,29 @@ class UiSequenceManager:
 
         Open a UI to visualize and modify the sequence 
     """
+
+    # Reference to the player object to connect the playback buttons to the associated callbacks
     ui_player = None
-    sequence_view = None
-    history_view = None
-    history_listbox = None
-    history_knownvideos = {}
+    # Reference to the metadata API to get the user-defined start/end playback timestamps
     metadata_manager = None
+    #  Reference to the Vlc instance to get true metadata about the video (length..)
+    vlc_instance = None  
+
+    # main Tkinter panes
+    main_clock_view = None 
+    sequence_view = None
+    ui_playback_control_view = None
+    history_view = None
+    # Tkinter Listbox of played video with time of last playback
+    history_listbox = None
+    # Dictionary of parsed videos
+    history_knownvideos = {}
+    # Parsed video sequence, as a "sequence" block
     sequence_data = None
-    xml_root = None
-    vlc_instance = None  # To get true metadata about the video (length..)
-    title = ""
+    # path of the xml sequence file
+    xml_path = ""
+    # Sequence title (and so the title of the window)
+    title = "" 
     path_dirname = ""
     index_playing_video = -1
 
@@ -360,27 +373,26 @@ class UiSequenceManager:
         self.ui_sequence_manager = tk.Toplevel(tkroot)
         self.ui_sequence_manager.title("Sequence Manager")
 
-        # Configuration des colonnes et des lignes
         self.ui_sequence_manager.grid_rowconfigure(0, weight=1)
         self.ui_sequence_manager.grid_rowconfigure(1, weight=1)
         self.ui_sequence_manager.grid_columnconfigure(0, weight=1)
         self.ui_sequence_manager.grid_columnconfigure(1, weight=1)
 
-        buttons = ttk.LabelFrame(
+        self.ui_playback_control_view = ttk.LabelFrame(
             self.ui_sequence_manager,  width=500, text="Playback Control")
 
         self.pause_button = ttk.Button(
-            buttons, text="Pause/Resume", command=self.ui_player.pause_resume)
+            self.ui_playback_control_view, text="Pause/Resume", command=self.ui_player.pause_resume)
         self.mute_button = ttk.Button(
-            buttons, text="Mute/Unmute",  command=self.ui_player.mute_trigger)
+            self.ui_playback_control_view, text="Mute/Unmute",  command=self.ui_player.mute_trigger)
         self.next_button = ttk.Button(
-            buttons, text="Next",         command=self.ui_player.next)
+            self.ui_playback_control_view, text="Next",         command=self.ui_player.next)
 
         self.pause_button.grid(column=0, row=0)
         self.mute_button.grid(column=1, row=0)
         self.next_button.grid(column=2, row=0)
 
-        buttons.grid(column=1, row=1,  sticky="we")
+        self.ui_playback_control_view.grid(column=1, row=1,  sticky="we")
 
         self.sequence_view = ttk.LabelFrame(
             self.ui_sequence_manager, width=1000, height=500, text="Sequence View")
@@ -399,10 +411,9 @@ class UiSequenceManager:
         self.history_listbox.pack(side=tk.LEFT, fill=tk.BOTH)
         scrollbar.config(command=self.history_listbox.yview)
 
-        # Read file
+        # Store file data
+        self.xml_path = path
         self.path_dirname = os.path.dirname(path)
-        tree = ET.parse(path)
-        self.xml_root = tree.getroot()
 
     def _build_sequence(self, sequence_xml_node, sequence_data_node):
         for child in sequence_xml_node:
@@ -549,10 +560,11 @@ class UiSequenceManager:
                                                  "{:02d}".format(ui_playing_label_time.second))
 
     def load_sequence(self):
-        if self.xml_root is None:
+        xml_root = ET.parse(self.xml_path).getroot()
+        if xml_root is None:
             return
-        assert (self.xml_root.tag == 'Document')
-        for child in self.xml_root:
+        assert (xml_root.tag == 'Document')
+        for child in xml_root:
             print(child.tag, child.attrib)
             if child.tag == "Title":
                 print("Title of the sequence : " + child.text)
@@ -565,6 +577,7 @@ class UiSequenceManager:
                                      sequence_data_node=self.sequence_data)
         self._flatten_sequence(self.sequence_data)
         print(self.sequence_data)
+
 
         # Fill the UI
         for i, block in enumerate(self.sequence_data.inner_sequence):
