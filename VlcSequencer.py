@@ -29,10 +29,8 @@ def PrintTraceInUi(*args):
     trace =  time.strftime('%H:%M:%S') + " " +  function_caller_name + "() : "
     for arg in args:
         trace = trace + arg.__str__()
-
     print(trace)
     if ui_trace_listbox is not None:
-
         ui_trace_listbox.insert(tk.ANCHOR, " " + trace)
         ui_trace_listbox.yview(tk.END)
 
@@ -169,7 +167,6 @@ class UiPlayer():
             end_position = 0.95
 
         while (player.get_position() < end_position and self.is_running_flag and not self.is_next_asked):
-            time.sleep(1)
             PrintTraceInUi("Current media playing time " +
                   ("{:.2f}".format(player.get_position()*100))+"%")
 
@@ -178,6 +175,7 @@ class UiPlayer():
                 player.stop()
                 self.is_next_asked = True
                 break
+            time.sleep(1)
 
         if fade_out:
             threading.Thread(target=fade_out_thread).start()
@@ -450,27 +448,35 @@ class UiSequenceManager:
 
         self.ui_playback_control_view.pack(side=tk.TOP,  fill=tk.BOTH)
 
-        listviews = tk.Frame(self.ui_sequence_manager, height=500, background=UI_BACKGROUND_COLOR)
-        listviews.pack(side=tk.BOTTOM,  fill=tk.BOTH)
-
+        listviews = tk.Frame(self.ui_sequence_manager, background=UI_BACKGROUND_COLOR)
+        listviews.pack(side=tk.BOTTOM, fill=tk.BOTH,  expand=1)
+        listviews.columnconfigure(0, weight=1)
+        listviews.columnconfigure(1, weight=1)
+        listviews.rowconfigure(0, weight=1)
 
         self.history_view = tk.Frame(
-            listviews, height=500, background=UI_BACKGROUND_COLOR)
-        self.history_view.grid(row=0, column=0)
+            listviews, background=UI_BACKGROUND_COLOR)
 
-        scrollbar = tk.Scrollbar(self.history_view)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.history_view.grid(row=0, column=0, sticky="news")
+        
+        title_history = tk.Label(self.history_view, text="History", font=('calibri', 20), bg=UI_BACKGROUND_COLOR, fg="white")
+        title_history.pack(side=tk.TOP, fill=tk.X)
 
+        scrollbar_history = tk.Scrollbar(self.history_view)
+        scrollbar_history.pack(side=tk.RIGHT, fill=tk.Y)
 
         self.history_listbox = tk.Listbox(
-            self.history_view, yscrollcommand=scrollbar.set, width=200, background=UI_BACKGROUND_COLOR, foreground="white")
+            self.history_view, yscrollcommand=scrollbar_history.set, width=200, background=UI_BACKGROUND_COLOR, foreground="white")
 
         self.history_listbox.pack(side=tk.LEFT, fill=tk.BOTH)
-        scrollbar.config(command=self.history_listbox.yview)
+        scrollbar_history.config(command=self.history_listbox.yview)
 
         self.logs_view = tk.Frame(
-            listviews, height=500, background=UI_BACKGROUND_COLOR)
-        self.logs_view.grid(row=0, column=1)
+            listviews, background=UI_BACKGROUND_COLOR)
+        self.logs_view.grid(row=0, column=1,  sticky="news")
+
+        title_logs = tk.Label(self.logs_view, text="Logs", font=('calibri', 20), bg=UI_BACKGROUND_COLOR, fg="white")
+        title_logs.pack(side=tk.TOP, fill=tk.X)
 
         scrollbar_logs = tk.Scrollbar(self.logs_view)
         scrollbar_logs.pack(side=tk.RIGHT, fill=tk.Y)
@@ -658,7 +664,7 @@ class UiSequenceManager:
                 self.sequence_view, width=200, height=120, bg=UI_BACKGROUND_COLOR)
             block.ui_frame.pack(side=tk.LEFT, padx=10,
                                 pady=20, fill=tk.BOTH, expand=True)
-            block.ui_playing_time = tk.Label(block.ui_frame, text = block.last_playback,  font=('calibri', 12), bg=UI_BACKGROUND_COLOR, fg="white")
+            block.ui_playing_time = tk.Label(block.ui_frame, text = block.last_playback, font=('calibri', 12), bg=UI_BACKGROUND_COLOR, fg="white")
             block.ui_playing_time.pack(
                 padx=5, pady=5, fill="none", expand=False)
             block.ui_video_frame = tk.Frame(
