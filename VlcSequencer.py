@@ -21,6 +21,18 @@ UI_BLOCK_SELECTED_VIDEO_FRAME_COLOR = "#77bdfb"
 UI_BLOCK_USED_VIDEO_FRAME_COLOR = "#21262d"
 UI_BLOCK_PLAYED_VIDEO_COLOR = "#161b22"
 
+ui_trace_listbox = None
+
+def PrintTraceInUi(*args):
+    print(args)
+    if ui_trace_listbox == None:
+        PrintTraceInUi("ERROR - UI not created (yet ?)")
+    else:
+        trace = ""
+        for arg in args:
+            trace = trace + arg.__str__()
+        ui_trace_listbox.insert(0, time.strftime('%H:%M:%S') + " " + trace)
+
 
 class UiPlayer():
     """! Main UI Window
@@ -124,7 +136,7 @@ class UiPlayer():
             volume = player.audio_get_volume()
             while (volume < 100 and self.is_running_flag and not self.is_next_asked
                    and nb_video_played < self.nb_video_played + 2):
-                print("fade_in Volume : " + str(volume))
+                PrintTraceInUi("fade_in Volume : " + str(volume))
                 volume = min(volume + 5, 100)
                 if not self.is_muted:
                     player.audio_set_volume(volume)
@@ -137,7 +149,7 @@ class UiPlayer():
             volume = player.audio_get_volume()
             while (volume > 0 and self.is_running_flag and not self.is_next_asked
                    and nb_video_played < self.nb_video_played + 2):
-                print("fade_out Volume : " + str(volume))
+                PrintTraceInUi("fade_out Volume : " + str(volume))
                 volume = volume - 5
                 player.audio_set_volume(volume)
                 time.sleep(0.5)
@@ -155,7 +167,7 @@ class UiPlayer():
 
         while (player.get_position() < end_position and self.is_running_flag and not self.is_next_asked):
             time.sleep(1)
-            print("Current media playing time " +
+            PrintTraceInUi("Current media playing time " +
                   ("{:.2f}".format(player.get_position()*100))+"%")
 
             if (player.get_position() < 0):
@@ -182,8 +194,8 @@ class UiPlayer():
 
             self.nb_video_played = self.nb_video_played + 1
 
-            print("Total video played "+str(self.nb_video_played))
-            print("Playing on frame number "+str(self.nb_video_played % 2))
+            PrintTraceInUi("Total video played "+str(self.nb_video_played))
+            PrintTraceInUi("Playing on frame number "+str(self.nb_video_played % 2))
 
             # Try to get metadata about this video
             name_of_file = path.split("/").pop()
@@ -360,6 +372,7 @@ class UiSequenceManager:
     sequence_view = None
     ui_playback_control_view = None
     history_view = None
+    logs_view = None
     # Tkinter Listbox of played video with time of last playback
     history_listbox = None
     # Dictionary of parsed videos
@@ -379,6 +392,7 @@ class UiSequenceManager:
             @param path : path the sequence file 
             @return An instance of a UiSequenceManager
         """
+        global ui_trace_listbox
         self.ui_player = ui_player
         self.vlc_instance = vlc_instance
         self.metadata_manager = metadata_manager
@@ -433,18 +447,36 @@ class UiSequenceManager:
 
         self.ui_playback_control_view.pack(side=tk.TOP,  fill=tk.BOTH)
 
+        listviews = tk.Frame(self.ui_sequence_manager, height=500, background=UI_BACKGROUND_COLOR)
+        listviews.pack(side=tk.BOTTOM,  fill=tk.BOTH)
+
+
         self.history_view = tk.Frame(
-            self.ui_sequence_manager, height=500, background=UI_BACKGROUND_COLOR)
-        self.history_view.pack(side=tk.TOP,  fill=tk.BOTH)
+            listviews, height=500, background=UI_BACKGROUND_COLOR)
+        self.history_view.grid(row=0, column=0)
 
         scrollbar = tk.Scrollbar(self.history_view)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
 
         self.history_listbox = tk.Listbox(
             self.history_view, yscrollcommand=scrollbar.set, width=200, background=UI_BACKGROUND_COLOR, foreground="white")
 
         self.history_listbox.pack(side=tk.LEFT, fill=tk.BOTH)
         scrollbar.config(command=self.history_listbox.yview)
+
+        self.logs_view = tk.Frame(
+            listviews, height=500, background=UI_BACKGROUND_COLOR)
+        self.logs_view.grid(row=0, column=1)
+
+        scrollbar_logs = tk.Scrollbar(self.logs_view)
+        scrollbar_logs.pack(side=tk.RIGHT, fill=tk.Y)
+
+        ui_trace_listbox = tk.Listbox(
+            self.logs_view, yscrollcommand=scrollbar_logs.set, width=200, background=UI_BACKGROUND_COLOR, foreground="white")
+        ui_trace_listbox.pack(side=tk.LEFT, fill=tk.BOTH)
+
+        scrollbar_logs.config(command=ui_trace_listbox.yview)
 
         # Store file data
         self.xml_path = path
@@ -500,33 +532,33 @@ class UiSequenceManager:
                 file = files[random.randrange(len(files))]
                 is_file_selected = file not in forbidden_files
             complete_path = self.path_dirname + "/" + path + "/" + file
-            print("Testing " + complete_path)
+            PrintTraceInUi("Testing " + complete_path)
             # Verify its a Media file before trying to play it
 
             if ("Media" in magic.from_file(complete_path)):
                 if complete_path in self.history_knownvideos:
                     video = self.history_knownvideos[complete_path]
 
-                    print ("Already known video... Last playback on ", datetime.fromtimestamp(video.last_playback), " and timeout " + str(int(timeout_m)*60)+"s")
-                    print (" and timestamp of the programmed video  ", datetime.fromtimestamp(time_programmed_s))
+                    PrintTraceInUi ("Already known video... Last playback on ", datetime.fromtimestamp(video.last_playback), " and timeout " + str(int(timeout_m)*60)+"s")
+                    PrintTraceInUi (" and timestamp of the programmed video  ", datetime.fromtimestamp(time_programmed_s))
                     if (video.last_playback + int(timeout_m)*60 < time_programmed_s ):
                         video_found = complete_path
                         # Overriding the last playback to now + last programmed videos time
                         self.history_knownvideos[complete_path].last_playback = time_programmed_s
                     else:
-                        print("Last playback too recent.. ")
+                        PrintTraceInUi("Last playback too recent.. ")
                         # Forbid this video to be tested again
                         forbidden_files.append(complete_path)
                         if len(forbidden_files) == len(files):
                             # TODO what do we do in this situation ? 
-                            print("ERROR ! All videos are forbidden !! Selecting ", complete_path , " anyway.." )
+                            PrintTraceInUi("ERROR ! All videos are forbidden !! Selecting ", complete_path , " anyway.." )
                             video_found = complete_path
                             self.history_knownvideos[complete_path].last_playback = time_programmed_s
                 else:
-                    # print("Unknown video for now, validating playback")
+                    # PrintTraceInUi("Unknown video for now, validating playback")
                     video_found = complete_path
             else:
-                print("Not a video file")
+                PrintTraceInUi("Not a video file")
                 forbidden_files.append(complete_path)
         return video_found
 
@@ -561,22 +593,22 @@ class UiSequenceManager:
                 path = video.block_args[0]
                 timeout = video.block_args[1]
                 final_path = self._find_random_video(path = path, timeout_m = timeout, time_programmed_s = time_programmed_s)
-                print("Video "+ final_path + " is programmed to be played on " , datetime.fromtimestamp(time_programmed_s))
+                PrintTraceInUi("Video "+ final_path + " is programmed to be played on " , datetime.fromtimestamp(time_programmed_s))
             elif (video.block_type == "video"):
                 final_path = self.path_dirname + "/" + video.block_args
 
             if not os.path.isfile(final_path):
-                print(final_path + " : The video doesnt exist ! ")
+                PrintTraceInUi(final_path + " : The video doesnt exist ! ")
                 exit(-1)
 
             # Storing path in the block
             video.path = final_path
             if (video.path in self.history_knownvideos):
                 video.length = self.history_knownvideos[video.path].length
-                print(video.path + " : Known video, already parsed length " +
+                PrintTraceInUi(video.path + " : Known video, already parsed length " +
                       str(video.length))
             else:
-                print(video.path + " : New video, reading attributes ")
+                PrintTraceInUi(video.path + " : New video, reading attributes ")
                 media = self.vlc_instance.media_new(video.path)
                 media.parse_with_options(1, 0)
                 # Blocking the parsing time
@@ -604,18 +636,17 @@ class UiSequenceManager:
             return
         assert (xml_root.tag == 'Document')
         for child in xml_root:
-            print(child.tag, child.attrib)
             if child.tag == "Title":
-                print("Title of the sequence : " + child.text)
+                PrintTraceInUi("Title of the sequence : " + child.text)
                 self.title = child.text
             if child.tag == "Sequence":
-                print("Sequence found!")
+                PrintTraceInUi("Sequence found!")
 
                 self.sequence_data = SequenceBlock("sequence")
                 self._build_sequence(sequence_xml_node=child,
                                      sequence_data_node=self.sequence_data)
         self._flatten_sequence(self.sequence_data)
-        print(self.sequence_data)
+        PrintTraceInUi(self.sequence_data)
 
 
         # Fill the UI
@@ -735,10 +766,10 @@ class MetaDataManager:
         it = list(filter(lambda meta: (
             meta.video_name == video_name), self.metadata_list))
         if len(it) == 0:
-            print("ERROR ! No metadata entries found for video " + video_name)
+            PrintTraceInUi("ERROR ! No metadata entries found for video " + video_name)
         else:
             if len(it) > 1:
-                print("WARNING ! Multiple metadata entries for video " +
+                PrintTraceInUi("WARNING ! Multiple metadata entries for video " +
                       video_name + ". Taking first one")
             return it[0]
 
