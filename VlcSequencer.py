@@ -31,7 +31,8 @@ def PrintTraceInUi(*args):
         trace = ""
         for arg in args:
             trace = trace + arg.__str__()
-        ui_trace_listbox.insert(0, time.strftime('%H:%M:%S') + " " + trace)
+        ui_trace_listbox.insert(tk.ANCHOR, time.strftime('%H:%M:%S') + " " + trace)
+        ui_trace_listbox.yview(tk.END)
 
 
 class UiPlayer():
