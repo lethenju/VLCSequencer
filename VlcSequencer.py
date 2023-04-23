@@ -58,6 +58,7 @@ class UiPlayer():
     metadata_manager = None
     nb_video_played = 0
     is_next_asked = False
+    is_paused = False
 
     fade_out_thread_active = False
     fade_in_thread_active = False
@@ -79,11 +80,11 @@ class UiPlayer():
         self.window = tkroot
         self.window.title("MainUI")
         self.window.geometry("400x300")
-
         self.vlc_instance = vlc_instance
         self.metadata_manager = metadata_manager
 
         self.is_next_asked = False
+        self.is_paused = False
         self.nb_video_played = 0
 
         self.fade_out_thread_active = False
@@ -149,6 +150,9 @@ class UiPlayer():
                 volume = min(volume + 5, 100)
                 if not self.is_muted:
                     player.audio_set_volume(volume)
+                while self.is_paused:
+                    # Waiting to get out of pause
+                    time.sleep(1)
                 time.sleep(0.5)
             self.fade_in_thread_active = False
 
@@ -163,10 +167,14 @@ class UiPlayer():
                 PrintTraceInUi("fade_out Volume : " + str(volume))
                 volume = volume - 5
                 player.audio_set_volume(volume)
+                while self.is_paused:
+                    # Waiting to get out of pause
+                    time.sleep(1)
                 time.sleep(0.5)
+            # TODO debug when skipping quickly
             # If we changed 2 times of videos, we're on this player, we better not stop it
-            if not nb_video_played < self.nb_video_played + 1:
-                player.stop()
+            #if not nb_video_played < self.nb_video_played + 1:
+            player.stop()
             self.fade_out_thread_active = False
 
         # We shouldnt launch multiple concurrent fade_in
@@ -236,6 +244,7 @@ class UiPlayer():
 
     def pause_resume(self):
         # TODO pause the fade mechanisms as well
+        self.is_paused = not self.is_paused
         player = self._get_active_media_player()
         player.pause()
         pass
@@ -447,6 +456,9 @@ class UiSequenceManager:
     index_playing_video = -1
     is_running_flag = False
 
+    # If the video is in pause, need to recalculate the timestamps every second
+    is_paused = False 
+
     def __init__(self, tkroot, vlc_instance, ui_player, path, metadata_manager):
         """! The Sequence manager initializer
 
@@ -457,6 +469,7 @@ class UiSequenceManager:
         self.vlc_instance = vlc_instance
         self.metadata_manager = metadata_manager
         self.is_running_flag = True
+        self.is_paused = False
 
         # start UI
         self.ui_sequence_manager = tk.Toplevel(tkroot)
@@ -485,10 +498,8 @@ class UiSequenceManager:
         self.ui_playback_control_view = tk.Frame(
             self.ui_sequence_manager,  width=500,  background=UI_BACKGROUND_COLOR)
 
-        # TODO Pausing the playback causes all the future timestamps to be computed again
-        #      Same for clicking on Next
         self.pause_button = tk.Button(
-            self.ui_playback_control_view, text="Pause/Resume", command=self.ui_player.pause_resume, 
+            self.ui_playback_control_view, text="Pause/Resume", command=self.pause_resume_callback, 
                 padx=10, pady=10, font=('calibri', 12),
                 fg="white",
                 bg=UI_BACKGROUND_COLOR)
@@ -498,7 +509,7 @@ class UiSequenceManager:
                 fg="white",
                 bg=UI_BACKGROUND_COLOR)
         self.next_button = tk.Button(
-            self.ui_playback_control_view, text="Next",         command=self.ui_player.next, foreground="white",
+            self.ui_playback_control_view, text="Next",         command=self.ui_player.next,
                 padx=10, pady=10, font=('calibri', 12),
                 fg="white",
                 bg=UI_BACKGROUND_COLOR)
@@ -514,6 +525,34 @@ class UiSequenceManager:
         # Store file data
         self.xml_path = path
         self.path_dirname = os.path.dirname(path)
+
+
+    def pause_resume_callback(self):
+        self.ui_player.pause_resume()
+
+        if not self.is_paused:
+            self.is_paused = True
+            # Activate the thread that add a second to the length of the current video
+            def current_playing_is_paused_thread():
+                while self.is_paused and self.is_running_flag:
+                    time.sleep(1)
+                    video = self.sequence_data.inner_sequence[self.index_playing_video]
+                    video.length = video.length + 1
+
+                    # Adding timestamps since the playing video
+                    for i in range(self.index_playing_video, len(self.sequence_data.inner_sequence)):
+                        video = self.sequence_data.inner_sequence[i]
+                        
+                        self.sequence_data.inner_sequence[i].last_playback = self.sequence_data.inner_sequence[i].last_playback+1
+                        #self._resolve_timestamps(index=i)
+                        
+                        ui_playing_label_time = datetime.fromtimestamp(video.last_playback).time()
+                        video.ui_playing_time.configure(text="{:02d}".format(ui_playing_label_time.hour)   + ":" +
+                                                            "{:02d}".format(ui_playing_label_time.minute) + ":" +
+                                                            "{:02d}".format(ui_playing_label_time.second))
+            threading.Thread(target=current_playing_is_paused_thread).start()
+        else:
+            self.is_paused = False
 
     def _build_sequence(self, sequence_xml_node, sequence_data_node):
         for child in sequence_xml_node:
@@ -591,6 +630,10 @@ class UiSequenceManager:
             else:
                 PrintTraceInUi("Not a video file")
                 forbidden_files.append(complete_path)
+                if len(forbidden_files) == len(files):
+                    PrintTraceInUi("ERROR ! All videos are forbidden !! Selecting ", complete_path , " anyway.." )
+                    video_found = complete_path
+                    self.history_knownvideos[complete_path].last_playback = time_programmed_s
         return video_found
 
     def _resolve_timestamps(self, index):
@@ -741,6 +784,25 @@ class UiSequenceManager:
             self.index_playing_video + 1) % len(self.sequence_data.inner_sequence)
         video = self.sequence_data.inner_sequence[self.index_playing_video]
         video.select()
+        
+        # Recompute timestamps
+        self.sequence_data.inner_sequence[self.index_playing_video].last_playback = time.time()
+        ui_playing_label_time = datetime.fromtimestamp(self.sequence_data.inner_sequence[self.index_playing_video].last_playback).time()
+        self.sequence_data.inner_sequence[self.index_playing_video].ui_playing_time.configure(text="{:02d}".format(ui_playing_label_time.hour)   + ":" +
+                                            "{:02d}".format(ui_playing_label_time.minute) + ":" +
+                                            "{:02d}".format(ui_playing_label_time.second))
+
+        # Adding timestamps since the playing video
+        for i in range(self.index_playing_video+1, len(self.sequence_data.inner_sequence)):
+            video_modify = self.sequence_data.inner_sequence[i]
+            PrintTraceInUi("Changing timestamps of video ", i, " " + video_modify.path)
+
+            self._resolve_timestamps(index=i)
+            
+            ui_playing_label_time = datetime.fromtimestamp(video_modify.last_playback).time()
+            video_modify.ui_playing_time.configure(text="{:02d}".format(ui_playing_label_time.hour)   + ":" +
+                                                "{:02d}".format(ui_playing_label_time.minute) + ":" +
+                                                "{:02d}".format(ui_playing_label_time.second))
 
         # Gathering the video details
         return (video.path, video.length)
