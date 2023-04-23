@@ -449,7 +449,7 @@ class UiSequenceManager:
 
     def __init__(self, tkroot, vlc_instance, ui_player, path, metadata_manager):
         """! The Sequence manager initializer
-                    
+
             @param path : path the sequence file 
             @return An instance of a UiSequenceManager
         """
@@ -593,38 +593,47 @@ class UiSequenceManager:
                 forbidden_files.append(complete_path)
         return video_found
 
+    def _resolve_timestamps(self, index):
+    
+        video = self.sequence_data.inner_sequence[index]
+        # Resolves the timestamp in the future where we need to put the video
+        time_programmed_s = time.time()
+
+        # We simply need to take the last video timestamp and add it
+        if (index > 0):
+            # Compute last video length
+            path_video = self.sequence_data.inner_sequence[index-1].path
+            
+            # Get the metadata to gather the actual programmed playing time of the videos
+            metadata = self.metadata_manager.get_metadata(
+                video_name=path_video.split("/").pop())
+            if metadata is not None:
+                if metadata.timestamp_end != 0:
+                    # If there is a end timestamp, we know the length is end - start
+                    playing_length_s = metadata.timestamp_end - metadata.timestamp_begin
+                else:
+                    # If theres a start we have to get the length and substract
+                    playing_length_s = self.history_knownvideos[path_video].length - metadata.timestamp_begin
+            else:
+                playing_length_s = self.history_knownvideos[path_video].length
+            
+            # New time_programmed is the last playback + the length of the last track
+            time_programmed_s = self.sequence_data.inner_sequence[index-1].last_playback + playing_length_s
+
+        video.last_playback = time_programmed_s
+
     def _resolve_sequence(self):
         """! Chooses the random videos to be displayed, add length for each media and media info to blocks """
         for i, video in enumerate(self.sequence_data.inner_sequence):
             final_path = None
             
-            # Resolves the timestamp in the future where we need to put the video
-            time_programmed_s = time.time()
-            for j in range(0, i):
-                path_video = self.sequence_data.inner_sequence[j].path
-                
-                # Get the metadata to gather the actual programmed playing time of the videos
-                metadata = self.metadata_manager.get_metadata(
-                    video_name=path_video.split("/").pop())
-                if metadata is not None:
-                    if metadata.timestamp_end != 0:
-                        # If there is a end timestamp, we know the length is end - start
-                        playing_length_s = metadata.timestamp_end - metadata.timestamp_begin
-                    else:
-                        # If theres a start we have to get the length and substract
-                        playing_length_s = self.history_knownvideos[path_video].length - metadata.timestamp_begin
-                else:
-                    playing_length_s = self.history_knownvideos[path_video].length
-                    
-                time_programmed_s = time_programmed_s + playing_length_s
-
-            video.last_playback = time_programmed_s
+            self._resolve_timestamps(index=i)
 
             if (video.block_type == "randomvideo"):
                 path = video.block_args[0]
                 timeout = video.block_args[1]
-                final_path = self._find_random_video(path = path, timeout_m = timeout, time_programmed_s = time_programmed_s)
-                PrintTraceInUi("Video "+ final_path + " is programmed to be played on " , datetime.fromtimestamp(time_programmed_s))
+                final_path = self._find_random_video(path = path, timeout_m = timeout, time_programmed_s = video.last_playback)
+                PrintTraceInUi("Video "+ final_path + " is programmed to be played on " , datetime.fromtimestamp(video.last_playback))
             elif (video.block_type == "video"):
                 final_path = self.path_dirname + "/" + video.block_args
 
