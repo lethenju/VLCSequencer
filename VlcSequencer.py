@@ -376,6 +376,51 @@ class UiSequenceManager:
 
         Open a UI to visualize and modify the sequence 
     """
+    class ListViews:
+        history_view = None
+        logs_view = None
+        # Tkinter Listbox of played video with time of last playback
+        history_listbox = None
+        def __init__(self, ui_parent):
+            global ui_trace_listbox
+            listviews = tk.Frame(ui_parent, background=UI_BACKGROUND_COLOR)
+            listviews.pack(side=tk.BOTTOM, fill=tk.BOTH,  expand=1)
+            listviews.columnconfigure(0, weight=1)
+            listviews.columnconfigure(1, weight=1)
+            listviews.rowconfigure(0, weight=1)
+
+            self.history_view = tk.Frame(
+                listviews, background=UI_BACKGROUND_COLOR)
+
+            self.history_view.grid(row=0, column=0, sticky="news")
+            
+            title_history = tk.Label(self.history_view, text="History", font=('calibri', 20), bg=UI_BACKGROUND_COLOR, fg="white")
+            title_history.pack(side=tk.TOP, fill=tk.X)
+
+            scrollbar_history = tk.Scrollbar(self.history_view)
+            scrollbar_history.pack(side=tk.RIGHT, fill=tk.Y)
+
+            self.history_listbox = tk.Listbox(
+                self.history_view, yscrollcommand=scrollbar_history.set, width=200, background=UI_BACKGROUND_COLOR, foreground="white")
+
+            self.history_listbox.pack(side=tk.LEFT, fill=tk.BOTH)
+            scrollbar_history.config(command=self.history_listbox.yview)
+
+            self.logs_view = tk.Frame(
+                listviews, background=UI_BACKGROUND_COLOR)
+            self.logs_view.grid(row=0, column=1,  sticky="news")
+
+            title_logs = tk.Label(self.logs_view, text="Logs", font=('calibri', 20), bg=UI_BACKGROUND_COLOR, fg="white")
+            title_logs.pack(side=tk.TOP, fill=tk.X)
+
+            scrollbar_logs = tk.Scrollbar(self.logs_view)
+            scrollbar_logs.pack(side=tk.RIGHT, fill=tk.Y)
+
+            ui_trace_listbox = tk.Listbox(
+                self.logs_view, yscrollcommand=scrollbar_logs.set, width=200, background=UI_BACKGROUND_COLOR, foreground="white")
+            ui_trace_listbox.pack(side=tk.LEFT, fill=tk.BOTH)
+
+            scrollbar_logs.config(command=ui_trace_listbox.yview)
 
     # Reference to the player object to connect the playback buttons to the associated callbacks
     ui_player = None
@@ -388,10 +433,8 @@ class UiSequenceManager:
     main_clock_view = None 
     sequence_view = None
     ui_playback_control_view = None
-    history_view = None
-    logs_view = None
-    # Tkinter Listbox of played video with time of last playback
-    history_listbox = None
+
+    listviews = None
     # Dictionary of parsed videos
     history_knownvideos = {}
     # Parsed video sequence, as a "sequence" block
@@ -406,12 +449,10 @@ class UiSequenceManager:
 
     def __init__(self, tkroot, vlc_instance, ui_player, path, metadata_manager):
         """! The Sequence manager initializer
-            TODO too big initializer : multiple sections need to be in different submodules
-            
+                    
             @param path : path the sequence file 
             @return An instance of a UiSequenceManager
         """
-        global ui_trace_listbox
         self.ui_player = ui_player
         self.vlc_instance = vlc_instance
         self.metadata_manager = metadata_manager
@@ -468,44 +509,7 @@ class UiSequenceManager:
 
         self.ui_playback_control_view.pack(side=tk.TOP,  fill=tk.BOTH)
 
-        listviews = tk.Frame(self.ui_sequence_manager, background=UI_BACKGROUND_COLOR)
-        listviews.pack(side=tk.BOTTOM, fill=tk.BOTH,  expand=1)
-        listviews.columnconfigure(0, weight=1)
-        listviews.columnconfigure(1, weight=1)
-        listviews.rowconfigure(0, weight=1)
-
-        self.history_view = tk.Frame(
-            listviews, background=UI_BACKGROUND_COLOR)
-
-        self.history_view.grid(row=0, column=0, sticky="news")
-        
-        title_history = tk.Label(self.history_view, text="History", font=('calibri', 20), bg=UI_BACKGROUND_COLOR, fg="white")
-        title_history.pack(side=tk.TOP, fill=tk.X)
-
-        scrollbar_history = tk.Scrollbar(self.history_view)
-        scrollbar_history.pack(side=tk.RIGHT, fill=tk.Y)
-
-        self.history_listbox = tk.Listbox(
-            self.history_view, yscrollcommand=scrollbar_history.set, width=200, background=UI_BACKGROUND_COLOR, foreground="white")
-
-        self.history_listbox.pack(side=tk.LEFT, fill=tk.BOTH)
-        scrollbar_history.config(command=self.history_listbox.yview)
-
-        self.logs_view = tk.Frame(
-            listviews, background=UI_BACKGROUND_COLOR)
-        self.logs_view.grid(row=0, column=1,  sticky="news")
-
-        title_logs = tk.Label(self.logs_view, text="Logs", font=('calibri', 20), bg=UI_BACKGROUND_COLOR, fg="white")
-        title_logs.pack(side=tk.TOP, fill=tk.X)
-
-        scrollbar_logs = tk.Scrollbar(self.logs_view)
-        scrollbar_logs.pack(side=tk.RIGHT, fill=tk.Y)
-
-        ui_trace_listbox = tk.Listbox(
-            self.logs_view, yscrollcommand=scrollbar_logs.set, width=200, background=UI_BACKGROUND_COLOR, foreground="white")
-        ui_trace_listbox.pack(side=tk.LEFT, fill=tk.BOTH)
-
-        scrollbar_logs.config(command=ui_trace_listbox.yview)
+        self.listviews = self.ListViews(self.ui_sequence_manager)
 
         # Store file data
         self.xml_path = path
@@ -710,7 +714,7 @@ class UiSequenceManager:
             # Add to the history
             
             time_last_playback = datetime.fromtimestamp(video.last_playback).time()
-            self.history_listbox.insert(0, "{:02d}".format(time_last_playback.hour)   + ":" +
+            self.listviews.history_listbox.insert(0, "{:02d}".format(time_last_playback.hour)   + ":" +
                                            "{:02d}".format(time_last_playback.minute) + ":" +
                                            "{:02d}".format(time_last_playback.second) + " " + video.path)
 
