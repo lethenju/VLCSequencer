@@ -899,7 +899,7 @@ class MainManager:
             self.root, width=400, height=300, background=UI_BACKGROUND_COLOR)
         title_view.pack(side=tk.TOP,  fill=tk.BOTH)
 
-        lbl = tk.Label(title_view, font=('calibri', 80, 'bold'),  text="AutoVLC", background=UI_BACKGROUND_COLOR, foreground='white')
+        lbl = tk.Label(title_view, font=('calibri', 80, 'bold'),  text="VLCSequencer", background=UI_BACKGROUND_COLOR, foreground='white')
         lbl.pack(side=tk.TOP,  fill=tk.BOTH, pady=50)
 
         lbl = tk.Label(title_view, font=('calibri', 20),  text="Place this window where you want the videos to be played", 
@@ -914,7 +914,7 @@ class MainManager:
         def select_metadata_file():
             self.metadata_path = filedialog.askopenfilename(
                 title='Select Metadata File',
-                filetypes=[('Xml files', '*.csv')])
+                filetypes=[('Csv files', '*.csv')])
             
             if os.path.isfile(self.metadata_path):
                 self.metadata_button.configure(bg=UI_BLOCK_SELECTED_VIDEO_FRAME_COLOR)
