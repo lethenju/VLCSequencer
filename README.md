@@ -37,4 +37,4 @@ python3 -m pip install python-magic
 - Add arguments for launching the program with a sequence and/or metadata predefined
 - Add a loading screen after clicking on start
 
-- For sequencing : Add <if sooner_than="time"/> and <if later_than="time" /> statements parsing
+- For sequencing : Add '<if sooner_than="time"/>' and '<if later_than="time" />' statements parsing
