@@ -76,6 +76,7 @@ class UiPlayer():
             self.ui_frame = ui_frame
 
     media_frames = None  # List (tuple) of media frames
+    frame_songinfo = None # UI Frame of the song information (artist and song name)
 
     def __init__(self, tkroot, vlc_instance, metadata_manager):
         """! Initialize the main display window """
@@ -130,14 +131,13 @@ class UiPlayer():
         else:
             player.set_xwindow(h)
         
-        # TODO Sequence of getting down and up
         # TODO Theming
         # TODO Reposition if the window is resized
         if song is not None and artist is not None:
-            frame_songinfo = tk.Label(self.window, width=20, bg=UI_BACKGROUND_COLOR)
-            label_artist = tk.Label(frame_songinfo,text=artist, padx=10, pady=10, font=('calibri', 20, 'bold'),fg="white", bg=UI_BACKGROUND_COLOR)
-            label_song   = tk.Label(frame_songinfo,text=song, padx=10, pady=10, font=('calibri', 20),fg="white", bg=UI_BACKGROUND_COLOR)
-            frame_songinfo.place(x=50, y=self.window.winfo_height() - 100)
+            # TODO background image maybe ?
+            self.frame_songinfo = tk.Frame(self.window, width=20, bg=UI_BACKGROUND_COLOR)
+            label_artist = tk.Label(self.frame_songinfo,text=artist, padx=10, pady=10, font=('calibri', 40, 'bold'),fg="white", bg=UI_BACKGROUND_COLOR)
+            label_song   = tk.Label(self.frame_songinfo,text=song, padx=10, pady=10, font=('calibri', 40),fg="white", bg=UI_BACKGROUND_COLOR)
             
             label_artist.pack(side=tk.LEFT)
             label_song.  pack(side=tk.RIGHT)
@@ -191,7 +191,21 @@ class UiPlayer():
             # if not nb_video_played < self.nb_video_played + 1:
             player.stop()
             self.fade_out_thread_active = False
+        
+        def show_song_info_thread():
+            """! Thread to handle the display of the song info pane """
+            for x in range(-500, 50, 5):
+                self.frame_songinfo.place(x=x, y= self.window.winfo_height() - 150)
+                time.sleep(0.01)
 
+        def hide_song_info_thread():
+            """! Thread to handle the end of display of the song info pane """
+            for x in range(50, -500, -5):
+                self.frame_songinfo.place(x=x, y= self.window.winfo_height() - 150)
+                time.sleep(0.01)
+            self.frame_songinfo.destroy()
+            self.frame_songinfo = None
+            
         # We shouldnt launch multiple concurrent fade_in
         if fade_in and not self.fade_in_thread_active:
             threading.Thread(target=fade_in_thread).start()
@@ -204,9 +218,20 @@ class UiPlayer():
         else:
             end_position = 0.95
 
+        timer = 0
+
         while (player.get_position() < end_position and self.is_running_flag and not self.is_next_asked):
             PrintTraceInUi("Current media playing time " +
                            ("{:.2f}".format(player.get_position()*100))+"%")
+            # At the 10th second we show the current song info
+            if self.frame_songinfo is not None:
+                # And it stays only for 10 seconds
+                if timer == 10:
+                    PrintTraceInUi("Showing song info")
+                    threading.Thread(target=show_song_info_thread).start()
+                if timer == 20:
+                    PrintTraceInUi("Hiding song info")
+                    threading.Thread(target=hide_song_info_thread).start()
 
             if (player.get_position() < 0):
                 # Problem on the video
@@ -214,6 +239,14 @@ class UiPlayer():
                 self.is_next_asked = True
                 break
             time.sleep(1)
+            timer = timer + 1
+
+        # If we didnt have time to delete the frame info, we do it now to prevent future weird behaviours
+        if self.frame_songinfo is not None:
+            PrintTraceInUi("Warning ! Deleting song info lately")
+            self.frame_songinfo.destroy()
+            self.frame_songinfo = None
+            
 
         # We shouldnt launch multiple concurrent fade_out
         if fade_out and not self.fade_out_thread_active:
