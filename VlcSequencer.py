@@ -10,6 +10,7 @@ import magic
 import csv
 import random
 import sys
+import argparse
 import xml.etree.ElementTree as ET
 import copy
 import inspect
@@ -128,6 +129,19 @@ class UiPlayer():
             player.set_hwnd(h)
         else:
             player.set_xwindow(h)
+        
+        # TODO Get artist and song name
+        # TODO Sequence of getting down and up
+        # TODO Conditionning of the process to only if artist and song are present
+        # TODO Theming
+        # TODO Reposition if the window is resized
+        frame_songinfo = tk.Label(self.window, width=20, bg=UI_BACKGROUND_COLOR)
+        label_artist = tk.Label(frame_songinfo,text="ARTIST", padx=10, pady=10, font=('calibri', 20, 'bold'),fg="white", bg=UI_BACKGROUND_COLOR)
+        label_song   = tk.Label(frame_songinfo,text="SONG", padx=10, pady=10, font=('calibri', 20),fg="white", bg=UI_BACKGROUND_COLOR)
+        frame_songinfo.place(x=50, y=self.window.winfo_height() - 100)
+        
+        label_artist.pack(side=tk.LEFT)
+        label_song.  pack(side=tk.RIGHT)
 
         if end_s == 0:
             end_s = length_s
@@ -148,7 +162,7 @@ class UiPlayer():
             volume = player.audio_get_volume()
             while (volume < 100 and self.is_running_flag and not self.is_next_asked
                    and nb_video_played < self.nb_video_played + 1):
-                PrintTraceInUi("fade_in Volume : " + str(volume))
+                PrintTraceInUi("fade_in Volume : ", volume)
                 volume = min(volume + 5, 100)
                 if not self.is_muted:
                     player.audio_set_volume(volume)
@@ -166,7 +180,7 @@ class UiPlayer():
             volume = player.audio_get_volume()
             while (volume > 0 and self.is_running_flag and not self.is_next_asked
                    and nb_video_played < self.nb_video_played + 1):
-                PrintTraceInUi("fade_out Volume : " + str(volume))
+                PrintTraceInUi("fade_out Volume : ", volume)
                 volume = volume - 5
                 player.audio_set_volume(volume)
                 while self.is_paused:
@@ -221,9 +235,8 @@ class UiPlayer():
 
             self.nb_video_played = self.nb_video_played + 1
 
-            PrintTraceInUi("Total video played "+str(self.nb_video_played))
-            PrintTraceInUi("Playing on frame number " +
-                           str(self.nb_video_played % 2))
+            PrintTraceInUi("Total video played ",self.nb_video_played)
+            PrintTraceInUi("Playing on frame number ",self.nb_video_played % 2)
 
             # Try to get metadata about this video
             name_of_file = path.split("/").pop()
@@ -621,7 +634,7 @@ class UiSequenceManager:
                     video = self.history_knownvideos[complete_path]
 
                     PrintTraceInUi("Already known video... Last playback on ", datetime.fromtimestamp(
-                        video.last_playback), " and timeout " + str(int(timeout_m)*60)+"s")
+                        video.last_playback), " and timeout ", int(timeout_m)*60, "s")
                     PrintTraceInUi(" and timestamp of the programmed video  ",
                                    datetime.fromtimestamp(time_programmed_s))
                     if (video.last_playback + int(timeout_m)*60 < time_programmed_s):
@@ -708,8 +721,7 @@ class UiSequenceManager:
             video.path = final_path
             if (video.path in self.history_knownvideos):
                 video.length = self.history_knownvideos[video.path].length
-                PrintTraceInUi(video.path + " : Known video, already parsed length " +
-                               str(video.length))
+                PrintTraceInUi(video.path + " : Known video, already parsed length ", video.length)
             else:
                 PrintTraceInUi(
                     video.path + " : New video, reading attributes ")
@@ -918,74 +930,94 @@ class MainManager:
     sequence_button = None
     sequence_path = ""
 
-    def __init__(self):
+    def __init__(self, sequence_file, metadata_file, launch_now):
         """! The main manager initializer, handles the welcome screen to 
             select a sequence file and metadata  
         """
-
+        self.sequence_path = sequence_file
+        self.metadata_path = metadata_file
         self.root = tk.Tk()
-        title_view = tk.Frame(
-            self.root, width=400, height=300, background=UI_BACKGROUND_COLOR)
-        title_view.pack(side=tk.TOP,  fill=tk.BOTH)
+    
+        if launch_now:
+            if not os.path.isfile(self.sequence_path):
+                print("ERROR ", self.sequence_path, " IS NOT A VALID FILE")
+                exit(1)
+            if not os.path.isfile(self.metadata_path):
+                print("ERROR ", self.metadata_path, " IS NOT A VALID FILE")
+                exit(1)
+            self.start_ui()
+        else:
+            title_view = tk.Frame(
+                self.root, width=400, height=300, background=UI_BACKGROUND_COLOR)
+            title_view.pack(side=tk.TOP,  fill=tk.BOTH)
 
-        lbl = tk.Label(title_view, font=('calibri', 80, 'bold'),
+            lbl = tk.Label(title_view, font=('calibri', 80, 'bold'),
                        text="VLCSequencer", background=UI_BACKGROUND_COLOR, foreground='white')
-        lbl.pack(side=tk.TOP,  fill=tk.BOTH, pady=50)
+            lbl.pack(side=tk.TOP,  fill=tk.BOTH, pady=50)
 
-        lbl = tk.Label(title_view, font=('calibri', 20),  text="Place this window where you want the videos to be played",
+            lbl = tk.Label(title_view, font=('calibri', 20),  text="Place this window where you want the videos to be played",
                        background=UI_BACKGROUND_COLOR,
                        foreground=UI_BLOCK_NORMAL_VIDEO_COLOR)
-        lbl.pack(side=tk.TOP,  fill=tk.BOTH, pady=50)
+            lbl.pack(side=tk.TOP,  fill=tk.BOTH, pady=50)
 
-        buttons_frame = tk.Frame(
-            self.root, width=400, height=300, pady=10,  background=UI_BACKGROUND_COLOR)
-        buttons_frame.pack(side=tk.BOTTOM,  fill=tk.BOTH, expand=1)
+            buttons_frame = tk.Frame(
+                self.root, width=400, height=300, pady=10,  background=UI_BACKGROUND_COLOR)
+            buttons_frame.pack(side=tk.BOTTOM,  fill=tk.BOTH, expand=1)
 
-        def select_metadata_file():
-            self.metadata_path = filedialog.askopenfilename(
-                title='Select Metadata File',
-                filetypes=[('Csv files', '*.csv')])
+            def select_metadata_file():
+                self.metadata_path = filedialog.askopenfilename(
+                    title='Select Metadata File',
+                    filetypes=[('Csv files', '*.csv')])
 
+                if os.path.isfile(self.metadata_path):
+                    self.metadata_button.configure(
+                        bg=UI_BLOCK_SELECTED_VIDEO_FRAME_COLOR)
+
+            def select_sequence_file():
+                self.sequence_path = filedialog.askopenfilename(
+                    title='Select Sequence File',
+                    filetypes=[('Xml files', '*.xml')])
+                if os.path.isfile(self.sequence_path):
+                    self.sequence_button.configure(
+                        bg=UI_BLOCK_SELECTED_VIDEO_FRAME_COLOR)
+                    start_button.configure(state=tk.NORMAL)
+
+            self.metadata_button = tk.Button(
+                buttons_frame,
+                text='Select Metadata file',
+                command=select_metadata_file,
+                padx=10, pady=10, font=('calibri', 12),
+                fg="white",
+                bg=UI_BACKGROUND_COLOR
+            )
+            self.sequence_button = tk.Button(
+                buttons_frame,
+                text='Select Sequence file',
+                command=select_sequence_file,
+                padx=10, pady=10, font=('calibri', 12),
+                fg="white",
+                bg=UI_BACKGROUND_COLOR
+            )
+
+            start_button = tk.Button(
+                buttons_frame, text="Start", command=self.start_ui,
+                padx=10, pady=10, font=('calibri', 12),
+                fg="white",
+                bg=UI_BACKGROUND_COLOR,
+                state=tk.DISABLED)
+
+            start_button.pack(side=tk.BOTTOM,  fill=tk.BOTH)
+            self.metadata_button.pack(side=tk.BOTTOM,  fill=tk.BOTH)
+            self.sequence_button.pack(side=tk.BOTTOM,  fill=tk.BOTH)
+
+            # if the paths are already filled by the command line
             if os.path.isfile(self.metadata_path):
-                self.metadata_button.configure(
-                    bg=UI_BLOCK_SELECTED_VIDEO_FRAME_COLOR)
-
-        def select_sequence_file():
-            self.sequence_path = filedialog.askopenfilename(
-                title='Select Sequence File',
-                filetypes=[('Xml files', '*.xml')])
+                    self.metadata_button.configure(
+                        bg=UI_BLOCK_SELECTED_VIDEO_FRAME_COLOR)
             if os.path.isfile(self.sequence_path):
-                self.sequence_button.configure(
-                    bg=UI_BLOCK_SELECTED_VIDEO_FRAME_COLOR)
-                start_button.configure(state=tk.NORMAL)
-
-        self.metadata_button = tk.Button(
-            buttons_frame,
-            text='Select Metadata file',
-            command=select_metadata_file,
-            padx=10, pady=10, font=('calibri', 12),
-            fg="white",
-            bg=UI_BACKGROUND_COLOR
-        )
-        self.sequence_button = tk.Button(
-            buttons_frame,
-            text='Select Sequence file',
-            command=select_sequence_file,
-            padx=10, pady=10, font=('calibri', 12),
-            fg="white",
-            bg=UI_BACKGROUND_COLOR
-        )
-
-        start_button = tk.Button(
-            buttons_frame, text="Start", command=self.start_ui,
-            padx=10, pady=10, font=('calibri', 12),
-            fg="white",
-            bg=UI_BACKGROUND_COLOR,
-            state=tk.DISABLED)
-
-        start_button.pack(side=tk.BOTTOM,  fill=tk.BOTH)
-        self.metadata_button.pack(side=tk.BOTTOM,  fill=tk.BOTH)
-        self.sequence_button.pack(side=tk.BOTTOM,  fill=tk.BOTH)
+                    self.sequence_button.configure(
+                        bg=UI_BLOCK_SELECTED_VIDEO_FRAME_COLOR)
+                    start_button.configure(state=tk.NORMAL)
 
     def start_ui(self):
         """! Start the sequence and player UI """
@@ -1027,4 +1059,14 @@ class MainManager:
 
 # Prevents this code to be runned if loaded as a module
 if __name__ == '__main__':
-    MainManager().main_loop()
+    
+    parser = argparse.ArgumentParser(prog="VLCSequencer")
+    parser.add_argument('-s','--sequence', help="Path of the sequence file to use", action="store")
+    parser.add_argument('-m','--metadata', help="Path of the metadata file to use", action="store")
+    parser.add_argument('-l','--launch', help="Set if you want to launch directly without going through the main menu", action="store_true")
+    args = parser.parse_args()
+        
+
+    MainManager(sequence_file = args.sequence,
+                metadata_file = args.metadata,
+                launch_now = args.launch ).main_loop()
