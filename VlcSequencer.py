@@ -108,7 +108,7 @@ class UiPlayer():
         self.is_running_flag = True
 
     def _play_on_specific_frame(self, media, index_media_players, length_s,
-                                begin_s=0, end_s=0, fade_in=False, fade_out=False):
+                                begin_s=0, end_s=0, fade_in=False, fade_out=False, artist=None, song=None):
         """! Main play function.
             @param media : The Vlc Media instance 
             @param index_media_players the index of the media frame to use this time
@@ -130,18 +130,17 @@ class UiPlayer():
         else:
             player.set_xwindow(h)
         
-        # TODO Get artist and song name
         # TODO Sequence of getting down and up
-        # TODO Conditionning of the process to only if artist and song are present
         # TODO Theming
         # TODO Reposition if the window is resized
-        frame_songinfo = tk.Label(self.window, width=20, bg=UI_BACKGROUND_COLOR)
-        label_artist = tk.Label(frame_songinfo,text="ARTIST", padx=10, pady=10, font=('calibri', 20, 'bold'),fg="white", bg=UI_BACKGROUND_COLOR)
-        label_song   = tk.Label(frame_songinfo,text="SONG", padx=10, pady=10, font=('calibri', 20),fg="white", bg=UI_BACKGROUND_COLOR)
-        frame_songinfo.place(x=50, y=self.window.winfo_height() - 100)
-        
-        label_artist.pack(side=tk.LEFT)
-        label_song.  pack(side=tk.RIGHT)
+        if song is not None and artist is not None:
+            frame_songinfo = tk.Label(self.window, width=20, bg=UI_BACKGROUND_COLOR)
+            label_artist = tk.Label(frame_songinfo,text=artist, padx=10, pady=10, font=('calibri', 20, 'bold'),fg="white", bg=UI_BACKGROUND_COLOR)
+            label_song   = tk.Label(frame_songinfo,text=song, padx=10, pady=10, font=('calibri', 20),fg="white", bg=UI_BACKGROUND_COLOR)
+            frame_songinfo.place(x=50, y=self.window.winfo_height() - 100)
+            
+            label_artist.pack(side=tk.LEFT)
+            label_song.  pack(side=tk.RIGHT)
 
         if end_s == 0:
             end_s = length_s
@@ -245,12 +244,15 @@ class UiPlayer():
                 metadata = self.metadata_manager.get_metadata(
                     video_name=name_of_file)
             if metadata is not None:
+                # TODO Maybe send all metadata instead of sending all args one by one
                 self._play_on_specific_frame(media, index_media_players=self.nb_video_played % 2,
                                              length_s=length_s,
                                              begin_s=metadata.timestamp_begin,
                                              end_s=metadata.timestamp_end,
                                              fade_in=metadata.fade_in,
-                                             fade_out=metadata.fade_out)
+                                             fade_out=metadata.fade_out,
+                                             artist=metadata.artist,
+                                             song=metadata.song)
             else:
                 self._play_on_specific_frame(
                     media, index_media_players=self.nb_video_played % 2,  length_s=length_s)
@@ -867,13 +869,17 @@ class MetaDataManager:
         timestamp_end = 0
         fade_in = False
         fade_out = False
+        artist = None
+        song = None
 
-        def __init__(self, video_name, timestamp_begin, timestamp_end, fade_in, fade_out):
+        def __init__(self, video_name, timestamp_begin, timestamp_end, fade_in, fade_out, artist, song):
             self.video_name = video_name
             self.timestamp_begin = timestamp_begin
             self.timestamp_end = timestamp_end
             self.fade_in = fade_in
             self.fade_out = fade_out
+            self.artist = artist
+            self.song = song
 
     metadata_list = []
 
@@ -886,7 +892,7 @@ class MetaDataManager:
             csvdata = csv.reader(csvfile, delimiter=',')
             for line in csvdata:
                 # The csv has to be well formed
-                assert (len(line) == 5)
+                assert (len(line) == 7)
 
                 # Format the timestamps in seconds
                 def get_sec(time_str):
@@ -898,7 +904,9 @@ class MetaDataManager:
                                        timestamp_begin=get_sec(line[1]),
                                        timestamp_end=get_sec(line[2]),
                                        fade_in=line[3] == 'y',
-                                       fade_out=line[4] == 'y')
+                                       fade_out=line[4] == 'y',
+                                       artist=line[5],
+                                       song=line[6])
                 )
 
     def get_metadata(self, video_name):
