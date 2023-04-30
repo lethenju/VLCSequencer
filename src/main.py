@@ -12,28 +12,12 @@ import sys
 import argparse
 import xml.etree.ElementTree as ET
 import copy
-import inspect
 from datetime import datetime
 
 # Application related imports
 from colors import *
 from song_info_plugin import SongInfoPlugin
-
-# Reference to the tkinter listbox used to gather the logs
-# TODO have a static module for that, and subscribe a listbox instead of relying on this one
-ui_trace_listbox = None
-
-
-def PrintTraceInUi(*args):
-    function_caller_name = inspect.stack()[1].function
-    trace = time.strftime('%H:%M:%S') + " " + function_caller_name + "() : "
-    for arg in args:
-        trace = trace + arg.__str__()
-    print(trace)
-    if ui_trace_listbox is not None:
-        ui_trace_listbox.insert(tk.ANCHOR, " " + trace)
-        ui_trace_listbox.yview(tk.END)
-
+from logger import PrintTraceInUi, LoggerSubscribeUI
 
 class UiPlayer():
     """! Main UI Window
@@ -430,7 +414,6 @@ class UiSequenceManager:
         history_listbox = None
 
         def __init__(self, ui_parent):
-            global ui_trace_listbox
             listviews = tk.Frame(ui_parent, background=UI_BACKGROUND_COLOR)
             listviews.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=1)
             listviews.columnconfigure(0, weight=1)
@@ -468,6 +451,8 @@ class UiSequenceManager:
 
             ui_trace_listbox = tk.Listbox(
                 self.logs_view, yscrollcommand=scrollbar_logs.set, width=200, background=UI_BACKGROUND_COLOR, foreground="white")
+            
+            LoggerSubscribeUI(ui_trace_listbox)
             ui_trace_listbox.pack(side=tk.LEFT, fill=tk.BOTH)
 
             scrollbar_logs.config(command=ui_trace_listbox.yview)

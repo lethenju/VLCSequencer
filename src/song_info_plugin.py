@@ -1,9 +1,10 @@
 
 import tkinter as tk
-
-from colors import *
 from time import sleep
 from threading import Thread
+
+from colors import *
+from logger import PrintTraceInUi
 
 class SongInfoPlugin:
     """! Plugin to show the song info as it plays """
@@ -38,10 +39,10 @@ class SongInfoPlugin:
         if self.frame_songinfo is not None:
             # And it stays only for 10 seconds
             if time_s == 10:
-                # PrintTraceInUi("Showing song info")
+                PrintTraceInUi("Showing song info")
                 Thread(target=self._show_song_info_thread).start()
             if time_s == 20:
-                # PrintTraceInUi("Hiding song info")
+                PrintTraceInUi("Hiding song info")
                 Thread(target=self._hide_song_info_thread).start()
 
     def on_exit(self):
@@ -49,7 +50,7 @@ class SongInfoPlugin:
         
         # If we didnt have time to delete the frame info, we do it now to prevent future weird behaviours
         if self.frame_songinfo is not None:
-            # PrintTraceInUi("Warning ! Deleting song info lately")
+            PrintTraceInUi("Warning ! Deleting song info lately")
             self.frame_songinfo.destroy()
             self.frame_songinfo = None
             
