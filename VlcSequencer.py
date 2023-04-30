@@ -363,6 +363,8 @@ class SequenceBlock:
     ui_video_frame = None
     ui_label = None
     ui_id_label = None
+    ui_artist_label = None
+    ui_song_label = None
     last_playback = 0
 
     def __init__(self, block_type, block_args=None):
@@ -371,6 +373,8 @@ class SequenceBlock:
         self.ui_video_frame = None
         self.ui_label = None
         self.ui_id_label = None
+        self.ui_artist_label = None
+        self.ui_song_label = None
         self.inner_sequence = []
         self.block_type = block_type
         self.block_args = block_args
@@ -410,6 +414,10 @@ class SequenceBlock:
         self.ui_label.configure(
             bg=color)
         self.ui_id_label.configure(
+            bg=color)
+        self.ui_artist_label.configure(
+            bg=color)
+        self.ui_song_label.configure(
             bg=color)
 
     def __str__(self):
@@ -773,10 +781,26 @@ class UiSequenceManager:
                 # We do not need this media anymore
                 media.release()
 
-            # Add also the name to the UI
             # Split the path and get the name after the last '/' and get the name before the extension
             video.ui_label.configure(
                 text=video.path.split("/").pop().split(".")[0])
+            # TODO Add also artist and song if they exist
+
+            metadata = None
+            if self.metadata_manager is not None:
+                metadata = self.metadata_manager.get_metadata(
+                    video_name=video.path.split("/").pop())
+
+            if metadata is not None:
+                if metadata.artist is not None and metadata.song is not None:
+                    video.ui_artist_label.configure(text=metadata.artist)
+                    video.ui_artist_label.pack(padx=5, pady=5, fill="both", expand=True)
+                    video.ui_song_label.configure(text=metadata.song)
+                    video.ui_song_label.pack(padx=5, pady=5, fill="both", expand=True)
+            else:
+                video.ui_artist_label.pack_forget()
+                video.ui_song_label.pack_forget()
+            
             ui_playing_label_time = datetime.fromtimestamp(
                 video.last_playback).time()
             video.ui_playing_time.configure(text="{:02d}".format(ui_playing_label_time.hour) + ":" +
@@ -804,7 +828,7 @@ class UiSequenceManager:
         # Fill the UI
         for i, block in enumerate(self.sequence_data.inner_sequence):
             block.ui_frame = tk.Frame(
-                self.sequence_view, width=200, height=120, bg=UI_BACKGROUND_COLOR)
+                self.sequence_view, width=200, height=200, bg=UI_BACKGROUND_COLOR)
             block.ui_frame.pack(side=tk.LEFT, padx=10,
                                 pady=20, fill=tk.BOTH, expand=True)
             block.ui_playing_time = tk.Label(block.ui_frame, text=block.last_playback, font=(
@@ -823,8 +847,15 @@ class UiSequenceManager:
             block.ui_id_label.pack(
                 padx=5, pady=5, fill="none", expand=False)
             block.ui_label = tk.Label(
-                block.ui_video_frame, text=block.block_type, bg=block.get_color(), fg="black", font=('calibri', 14))
-            block.ui_label.pack(padx=5, pady=5, fill="both", expand=True)
+                block.ui_video_frame, text=block.block_type, bg=block.get_color(), fg="black", font=('calibri', 11, 'italic'))
+            block.ui_artist_label = tk.Label(
+                block.ui_video_frame, text="Artist", bg=block.get_color(), fg="black", font=('calibri', 14, 'bold'))
+            block.ui_artist_label.pack(padx=5, pady=5)
+            block.ui_song_label = tk.Label(
+                block.ui_video_frame, text="Song", bg=block.get_color(), fg="black", font=('calibri', 14))
+            block.ui_song_label.pack(padx=5, pady=5)
+
+            block.ui_label.pack(padx=5, pady=5,  fill="none", expand=False)
 
         # First sequence resolving. After each sequence iteration it will be called
         self._resolve_sequence()
@@ -1052,10 +1083,10 @@ class MainManager:
             self.sequence_button.pack(side=tk.BOTTOM,  fill=tk.BOTH)
 
             # if the paths are already filled by the command line
-            if os.path.isfile(self.metadata_path):
+            if self.metadata_path is not None and os.path.isfile(self.metadata_path):
                     self.metadata_button.configure(
                         bg=UI_BLOCK_SELECTED_VIDEO_FRAME_COLOR)
-            if os.path.isfile(self.sequence_path):
+            if self.sequence_path is not None and os.path.isfile(self.sequence_path):
                     self.sequence_button.configure(
                         bg=UI_BLOCK_SELECTED_VIDEO_FRAME_COLOR)
                     start_button.configure(state=tk.NORMAL)
