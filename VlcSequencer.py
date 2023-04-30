@@ -109,13 +109,28 @@ class UiPlayer():
         self.is_running_flag = True
 
     def _play_on_specific_frame(self, media, index_media_players, length_s,
-                                begin_s=0, end_s=0, fade_in=False, fade_out=False, artist=None, song=None):
+                                metadata = None):
         """! Main play function.
             @param media : The Vlc Media instance 
             @param index_media_players the index of the media frame to use this time
 
             Handles audio crossfading and frame switching accordingly
         """
+        if metadata is None:
+            begin_s=0
+            end_s=0
+            fade_in=False
+            fade_out=False
+            artist=None
+            song=None
+        else:
+            begin_s=metadata.timestamp_begin
+            end_s=metadata.timestamp_end
+            fade_in=metadata.fade_in
+            fade_out=metadata.fade_out
+            artist=metadata.artist
+            song=metadata.song
+
         # Getting simpler name from now on
         frame = self.media_frames[index_media_players].ui_frame
         player = self.media_frames[index_media_players].media_player
@@ -277,15 +292,9 @@ class UiPlayer():
                 metadata = self.metadata_manager.get_metadata(
                     video_name=name_of_file)
             if metadata is not None:
-                # TODO Maybe send all metadata instead of sending all args one by one
                 self._play_on_specific_frame(media, index_media_players=self.nb_video_played % 2,
                                              length_s=length_s,
-                                             begin_s=metadata.timestamp_begin,
-                                             end_s=metadata.timestamp_end,
-                                             fade_in=metadata.fade_in,
-                                             fade_out=metadata.fade_out,
-                                             artist=metadata.artist,
-                                             song=metadata.song)
+                                             metadata=metadata)
             else:
                 self._play_on_specific_frame(
                     media, index_media_players=self.nb_video_played % 2,  length_s=length_s)
