@@ -13,7 +13,7 @@ class MessagingPlugin:
 
 # Plugin interface
 
-    def setup(self, artist, song):
+    def setup(self):
         """! Setup """
 
     def on_begin(self):

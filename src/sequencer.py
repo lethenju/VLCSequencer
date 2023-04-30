@@ -59,9 +59,11 @@ class SequenceBlock:
     ui_song_label = None
     ui_button_repeat_toggle = None
     ui_button_change_video = None
+    is_on_repeat = False
     last_playback = 0
 
     def __init__(self, block_type, block_args=None):
+        self.inner_sequence = []
         self.ui_frame = None
         self.ui_playing_time = None
         self.ui_video_frame = None
@@ -71,14 +73,20 @@ class SequenceBlock:
         self.ui_song_label = None
         self.ui_button_repeat_toggle = None
         self.ui_button_change_video = None
-        self.inner_sequence = []
+        self.is_on_repeat = False
         self.block_type = block_type
         self.block_args = block_args
         self.last_playback = 0
+
     def set_on_repeat(self):
         """! Toggle repeat mode """
         PrintTraceInUi("Toggling repeat mode")
-        # TODO Implement
+        self.is_on_repeat = not self.is_on_repeat
+        if self.is_on_repeat:
+            self.modify_color(UI_BLOCK_REPEAT_VIDEO_COLOR)
+        else:
+            self.modify_color(self.get_color())
+        # TODO Recompute times
 
     def change_video(self):
         """! Modify the video of the block """
@@ -110,6 +118,8 @@ class SequenceBlock:
 
     def modify_color(self, color):
         """! Modify background colors of the UI elements of the block """
+        # TODO "for widget in ui:"
+        # Have a dictionary of widgets 
         self.ui_frame.configure(
             bg=UI_BLOCK_USED_VIDEO_FRAME_COLOR)
         self.ui_playing_time.configure(
@@ -123,6 +133,8 @@ class SequenceBlock:
         self.ui_artist_label.configure(
             bg=color)
         self.ui_song_label.configure(
+            bg=color)
+        self.ui_button_frame.configure(
             bg=color)
         self.ui_button_repeat_toggle.configure(
             bg=color)
@@ -542,7 +554,7 @@ class UiSequenceManager:
         # Fill the UI
         for i, block in enumerate(self.sequence_data.inner_sequence):
             block.ui_frame = tk.Frame(
-                self.sequence_view, width=200, height=300, bg=UI_BACKGROUND_COLOR)
+                self.sequence_view, width=200, height=250, bg=UI_BACKGROUND_COLOR)
             block.ui_frame.pack(side=tk.LEFT, padx=10,
                                 pady=20, fill=tk.BOTH, expand=True)
             block.ui_playing_time = tk.Label(block.ui_frame, text=block.last_playback, font=(
@@ -574,30 +586,61 @@ class UiSequenceManager:
             block.ui_button_frame = tk.Frame(
                 block.ui_video_frame,
                 bg=block.get_color())
-            block.ui_button_frame.pack(padx=5, pady=5,  fill="none", expand=False)
+            block.ui_button_frame.pack(fill=tk.BOTH, expand=True)
             
             block.ui_button_repeat_toggle = tk.Button(
-                block.ui_button_frame, text="Set Repeat", command=block.set_on_repeat,
-                padx=4, pady=4, font=('calibri', 12),
+                block.ui_button_frame, text="Toggle Repeat", command=block.set_on_repeat,
+                font=('calibri', 12),
                 fg="white",
                 bg=block.get_color())
             
-            block.ui_button_repeat_toggle.pack(side=tk.LEFT, padx=5, pady=5,  fill="none", expand=False)
+            block.ui_button_repeat_toggle.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
             
             block.ui_button_change_video = tk.Button(
                 block.ui_button_frame, text="Change Video", command=block.change_video,
-                padx=4, pady=4, font=('calibri', 12),
+                font=('calibri', 12),
                 fg="white",
                 bg=block.get_color())
-            block.ui_button_change_video.pack(side=tk.RIGHT, padx=5, pady=5,  fill="none", expand=False)
+            block.ui_button_change_video.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
 
         # First sequence resolving. After each sequence iteration it will be called
         self._resolve_sequence()
 
+    def _reconfigure_timestamps(self, from_index):
+        
+        # Recompute timestamps
+        self.sequence_data.inner_sequence[self.index_playing_video].last_playback = time.time()
+        ui_playing_label_time = datetime.fromtimestamp(
+            self.sequence_data.inner_sequence[self.index_playing_video].last_playback).time()
+        self.sequence_data.inner_sequence[self.index_playing_video].ui_playing_time.configure(text="{:02d}".format(ui_playing_label_time.hour) + ":" +
+                                                                                              "{:02d}".format(ui_playing_label_time.minute) + ":" +
+                                                                                              "{:02d}".format(ui_playing_label_time.second))   
+        # Adding timestamps since the playing video
+        for i in range(from_index + 1, len(self.sequence_data.inner_sequence)):
+            video_modify = self.sequence_data.inner_sequence[i]
+            PrintTraceInUi("Changing timestamps of video ",
+                        i, " " + video_modify.path)
+
+            self._resolve_timestamps(index=i)
+
+            ui_playing_label_time = datetime.fromtimestamp(
+                video_modify.last_playback).time()
+            video_modify.ui_playing_time.configure(text="{:02d}".format(ui_playing_label_time.hour) + ":" +
+                                                "{:02d}".format(ui_playing_label_time.minute) + ":" +
+                                                "{:02d}".format(ui_playing_label_time.second))
+
+
+
     def get_next_video(self):
+        video = self.sequence_data.inner_sequence[self.index_playing_video]
+
+        # If the current video is set on repeat, we select it again
+        if video.is_on_repeat:
+            self._reconfigure_timestamps(self.index_playing_video)
+            return (video.path, video.length)
+
         if self.index_playing_video > -1:
             # Reset frame options
-            video = self.sequence_data.inner_sequence[self.index_playing_video]
             video.modify_color(UI_BLOCK_PLAYED_VIDEO_COLOR)
             # Add to the history
 
@@ -621,29 +664,8 @@ class UiSequenceManager:
             self.index_playing_video + 1) % len(self.sequence_data.inner_sequence)
         video = self.sequence_data.inner_sequence[self.index_playing_video]
         video.select()
-
-        # Recompute timestamps
-        self.sequence_data.inner_sequence[self.index_playing_video].last_playback = time.time(
-        )
-        ui_playing_label_time = datetime.fromtimestamp(
-            self.sequence_data.inner_sequence[self.index_playing_video].last_playback).time()
-        self.sequence_data.inner_sequence[self.index_playing_video].ui_playing_time.configure(text="{:02d}".format(ui_playing_label_time.hour) + ":" +
-                                                                                              "{:02d}".format(ui_playing_label_time.minute) + ":" +
-                                                                                              "{:02d}".format(ui_playing_label_time.second))
-
-        # Adding timestamps since the playing video
-        for i in range(self.index_playing_video+1, len(self.sequence_data.inner_sequence)):
-            video_modify = self.sequence_data.inner_sequence[i]
-            PrintTraceInUi("Changing timestamps of video ",
-                           i, " " + video_modify.path)
-
-            self._resolve_timestamps(index=i)
-
-            ui_playing_label_time = datetime.fromtimestamp(
-                video_modify.last_playback).time()
-            video_modify.ui_playing_time.configure(text="{:02d}".format(ui_playing_label_time.hour) + ":" +
-                                                   "{:02d}".format(ui_playing_label_time.minute) + ":" +
-                                                   "{:02d}".format(ui_playing_label_time.second))
+     
+        self._reconfigure_timestamps(self.index_playing_video)
 
         # Gathering the video details
         return (video.path, video.length)
