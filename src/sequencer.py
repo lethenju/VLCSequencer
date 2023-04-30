@@ -57,6 +57,8 @@ class SequenceBlock:
     ui_id_label = None
     ui_artist_label = None
     ui_song_label = None
+    ui_button_repeat_toggle = None
+    ui_button_change_video = None
     last_playback = 0
 
     def __init__(self, block_type, block_args=None):
@@ -67,10 +69,22 @@ class SequenceBlock:
         self.ui_id_label = None
         self.ui_artist_label = None
         self.ui_song_label = None
+        self.ui_button_repeat_toggle = None
+        self.ui_button_change_video = None
         self.inner_sequence = []
         self.block_type = block_type
         self.block_args = block_args
-        last_playback = 0
+        self.last_playback = 0
+    def set_on_repeat(self):
+        """! Toggle repeat mode """
+        PrintTraceInUi("Toggling repeat mode")
+        # TODO Implement
+
+    def change_video(self):
+        """! Modify the video of the block """
+        PrintTraceInUi("Change video")
+        # TODO Implement
+        
 
     def add_block(self, block):
         self.inner_sequence.append(block)
@@ -109,6 +123,10 @@ class SequenceBlock:
         self.ui_artist_label.configure(
             bg=color)
         self.ui_song_label.configure(
+            bg=color)
+        self.ui_button_repeat_toggle.configure(
+            bg=color)
+        self.ui_button_change_video.configure(
             bg=color)
 
     def __str__(self):
@@ -524,7 +542,7 @@ class UiSequenceManager:
         # Fill the UI
         for i, block in enumerate(self.sequence_data.inner_sequence):
             block.ui_frame = tk.Frame(
-                self.sequence_view, width=200, height=200, bg=UI_BACKGROUND_COLOR)
+                self.sequence_view, width=200, height=300, bg=UI_BACKGROUND_COLOR)
             block.ui_frame.pack(side=tk.LEFT, padx=10,
                                 pady=20, fill=tk.BOTH, expand=True)
             block.ui_playing_time = tk.Label(block.ui_frame, text=block.last_playback, font=(
@@ -552,6 +570,26 @@ class UiSequenceManager:
             block.ui_song_label.pack(padx=5, pady=5)
 
             block.ui_label.pack(padx=5, pady=5,  fill="none", expand=False)
+
+            block.ui_button_frame = tk.Frame(
+                block.ui_video_frame,
+                bg=block.get_color())
+            block.ui_button_frame.pack(padx=5, pady=5,  fill="none", expand=False)
+            
+            block.ui_button_repeat_toggle = tk.Button(
+                block.ui_button_frame, text="Set Repeat", command=block.set_on_repeat,
+                padx=4, pady=4, font=('calibri', 12),
+                fg="white",
+                bg=block.get_color())
+            
+            block.ui_button_repeat_toggle.pack(side=tk.LEFT, padx=5, pady=5,  fill="none", expand=False)
+            
+            block.ui_button_change_video = tk.Button(
+                block.ui_button_frame, text="Change Video", command=block.change_video,
+                padx=4, pady=4, font=('calibri', 12),
+                fg="white",
+                bg=block.get_color())
+            block.ui_button_change_video.pack(side=tk.RIGHT, padx=5, pady=5,  fill="none", expand=False)
 
         # First sequence resolving. After each sequence iteration it will be called
         self._resolve_sequence()
