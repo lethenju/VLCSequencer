@@ -620,6 +620,17 @@ class UiSequenceManager:
         else:
             self.is_paused = False
 
+    def _get_metadata(self, video_name):
+            """! Gets the metadata through the API, wraps the None protection
+                @param video_name : name of the video file, key in the metadata dictionary
+                @return metadata object if it exists, None otherwise
+            """
+            metadata = None
+            if self.metadata_manager is not None:
+                metadata = self.metadata_manager.get_metadata(
+                    video_name=video_name)
+            return metadata
+
     def _build_sequence(self, sequence_xml_node, sequence_data_node):
         for child in sequence_xml_node:
             if child.tag == "Repeat":
@@ -717,10 +728,7 @@ class UiSequenceManager:
 
             # Get the metadata to gather the actual programmed playing time of the videos
 
-            metadata = None
-            if self.metadata_manager is not None:
-                metadata = self.metadata_manager.get_metadata(
-                    video_name=path_video.split("/").pop())
+            metadata = self._get_metadata(path_video.split("/").pop())
 
             if metadata is not None:
                 if metadata.timestamp_end != 0:
@@ -784,12 +792,8 @@ class UiSequenceManager:
             # Split the path and get the name after the last '/' and get the name before the extension
             video.ui_label.configure(
                 text=video.path.split("/").pop().split(".")[0])
-            # TODO Add also artist and song if they exist
-
-            metadata = None
-            if self.metadata_manager is not None:
-                metadata = self.metadata_manager.get_metadata(
-                    video_name=video.path.split("/").pop())
+            
+            metadata = self._get_metadata(video.path.split("/").pop())
 
             if metadata is not None:
                 if metadata.artist is not None and metadata.song is not None:
