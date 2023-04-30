@@ -4,18 +4,19 @@ TODO Fill the readme
 
 ## Requirements and installation
 
+You'll need Python3, VLC and some pip packages :
+
 ### For Windows
 
-You'll need Python3, VLC and some pip packages as described in the linux section 
-
-(TODO actual powershell commands)
+```powershell
+python.exe -m pip install python-vlc python-magic-bin=0.4.14
+```
 
 ### For Linux
 
 ```bash
 sudo apt install vlc libvlc-dev
-python3 -m pip install python-vlc
-python3 -m pip install python-magic
+python3 -m pip install python-vlc python-magic
 ```
 
 ## Usage
@@ -36,6 +37,5 @@ python3 -m pip install python-magic
 - For sequencing : Add '\<if sooner_than="time"/>' and '\<if later_than="time" />' statements parsing
 - Add a messaging system as a plugin (Web page to add a custom message)
 - Add parameters node in sequence file
-   -> Default behaviours
-   -> Plugin configuration : Song info theming, messaging parameters (how long should the messages stays, max message nb etc)
-
+  -> Default behaviours
+  -> Plugin configuration : Song info theming, messaging parameters (how long should the messages stays, max message nb etc)
