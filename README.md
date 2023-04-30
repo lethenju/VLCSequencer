@@ -35,7 +35,6 @@ python3 -m pip install python-magic
 - Add a button to force change a video
 - Gather the actual device output volume to enable automatic volume correction
 - For sequencing : Add '\<if sooner_than="time"/>' and '\<if later_than="time" />' statements parsing
-- Add plugin system for UI overlays : Artist/Song info overlay in plugin
 - Add a messaging system as a plugin (Web page to add a custom message)
 - Add parameters node in sequence file
    -> Default behaviours

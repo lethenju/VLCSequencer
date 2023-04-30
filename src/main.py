@@ -1,7 +1,6 @@
 
 import vlc
 import tkinter as tk
-from tkinter import ttk
 from tkinter import filedialog
 import threading
 import os
@@ -16,13 +15,9 @@ import copy
 import inspect
 from datetime import datetime
 
-
-UI_BACKGROUND_COLOR = "#0d1117"
-UI_BLOCK_RANDOM_VIDEO_COLOR = "#c6cdd5"
-UI_BLOCK_NORMAL_VIDEO_COLOR = "#89929b"
-UI_BLOCK_SELECTED_VIDEO_FRAME_COLOR = "#77bdfb"
-UI_BLOCK_USED_VIDEO_FRAME_COLOR = "#21262d"
-UI_BLOCK_PLAYED_VIDEO_COLOR = "#161b22"
+# Application related imports
+from colors import *
+from song_info_plugin import SongInfoPlugin
 
 # Reference to the tkinter listbox used to gather the logs
 # TODO have a static module for that, and subscribe a listbox instead of relying on this one
@@ -76,7 +71,8 @@ class UiPlayer():
             self.ui_frame = ui_frame
 
     media_frames = None  # List (tuple) of media frames
-    frame_songinfo = None # UI Frame of the song information (artist and song name)
+    plugins = []
+    #frame_songinfo = None # UI Frame of the song information (artist and song name)
 
     def __init__(self, tkroot, vlc_instance, metadata_manager):
         """! Initialize the main display window """
@@ -90,6 +86,9 @@ class UiPlayer():
         self.is_next_asked = False
         self.is_paused = False
         self.nb_video_played = 0
+
+        # TODO Conditionning over a parameter
+        self.plugins.append(SongInfoPlugin(self.window))
 
         self.fade_out_thread_active = False
         self.fade_in_thread_active = False
@@ -146,16 +145,9 @@ class UiPlayer():
         else:
             player.set_xwindow(h)
         
-        # TODO Theming
-        # TODO Reposition if the window is resized
-        if song is not None and artist is not None:
-            # TODO background image maybe ?
-            self.frame_songinfo = tk.Frame(self.window, width=20, bg=UI_BACKGROUND_COLOR)
-            label_artist = tk.Label(self.frame_songinfo,text=artist, padx=10, pady=10, font=('calibri', 40, 'bold'),fg="white", bg=UI_BACKGROUND_COLOR)
-            label_song   = tk.Label(self.frame_songinfo,text=song, padx=10, pady=10, font=('calibri', 40),fg="white", bg=UI_BACKGROUND_COLOR)
-            
-            label_artist.pack(side=tk.LEFT)
-            label_song.  pack(side=tk.RIGHT)
+        # Setup the plugins
+        for plugin in self.plugins:
+            plugin.setup(artist, song)
 
         if end_s == 0:
             end_s = length_s
@@ -206,20 +198,6 @@ class UiPlayer():
             # if not nb_video_played < self.nb_video_played + 1:
             player.stop()
             self.fade_out_thread_active = False
-        
-        def show_song_info_thread():
-            """! Thread to handle the display of the song info pane """
-            for x in range(-500, 50, 5):
-                self.frame_songinfo.place(x=x, y= self.window.winfo_height() - 150)
-                time.sleep(0.01)
-
-        def hide_song_info_thread():
-            """! Thread to handle the end of display of the song info pane """
-            for x in range(50, -500, -5):
-                self.frame_songinfo.place(x=x, y= self.window.winfo_height() - 150)
-                time.sleep(0.01)
-            self.frame_songinfo.destroy()
-            self.frame_songinfo = None
             
         # We shouldnt launch multiple concurrent fade_in
         if fade_in and not self.fade_in_thread_active:
@@ -233,20 +211,17 @@ class UiPlayer():
         else:
             end_position = 0.95
 
-        timer = 0
 
+        for plugin in self.plugins:
+            plugin.on_begin()
+
+        timer = 0
         while (player.get_position() < end_position and self.is_running_flag and not self.is_next_asked):
             PrintTraceInUi("Current media playing time " +
                            ("{:.2f}".format(player.get_position()*100))+"%")
-            # At the 10th second we show the current song info
-            if self.frame_songinfo is not None:
-                # And it stays only for 10 seconds
-                if timer == 10:
-                    PrintTraceInUi("Showing song info")
-                    threading.Thread(target=show_song_info_thread).start()
-                if timer == 20:
-                    PrintTraceInUi("Hiding song info")
-                    threading.Thread(target=hide_song_info_thread).start()
+            # Progress the plugins
+            for plugin in self.plugins:
+                plugin.on_progress(timer)
 
             if (player.get_position() < 0):
                 # Problem on the video
@@ -256,12 +231,8 @@ class UiPlayer():
             time.sleep(1)
             timer = timer + 1
 
-        # If we didnt have time to delete the frame info, we do it now to prevent future weird behaviours
-        if self.frame_songinfo is not None:
-            PrintTraceInUi("Warning ! Deleting song info lately")
-            self.frame_songinfo.destroy()
-            self.frame_songinfo = None
-            
+        for plugin in self.plugins:
+            plugin.on_exit()
 
         # We shouldnt launch multiple concurrent fade_out
         if fade_out and not self.fade_out_thread_active:
@@ -394,7 +365,6 @@ class SequenceBlock:
 
     def get_color(self):
         """! Returns the hex code of the video block """
-        # https://coolors.co/dd6e42-e8dab2-4f6d7a-c0d6df-eaeaea
         bg_color = UI_BLOCK_PLAYED_VIDEO_COLOR
 
         if self.block_type == "randomvideo":
@@ -1107,7 +1077,6 @@ class MainManager:
     def start_ui(self):
         """! Start the sequence and player UI """
         # These arguments allow audio crossfading : each player has an individual sound
-        # instance = vlc.Instance(['--aout=directsound', '--directx-volume=1.00'])
         instance = vlc.Instance(['--aout=directsound', '--quiet'])
         # instance = vlc.Instance('--verbose 3')
         assert (instance is not None)
