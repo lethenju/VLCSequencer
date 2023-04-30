@@ -18,7 +18,9 @@ class SongInfoPlugin:
 
 # Plugin interface
 
-    def setup(self, artist, song):
+    def setup(self, **kwargs):
+        artist = kwargs["artist"]
+        song = kwargs["song"]
         if song is not None and artist is not None:
             # TODO background image maybe ?
             self.frame_songinfo = tk.Frame(self.tk_window, width=20, bg=UI_BACKGROUND_COLOR)

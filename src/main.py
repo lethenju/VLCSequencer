@@ -147,7 +147,7 @@ class UiPlayer():
         
         # Setup the plugins
         for plugin in self.plugins:
-            plugin.setup(artist, song)
+            plugin.setup(artist=artist, song=song)
 
         if end_s == 0:
             end_s = length_s
