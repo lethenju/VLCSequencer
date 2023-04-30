@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter import filedialog
 import threading
 import os
 import time
@@ -7,6 +8,7 @@ import random
 import xml.etree.ElementTree as ET
 import copy
 from datetime import datetime
+from functools import partial
 
 # Application related imports
 from colors import *
@@ -86,13 +88,6 @@ class SequenceBlock:
             self.modify_color(UI_BLOCK_REPEAT_VIDEO_COLOR)
         else:
             self.modify_color(self.get_color())
-        # TODO Recompute times
-
-    def change_video(self):
-        """! Modify the video of the block """
-        PrintTraceInUi("Change video")
-        # TODO Implement
-        
 
     def add_block(self, block):
         self.inner_sequence.append(block)
@@ -466,8 +461,55 @@ class UiSequenceManager:
             # New time_programmed is the last playback + the length of the last track
             time_programmed_s = self.sequence_data.inner_sequence[index -
                                                                   1].last_playback + playing_length_s
-
         video.last_playback = time_programmed_s
+
+    def _load_video(self, path, video):
+        """! Load video info in the block 
+            @param path : full path of the video
+            @param video : Reference to the video block to fill
+        """
+        # Storing path in the block
+        video.path = path
+        if (video.path in self.history_knownvideos):
+            video.length = self.history_knownvideos[video.path].length
+            PrintTraceInUi(video.path + " : Known video, already parsed length ", video.length)
+        else:
+            PrintTraceInUi(
+                video.path + " : New video, reading attributes ")
+            media = self.vlc_instance.media_new(video.path)
+            media.parse_with_options(1, 0)
+            # Blocking the parsing time
+            while True:
+                if str(media.get_parsed_status()) == 'MediaParsedStatus.done':
+                    break
+            video.length = media.get_duration()/1000
+
+            # Store video in the dictionary
+            self.history_knownvideos[video.path] = copy.copy(video)
+            # We do not need this media anymore
+            media.release()
+
+        # Split the path and get the name after the last '/' and get the name before the extension
+        video.ui_label.configure(
+            text=video.path.split("/").pop().split(".")[0])
+        
+        metadata = self._get_metadata(video.path.split("/").pop())
+
+        if metadata is not None:
+            if metadata.artist is not None and metadata.song is not None:
+                video.ui_artist_label.configure(text=metadata.artist)
+                video.ui_artist_label.pack(padx=5, pady=5, fill="both", expand=True)
+                video.ui_song_label.configure(text=metadata.song)
+                video.ui_song_label.pack(padx=5, pady=5, fill="both", expand=True)
+        else:
+            video.ui_artist_label.pack_forget()
+            video.ui_song_label.pack_forget()
+        
+        ui_playing_label_time = datetime.fromtimestamp(
+            video.last_playback).time()
+        video.ui_playing_time.configure(text="{:02d}".format(ui_playing_label_time.hour) + ":" +
+                                                "{:02d}".format(ui_playing_label_time.minute) + ":" +
+                                                "{:02d}".format(ui_playing_label_time.second))
 
     def _resolve_sequence(self):
         """! Chooses the random videos to be displayed, add length for each media and media info to blocks """
@@ -490,48 +532,7 @@ class UiSequenceManager:
                 PrintTraceInUi(final_path + " : The video doesnt exist ! ")
                 exit(-1)
 
-            # Storing path in the block
-            video.path = final_path
-            if (video.path in self.history_knownvideos):
-                video.length = self.history_knownvideos[video.path].length
-                PrintTraceInUi(video.path + " : Known video, already parsed length ", video.length)
-            else:
-                PrintTraceInUi(
-                    video.path + " : New video, reading attributes ")
-                media = self.vlc_instance.media_new(video.path)
-                media.parse_with_options(1, 0)
-                # Blocking the parsing time
-                while True:
-                    if str(media.get_parsed_status()) == 'MediaParsedStatus.done':
-                        break
-                video.length = media.get_duration()/1000
-
-                # Store video in the dictionary
-                self.history_knownvideos[video.path] = copy.copy(video)
-                # We do not need this media anymore
-                media.release()
-
-            # Split the path and get the name after the last '/' and get the name before the extension
-            video.ui_label.configure(
-                text=video.path.split("/").pop().split(".")[0])
-            
-            metadata = self._get_metadata(video.path.split("/").pop())
-
-            if metadata is not None:
-                if metadata.artist is not None and metadata.song is not None:
-                    video.ui_artist_label.configure(text=metadata.artist)
-                    video.ui_artist_label.pack(padx=5, pady=5, fill="both", expand=True)
-                    video.ui_song_label.configure(text=metadata.song)
-                    video.ui_song_label.pack(padx=5, pady=5, fill="both", expand=True)
-            else:
-                video.ui_artist_label.pack_forget()
-                video.ui_song_label.pack_forget()
-            
-            ui_playing_label_time = datetime.fromtimestamp(
-                video.last_playback).time()
-            video.ui_playing_time.configure(text="{:02d}".format(ui_playing_label_time.hour) + ":" +
-                                                 "{:02d}".format(ui_playing_label_time.minute) + ":" +
-                                                 "{:02d}".format(ui_playing_label_time.second))
+            self._load_video(final_path, video)
 
     def load_sequence(self):
         xml_root = ET.parse(self.xml_path).getroot()
@@ -597,7 +598,7 @@ class UiSequenceManager:
             block.ui_button_repeat_toggle.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
             
             block.ui_button_change_video = tk.Button(
-                block.ui_button_frame, text="Change Video", command=block.change_video,
+                block.ui_button_frame, text="Change Video", command=partial(self._change_video, i),
                 font=('calibri', 12),
                 fg="white",
                 bg=block.get_color())
@@ -606,13 +607,40 @@ class UiSequenceManager:
         # First sequence resolving. After each sequence iteration it will be called
         self._resolve_sequence()
 
-    def _reconfigure_timestamps(self, from_index):
+    def _change_video(self, video_index):
+        """! Modify the video of the block 
+            @param video_index : Index of the video to modify
+        """
+        if self.index_playing_video == video_index:
+            PrintTraceInUi("You cannot change the current video")
+            return
+        video = self.sequence_data.inner_sequence[video_index]
+        PrintTraceInUi("Change video ", video_index)
+        video_path = filedialog.askopenfilename(
+            title='Select Video',
+            filetypes=[('Video files', '*.mp4')])
+        if os.path.isfile(video_path):
+            self._load_video(video_path, video)
+            if video.is_on_repeat:
+                video.modify_color(UI_BLOCK_REPEAT_VIDEO_COLOR)
+            else:   
+                video.modify_color(UI_BLOCK_NORMAL_VIDEO_COLOR)
+
+            self._reconfigure_timestamps(video_index, is_now = False)
+            
+    def _reconfigure_timestamps(self, from_index, is_now = True):
+        """! Reconfigure all timestamps from the index chosen 
+            @param from_index : Index of the first video to recompute
+            @param is_now : true if the first video is to be set from now (default)
+                            false if we need to take the already computed time
+        """
         
+        if is_now:
         # Recompute timestamps
-        self.sequence_data.inner_sequence[self.index_playing_video].last_playback = time.time()
-        ui_playing_label_time = datetime.fromtimestamp(
+            self.sequence_data.inner_sequence[self.index_playing_video].last_playback = time.time()
+            ui_playing_label_time = datetime.fromtimestamp(
             self.sequence_data.inner_sequence[self.index_playing_video].last_playback).time()
-        self.sequence_data.inner_sequence[self.index_playing_video].ui_playing_time.configure(text="{:02d}".format(ui_playing_label_time.hour) + ":" +
+            self.sequence_data.inner_sequence[self.index_playing_video].ui_playing_time.configure(text="{:02d}".format(ui_playing_label_time.hour) + ":" +
                                                                                               "{:02d}".format(ui_playing_label_time.minute) + ":" +
                                                                                               "{:02d}".format(ui_playing_label_time.second))   
         # Adding timestamps since the playing video
@@ -642,8 +670,9 @@ class UiSequenceManager:
         if self.index_playing_video > -1:
             # Reset frame options
             video.modify_color(UI_BLOCK_PLAYED_VIDEO_COLOR)
+            # Remove buttons
+            video.ui_button_frame.pack_forget()
             # Add to the history
-
             time_last_playback = datetime.fromtimestamp(
                 video.last_playback).time()
             self.listviews.history_listbox.insert(0, "{:02d}".format(time_last_playback.hour) + ":" +
