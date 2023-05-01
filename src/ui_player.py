@@ -7,6 +7,7 @@ import sys
 # Application related imports
 from colors import *
 from song_info_plugin import SongInfoPlugin
+from messaging_plugin import MessagingPlugin
 from logger import PrintTraceInUi
 
 class UiPlayer():
@@ -46,7 +47,6 @@ class UiPlayer():
 
     media_frames = None  # List (tuple) of media frames
     plugins = []
-    #frame_songinfo = None # UI Frame of the song information (artist and song name)
 
     def __init__(self, tkroot, vlc_instance, metadata_manager):
         """! Initialize the main display window """
@@ -63,6 +63,7 @@ class UiPlayer():
 
         # TODO Conditionning over a parameter
         self.plugins.append(SongInfoPlugin(self.window))
+        self.plugins.append(MessagingPlugin(self.window))
 
         self.fade_out_thread_active = False
         self.fade_in_thread_active = False
