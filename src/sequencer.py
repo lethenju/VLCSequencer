@@ -707,5 +707,8 @@ class UiSequenceManager:
     def kill(self):
         self.is_running_flag = False
         self.ui_player.kill()
-        self.ui_sequence_manager.destroy()
+        try:
+            self.ui_sequence_manager.destroy()
+        except:
+            exit(1)
 

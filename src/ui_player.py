@@ -61,10 +61,6 @@ class UiPlayer():
         self.is_paused = False
         self.nb_video_played = 0
 
-        # TODO Conditionning over a parameter
-        self.plugins.append(SongInfoPlugin(self.window))
-        self.plugins.append(MessagingPlugin(self.window))
-
         self.fade_out_thread_active = False
         self.fade_in_thread_active = False
         # 2 players (one for each frame)
@@ -81,6 +77,11 @@ class UiPlayer():
             self.is_fullscreen_flag = not self.is_fullscreen_flag
         self.window.bind("<F11>", toggle_full_screen)
         self.is_running_flag = True
+        
+        # TODO Conditionning over a parameter
+        self.plugins.append(SongInfoPlugin(self.window))
+        self.plugins.append(MessagingPlugin(self.window))
+
 
     def _play_on_specific_frame(self, media, index_media_players, length_s,
                                 metadata = None):
