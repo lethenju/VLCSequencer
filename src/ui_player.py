@@ -270,6 +270,9 @@ class UiPlayer():
 
     def kill(self):
         """! Kill the window and release the vlc instance """
+        for plugin in self.plugins:
+            plugin.on_destroy()
+            
         self.is_running_flag = False
         self.window.destroy()
         self.vlc_instance.release()

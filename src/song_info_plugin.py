@@ -12,10 +12,12 @@ class SongInfoPlugin:
     frame_songinfo = None
     artist = ""
     song = ""
+    is_running = False
 
     def __init__(self, tk_window):
         """! Links to the Tkinter Window """
         self.tk_window = tk_window
+        self.is_running = True
 
 # Plugin interface
 
@@ -55,19 +57,28 @@ class SongInfoPlugin:
             PrintTraceInUi("Warning ! Deleting song info lately")
             self.frame_songinfo.destroy()
             self.frame_songinfo = None
-            
+    
+    
+    def on_destroy(self):
+        """! Called to stop the plugin and release resources """
+        self.is_running = False
+        # self.on_exit()
 
 # Private functions
 
     def _show_song_info_thread(self):
         """! Thread to handle the display of the song info pane """
         for x in range(-500, 50, 5):
+            if not self.is_running:
+                break
             self.frame_songinfo.place(x=x, y= 0.8 * self.tk_window.winfo_height() )
             sleep(0.01)
 
     def _hide_song_info_thread(self):
         """! Thread to handle the end of display of the song info pane """
         for x in range(50, -500, -5):
+            if not self.is_running:
+                break
             self.frame_songinfo.place(x=x, y= 0.8 * self.tk_window.winfo_height() )
             sleep(0.01)
         self.frame_songinfo.destroy()

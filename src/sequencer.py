@@ -293,10 +293,15 @@ class UiSequenceManager:
             padx=10, pady=10, font=('calibri', 12),
             fg="white",
             bg=UI_BACKGROUND_COLOR)
-
+        self.quit_button = tk.Button(
+            self.ui_playback_control_view, text="Quit",         command=self.kill,
+            padx=10, pady=10, font=('calibri', 12),
+            fg="white",
+            bg=UI_BACKGROUND_COLOR)
         self.pause_button.grid(column=0, row=0, padx=10, pady=10)
         self.mute_button.grid(column=1, row=0, padx=10, pady=10)
         self.next_button.grid(column=2, row=0, padx=10, pady=10)
+        self.quit_button.grid(column=3, row=0, padx=10, pady=10)
 
         self.ui_playback_control_view.pack(side=tk.TOP,  fill=tk.BOTH)
 
@@ -701,5 +706,6 @@ class UiSequenceManager:
 
     def kill(self):
         self.is_running_flag = False
-        # TODO Stop tkinter frames
+        self.ui_player.kill()
+        self.ui_sequence_manager.destroy()
 
