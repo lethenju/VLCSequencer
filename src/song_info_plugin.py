@@ -25,8 +25,10 @@ class SongInfoPlugin:
         if song is not None and artist is not None:
             # TODO background image maybe ?
             self.frame_songinfo = tk.Frame(self.tk_window, width=20, bg=UI_BACKGROUND_COLOR)
-            label_artist = tk.Label(self.frame_songinfo,text=artist, padx=10, pady=10, font=('calibri', 40, 'bold'),fg="white", bg=UI_BACKGROUND_COLOR)
-            label_song   = tk.Label(self.frame_songinfo,text=song, padx=10, pady=10, font=('calibri', 40),fg="white", bg=UI_BACKGROUND_COLOR)
+            font_size = int(self.tk_window.winfo_height() /25);
+            PrintTraceInUi("FontSize ", font_size)
+            label_artist = tk.Label(self.frame_songinfo,text=artist, padx=10, pady=10, font=('calibri', font_size, 'bold'),fg="white", bg=UI_BACKGROUND_COLOR)
+            label_song   = tk.Label(self.frame_songinfo,text=song, padx=10, pady=10, font=('calibri', font_size),fg="white", bg=UI_BACKGROUND_COLOR)
             
             label_artist.pack(side=tk.LEFT)
             label_song.  pack(side=tk.RIGHT)
