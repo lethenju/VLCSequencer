@@ -71,7 +71,7 @@ class SongInfoPlugin:
         for x in range(-500, 50, 5):
             if not self.is_running:
                 break
-            self.frame_songinfo.place(x=x, y= 0.8 * self.tk_window.winfo_height() )
+            self.frame_songinfo.place(x=x, rely= 0.8)
             sleep(0.01)
 
     def _hide_song_info_thread(self):
@@ -79,7 +79,7 @@ class SongInfoPlugin:
         for x in range(50, -500, -5):
             if not self.is_running:
                 break
-            self.frame_songinfo.place(x=x, y= 0.8 * self.tk_window.winfo_height() )
+            self.frame_songinfo.place(x=x, rely= 0.8)
             sleep(0.01)
         self.frame_songinfo.destroy()
         self.frame_songinfo = None

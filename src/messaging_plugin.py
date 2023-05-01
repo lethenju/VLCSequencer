@@ -114,46 +114,70 @@ class MessagingPlugin:
             self.tk_window = tk_root
             self.is_shown = False 
             self.is_running = True
-            self.frame_messages = tk.Frame(self.tk_window, width=100, bg=UI_BACKGROUND_COLOR)
+            self.frame_messages = tk.Frame(self.tk_window, bg=UI_BACKGROUND_COLOR)
 
-            font_size = int(self.tk_window.winfo_height() /25);
+            font_size = int(self.tk_window.winfo_height() /20);
             PrintTraceInUi("FontSize ", font_size)
-            self.active_label_author  = tk.Label(self.frame_messages,text="", padx=10, pady=10, font=('calibri', font_size, 'bold'),fg="white", bg=UI_BACKGROUND_COLOR)
-            self.active_label_message = tk.Label(self.frame_messages,text="", padx=10, pady=10, font=('calibri', font_size),fg="white", bg=UI_BACKGROUND_COLOR)
+            self.active_label_author  = tk.Label(self.frame_messages,text="", padx=10, pady=1, font=('calibri', font_size, 'bold'),fg="white", bg=UI_BACKGROUND_COLOR)
+            self.active_label_message = tk.Label(self.frame_messages,text="", padx=10, pady=1, font=('calibri', font_size),fg="white", bg=UI_BACKGROUND_COLOR)
             
-            self.active_label_author .pack(side=tk.LEFT)
-            self.active_label_message.pack(side=tk.RIGHT)
+            self.active_label_author .pack(side=tk.LEFT, anchor=tk.CENTER)
+            self.active_label_message.pack(side=tk.LEFT, anchor=tk.CENTER)
         
         def runtime(self):
             """! Runtime """
             PrintTraceInUi("Messaging UI Runtime")
             while self.is_running:
+                self._compute_messages()
                 if len(self.active_messages) > 0:
                     self.index_sequence_message = (self.index_sequence_message + 1) % len(self.active_messages)
                     PrintTraceInUi("Index of current message = ", self.index_sequence_message, " Author : ",  
                         self.active_messages[self.index_sequence_message].author, " Message ",
                         self.active_messages[self.index_sequence_message].message)
-                    self.active_label_author.configure(text = self.active_messages[self.index_sequence_message].author)
-                    self.active_label_message.configure(text = self.active_messages[self.index_sequence_message].message)
+                        
+                    font_size = int(self.tk_window.winfo_height() /20);
+                    PrintTraceInUi("FontSize ", font_size)
+                    self.active_label_author.configure(text = self.active_messages[self.index_sequence_message].author, 
+                        font=('calibri', font_size, 'bold'))
+                    self.active_label_message.configure(text = self.active_messages[self.index_sequence_message].message,
+                        font=('calibri', font_size))
                 sleep(5)
 
             self.frame_messages.destroy()
 
         def add_message(self, message):
             """! Adding a message in the dictionary of active message """
+            
+            # Remove messages with the same author 
+            self.active_messages = list(filter(lambda active_message: (
+                active_message.author != message.author), self.active_messages))
+
             self.active_messages.append(message)
+            #Recompute show (we now have messages)
+            if self.is_shown:
+                self.show()
 
         def show(self):
             """! Show api """
             PrintTraceInUi("Show message UI")
             self.is_shown = True
-            self.frame_messages.place(x=0, y= 0.9 * self.tk_window.winfo_height() )
+            if len(self.active_messages) > 0:
+                self.frame_messages.place(relx=0, rely= 0.95, relheight=0.05, relwidth=1)
 
         def hide(self):
             """! hide api """
             PrintTraceInUi("Hide message UI")
             self.is_shown = False
-            self.frame_messages.place(x=0, y= 1.1 * self.tk_window.winfo_height() )
+            self.frame_messages.place(relx=0, rely= 0.95, relheight=0, relwidth=1)
 
         def stop(self):
             self.is_running = False
+        
+        def _compute_messages(self):
+            #for message in self.active_messages:
+                # If its been more than 10 minutes, the message disappears from the sequence
+             #   if time() - message.timestamp_activation > 10 * 60:
+              #      self.active_messages.remove(message)
+            PrintTraceInUi("Recomputing messages..")
+            self.active_messages = list(filter(lambda message: (
+                message.timestamp_activation + 10*60 > time()), self.active_messages))
