@@ -29,32 +29,41 @@ class MetaDataManager:
             self.song = song
 
     metadata_list = []
+    path = None
 
-    def __init__(self, path):
+    def __init__(self, path = None):
         """! The MetaData manager initializer
             @param path : path the csv metadata file 
             @return An instance of a MetaDataManager
         """
+        self.metadata_list = []
+        if path is not None:
+            self.open(path)
+
+    def open(self, path):
+        self.path = path
         with open(path, newline='') as csvfile:
-            csvdata = csv.reader(csvfile, delimiter=',')
-            for line in csvdata:
-                # The csv has to be well formed
-                assert (len(line) == 7)
+                csvdata = csv.reader(csvfile, delimiter=',')
+                for line in csvdata:
+                    # The csv has to be well formed
+                    assert (len(line) == 7)
 
-                # Format the timestamps in seconds
-                def get_sec(time_str):
-                    m, s = time_str.split(':')
-                    return int(m) * 60 + int(s)
+                    # Format the timestamps in seconds
+                    def get_sec(time_str):
+                        m, s = time_str.split(':')
+                        return int(m) * 60 + int(s)
 
-                self.metadata_list.append(
-                    self.MetaDataEntry(video_name=line[0],
-                                       timestamp_begin=get_sec(line[1]),
-                                       timestamp_end=get_sec(line[2]),
-                                       fade_in=line[3] == 'y',
-                                       fade_out=line[4] == 'y',
-                                       artist=line[5],
-                                       song=line[6])
-                )
+                    self.metadata_list.append(
+                        self.MetaDataEntry(video_name=line[0],
+                                        timestamp_begin=get_sec(line[1]),
+                                        timestamp_end=get_sec(line[2]),
+                                        fade_in=line[3] == 'y',
+                                        fade_out=line[4] == 'y',
+                                        artist=line[5],
+                                        song=line[6]))
+    def reload(self):
+        self.metadata_list.clear()
+        self.open(self.path)
 
     def get_metadata(self, video_name):
         """! Get the stored metadata about the video in parameter 

@@ -298,6 +298,11 @@ class UiSequenceManager:
             padx=10, pady=10, font=('calibri', 12),
             fg="white",
             bg=UI_BACKGROUND_COLOR)
+        self.reload_csv_button = tk.Button(
+            self.ui_playback_control_view, text="Reload Metadata",         command=self.reload_metadata,
+            padx=10, pady=10, font=('calibri', 12),
+            fg="white",
+            bg=UI_BACKGROUND_COLOR)
         self.quit_button = tk.Button(
             self.ui_playback_control_view, text="Quit",         command=self.kill,
             padx=10, pady=10, font=('calibri', 12),
@@ -306,8 +311,8 @@ class UiSequenceManager:
         self.pause_button.grid(column=0, row=0, padx=10, pady=10)
         self.mute_button.grid(column=1, row=0, padx=10, pady=10)
         self.next_button.grid(column=2, row=0, padx=10, pady=10)
-        self.quit_button.grid(column=3, row=0, padx=10, pady=10)
-
+        self.reload_csv_button.grid(column=3, row=0,padx=10, pady=10)
+        self.quit_button.grid(column=4, row=0, padx=10, pady=10)
         self.ui_playback_control_view.pack(side=tk.TOP,  fill=tk.BOTH)
 
         self.listviews = self.ListViews(self.ui_sequence_manager)
@@ -347,6 +352,12 @@ class UiSequenceManager:
         else:
             self.is_paused = False
 
+    def reload_metadata(self):
+        PrintTraceInUi("Reloading metadata")
+        if self.metadata_manager is not None:
+            self.metadata_manager.reload()
+        # TODO Reload UI
+        
     def _get_metadata(self, video_name):
             """! Gets the metadata through the API, wraps the None protection
                 @param video_name : name of the video file, key in the metadata dictionary
