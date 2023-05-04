@@ -1,6 +1,21 @@
 # VLCSequencer
 
-TODO Fill the readme
+You have a big screen at home and you want to use it during parties, displaying video clips, but without having to deal with either
+a premium Youtube subscription or ads on cable TV or Youtube ?
+
+You want to automate a video blindtest ?
+
+You want to display long videos in a particular order repeatedly ?
+
+You want audio crossfade between the end of a video and the beginning of the next one ?
+
+You want to mimic 20th century's MTV, have clips, jingles and fake ads, and even display messages on the screen during a party, and give the audience the possibility to add their own messages ?
+
+Thats all what VLCSequencer does !
+
+You give it a sequence file, some metadatas and you're off !
+
+TODO put screenshots of the program
 
 ## Requirements and installation
 
@@ -29,8 +44,8 @@ python3 -m pip install python-vlc python-magic
 
 ### TODO
 
+- Add screen preview on the sequence window
 - Add Metadata-related info on the sequence (if fade-in/out are activated, etc..)
-- Add a button to reload metadatas during a sequence (to enable correcting/modifying them as the sequence plays)
 - Add a button to get back to the beginning of the current video
 - Gather the actual device output volume to enable automatic volume correction
 - For sequencing : Add '\<if sooner_than="time"/>' and '\<if later_than="time" />' statements parsing
