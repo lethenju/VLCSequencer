@@ -115,9 +115,8 @@ class MainManager:
 
     def start_ui(self):
         """! Start the sequence and player UI """
-        # These arguments allow audio crossfading : each player has an individual sound
+        # Directsound allow audio crossfading : each player has an individual sound
         instance = vlc.Instance(['--aout=directsound', '--quiet', '--no-xlib'])
-        # instance = vlc.Instance('--verbose 3')
         assert (instance is not None)
 
         # Clean up window for letting space for playback

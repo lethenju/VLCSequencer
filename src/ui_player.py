@@ -161,20 +161,18 @@ class UiPlayer():
             nb_video_played = self.nb_video_played
             volume = player.audio_get_volume()
             while (volume > 0 and self.is_running_flag and not self.is_next_asked
-                   and nb_video_played < self.nb_video_played + 1):
-                PrintTraceInUi("fade_out Volume : ", volume)
+                   and self.nb_video_played - nb_video_played < 2):
                 volume = volume - 5
                 player.audio_set_volume(volume)
                 while self.is_paused:
                     # Waiting to get out of pause
                     time.sleep(1)
                 time.sleep(0.5)
-            # TODO debug when skipping quickly
             # If we changed 2 times of videos, we're on this player, we better not stop it
-            # if not nb_video_played < self.nb_video_played + 1:
-            player.stop()
-            self.fade_out_thread_active = False
-            
+            if self.nb_video_played - nb_video_played != 2:
+                player.stop()
+                self.fade_out_thread_active = False
+
         # We shouldnt launch multiple concurrent fade_in
         if fade_in and not self.fade_in_thread_active:
             threading.Thread(target=fade_in_thread).start()
@@ -273,7 +271,7 @@ class UiPlayer():
         """! Kill the window and release the vlc instance """
         for plugin in self.plugins:
             plugin.on_destroy()
-            
         self.is_running_flag = False
+        time.sleep(1) # Wait for all processes to stop
         self.window.destroy()
         self.vlc_instance.release()
