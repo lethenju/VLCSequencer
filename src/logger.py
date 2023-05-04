@@ -18,7 +18,7 @@ class Logger():
 
     def log(self, trace):
         if self.ui_trace_listbox is not None:
-            self.ui_trace_listbox.insert(tk.ANCHOR, " " + trace)
+            self.ui_trace_listbox.insert(tk.END, " " + trace)
             self.ui_trace_listbox.yview(tk.END)
 
 
