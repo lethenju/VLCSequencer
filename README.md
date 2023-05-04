@@ -44,6 +44,8 @@ python3 -m pip install python-vlc python-magic
 
 ### TODO
 
+- Redirect after post in the server, html styling
+- Add messages list in the sequence view
 - Add screen preview on the sequence window
 - Add Metadata-related info on the sequence (if fade-in/out are activated, etc..)
 - Add a button to get back to the beginning of the current video
