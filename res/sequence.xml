@@ -1,7 +1,7 @@
 <Document>
   <Title>JJ Birthday Sequence</Title>
   <Sequence>
-    <Video path="jingle/jingle.mp4" />
+    <Video path="jingle/jingle.mp4" repeat="1"/>
     <Repeat nb_time="3" >
       <!-- Select a random clip that has not played in the last hour -->
       <RandomVideo path="clips" reselect_timeout="60" />

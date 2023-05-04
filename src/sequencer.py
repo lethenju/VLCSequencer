@@ -64,7 +64,7 @@ class SequenceBlock:
     is_on_repeat = False
     last_playback = 0
 
-    def __init__(self, block_type, block_args=None):
+    def __init__(self, block_type, block_args=None, repeat = False):
         self.inner_sequence = []
         self.ui_frame = None
         self.ui_playing_time = None
@@ -75,10 +75,15 @@ class SequenceBlock:
         self.ui_song_label = None
         self.ui_button_repeat_toggle = None
         self.ui_button_change_video = None
-        self.is_on_repeat = False
         self.block_type = block_type
         self.block_args = block_args
         self.last_playback = 0
+
+        if repeat:
+            self.is_on_repeat = True
+        else:
+            self.is_on_repeat = False
+
 
     def set_on_repeat(self):
         """! Toggle repeat mode """
@@ -363,7 +368,8 @@ class UiSequenceManager:
                 sequence_data_node.add_block(block)
             if child.tag == "Video":
                 path = child.attrib['path']
-                block = SequenceBlock("video", path)
+                repeat = child.attrib.setdefault('repeat',None)
+                block = SequenceBlock("video", path, repeat= (repeat == "1"))
                 sequence_data_node.add_block(block)
             if child.tag == "RandomVideo":
                 path = child.attrib['path']
@@ -593,21 +599,24 @@ class UiSequenceManager:
                 block.ui_video_frame,
                 bg=block.get_color())
             block.ui_button_frame.pack(fill=tk.BOTH, expand=True)
-            
             block.ui_button_repeat_toggle = tk.Button(
                 block.ui_button_frame, text="Toggle Repeat", command=block.set_on_repeat,
                 font=('calibri', 12),
                 fg="white",
                 bg=block.get_color())
-            
+
             block.ui_button_repeat_toggle.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-            
             block.ui_button_change_video = tk.Button(
                 block.ui_button_frame, text="Change Video", command=partial(self._change_video, i),
                 font=('calibri', 12),
                 fg="white",
                 bg=block.get_color())
             block.ui_button_change_video.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
+
+            if block.is_on_repeat:
+                block.modify_color(UI_BLOCK_REPEAT_VIDEO_COLOR)
+            else:
+                block.modify_color(block.get_color())
 
         # First sequence resolving. After each sequence iteration it will be called
         self._resolve_sequence()
