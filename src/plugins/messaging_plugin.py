@@ -48,8 +48,6 @@ class MessagingPlugin(PluginBase):
             self.server_thread = threading.Thread(target=self.http_server.serve_forever)
             self.server_thread.start()
 
-        
-        # Rien de particulier
 
     def on_begin(self):
         """! Called at the beginning of a video playback """
@@ -90,9 +88,12 @@ class MessagingPlugin(PluginBase):
             fields = parse.parse_qs(str(data_string,"UTF-8"))
             PrintTraceInUi(fields)
             # Subscribe the message in the active list 
-            if self.cb_add_message is not None:
-                self.cb_add_message(MessagingPlugin.Message(fields["name"][0], fields["message"][0]))
-            self.send_response(200)
+            if self.cb_add_message is not None and "message" in fields and "name" in fields:
+                message = fields["message"][0].replace('\n', '')
+                # Check if the message is not too long
+                self.cb_add_message(MessagingPlugin.Message(fields["name"][0], message))
+            self.path = 'src/static/done.html'
+            return http.server.SimpleHTTPRequestHandler.do_GET(self)
         
 
     class MessagingUiThread:
