@@ -9,6 +9,7 @@ import argparse
 from colors import *
 from logger import PrintTraceInUi, LoggerSubscribeUI
 from metadata_manager import MetaDataManager
+from plugin_manager import PluginManager
 from ui_player import UiPlayer
 from sequencer import *
 
@@ -126,11 +127,14 @@ class MainManager:
         metadata_manager = None
         if os.path.isfile(self.metadata_path):
             metadata_manager = MetaDataManager(path=self.metadata_path)
+        
+        plugin_manager = PluginManager()
 
         player = UiPlayer(tkroot=self.root, vlc_instance=instance,
-                          metadata_manager=metadata_manager)
+                          metadata_manager=metadata_manager, plugin_manager=plugin_manager)
         self.sequence_manager = UiSequenceManager(
-            tkroot=self.root, vlc_instance=instance, ui_player=player, path=self.sequence_path, metadata_manager=metadata_manager)
+            tkroot=self.root, vlc_instance=instance, ui_player=player, path=self.sequence_path,
+            metadata_manager=metadata_manager, plugin_manager=plugin_manager)
         self.sequence_manager.load_sequence()
 
         self.sequencer = MainSequencer(

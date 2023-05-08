@@ -6,9 +6,8 @@ import sys
 
 # Application related imports
 from colors import *
-from song_info_plugin import SongInfoPlugin
-from messaging_plugin import MessagingPlugin
 from logger import PrintTraceInUi
+from plugin_manager import PluginManager, PluginType
 
 class UiPlayer():
     """! Main UI Window
@@ -29,6 +28,7 @@ class UiPlayer():
 
     vlc_instance = None
     metadata_manager = None
+    plugin_manager = None
     nb_video_played = 0
     is_next_asked = False
     is_paused = False
@@ -46,9 +46,8 @@ class UiPlayer():
             self.ui_frame = ui_frame
 
     media_frames = None  # List (tuple) of media frames
-    plugins = []
 
-    def __init__(self, tkroot, vlc_instance, metadata_manager):
+    def __init__(self, tkroot, vlc_instance, metadata_manager, plugin_manager):
         """! Initialize the main display window """
         # Main window initialisation
         self.window = tkroot
@@ -56,6 +55,7 @@ class UiPlayer():
         self.window.geometry("400x300")
         self.vlc_instance = vlc_instance
         self.metadata_manager = metadata_manager
+        self.plugin_manager = plugin_manager
 
         self.is_next_asked = False
         self.is_paused = False
@@ -79,8 +79,10 @@ class UiPlayer():
         self.is_running_flag = True
         
         # TODO Conditionning over a parameter
-        self.plugins.append(SongInfoPlugin(self.window))
-        self.plugins.append(MessagingPlugin(self.window))
+        self.plugin_manager.add_plugin(PluginType.SONG_INFO_PLUGIN);
+        self.plugin_manager.add_plugin(PluginType.MESSAGING_PLUGIN);
+        for plugin in self.plugin_manager.get_plugins():
+            plugin.setup(tk_window = self.window)
 
 
     def _play_on_specific_frame(self, media, index_media_players, length_s,
@@ -122,7 +124,7 @@ class UiPlayer():
             player.set_xwindow(h)
         
         # Setup the plugins
-        for plugin in self.plugins:
+        for plugin in self.plugin_manager.get_plugins():
             plugin.setup(artist=artist, song=song)
 
         if end_s == 0:
@@ -186,7 +188,7 @@ class UiPlayer():
             end_position = 0.95
 
 
-        for plugin in self.plugins:
+        for plugin in self.plugin_manager.get_plugins():
             plugin.on_begin()
 
         timer = 0
@@ -194,7 +196,7 @@ class UiPlayer():
             PrintTraceInUi("Current media playing time " +
                            ("{:.2f}".format(player.get_position()*100))+"%")
             # Progress the plugins
-            for plugin in self.plugins:
+            for plugin in self.plugin_manager.get_plugins():
                 plugin.on_progress(timer)
 
             if (player.get_position() < 0):
@@ -205,7 +207,7 @@ class UiPlayer():
             time.sleep(1)
             timer = timer + 1
 
-        for plugin in self.plugins:
+        for plugin in self.plugin_manager.get_plugins():
             plugin.on_exit()
 
         # We shouldnt launch multiple concurrent fade_out
@@ -269,7 +271,7 @@ class UiPlayer():
 
     def kill(self):
         """! Kill the window and release the vlc instance """
-        for plugin in self.plugins:
+        for plugin in self.plugin_manager.get_plugins():
             plugin.on_destroy()
         self.is_running_flag = False
         time.sleep(1) # Wait for all processes to stop

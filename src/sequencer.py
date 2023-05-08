@@ -219,6 +219,8 @@ class UiSequenceManager:
     ui_player = None
     # Reference to the metadata API to get the user-defined start/end playback timestamps
     metadata_manager = None
+    # Reference to the plugins API
+    plugin_manager = None
     #  Reference to the Vlc instance to get true metadata about the video (length..)
     vlc_instance = None
 
@@ -243,7 +245,7 @@ class UiSequenceManager:
     # If the video is in pause, need to recalculate the timestamps every second
     is_paused = False
 
-    def __init__(self, tkroot, vlc_instance, ui_player, path, metadata_manager):
+    def __init__(self, tkroot, vlc_instance, ui_player, path, metadata_manager, plugin_manager):
         """! The Sequence manager initializer
 
             @param path : path the sequence file 
@@ -252,6 +254,7 @@ class UiSequenceManager:
         self.ui_player = ui_player
         self.vlc_instance = vlc_instance
         self.metadata_manager = metadata_manager
+        self.plugin_manager = plugin_manager
         self.is_running_flag = True
         self.is_paused = False
 

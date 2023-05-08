@@ -9,14 +9,12 @@ from functools import partial
 
 from colors import *
 from logger import PrintTraceInUi
+from plugin_base import PluginBase
 
 HTTP_PORT = 8000
 
-class MessagingPlugin:
+class MessagingPlugin(PluginBase):
     """! Plugin to show live messages under the video """
-    tk_window = None
-    is_running = False
-
     http_server = None
     server_thread = None
 
@@ -34,23 +32,23 @@ class MessagingPlugin:
             self.message = message
             self.timestamp_activation = time()
 
-    def __init__(self, tk_window):
-        """! Links to the Tkinter Window """
-        self.tk_window = tk_window
-        self.is_running = True
-
-        # TODO Maybe store/read active messages in file 
-        self.message_ui = self.MessagingUiThread(tk_window)
-        self.message_ui_thread = threading.Thread(target=self.message_ui.runtime).start()
-
-        self.http_server = socketserver.TCPServer(("", HTTP_PORT), partial(self.MyHttpRequestHandler, self.message_ui.add_message))
-        self.server_thread = threading.Thread(target=self.http_server.serve_forever)
-        self.server_thread.start()
-
 # Plugin interface
 
     def setup(self, **kwargs):
         """! Setup """
+
+        if self.tk_window is None and "tk_window" in kwargs:
+            PrintTraceInUi("Setup of the messaging plugin")
+            super().setup(tk_window=kwargs["tk_window"])
+            # TODO Maybe store/read active messages in file 
+            self.message_ui = self.MessagingUiThread(self.tk_window)
+            self.message_ui_thread = threading.Thread(target=self.message_ui.runtime).start()
+
+            self.http_server = socketserver.TCPServer(("", HTTP_PORT), partial(self.MyHttpRequestHandler, self.message_ui.add_message))
+            self.server_thread = threading.Thread(target=self.http_server.serve_forever)
+            self.server_thread.start()
+
+        
         # Rien de particulier
 
     def on_begin(self):

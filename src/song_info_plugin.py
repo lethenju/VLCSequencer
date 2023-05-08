@@ -5,35 +5,33 @@ from threading import Thread
 
 from colors import *
 from logger import PrintTraceInUi
+from plugin_base import PluginBase
 
-class SongInfoPlugin:
+class SongInfoPlugin(PluginBase):
     """! Plugin to show the song info as it plays """
-    tk_window = None
     frame_songinfo = None
     artist = ""
     song = ""
-    is_running = False
-
-    def __init__(self, tk_window):
-        """! Links to the Tkinter Window """
-        self.tk_window = tk_window
-        self.is_running = True
 
 # Plugin interface
-
     def setup(self, **kwargs):
-        artist = kwargs["artist"]
-        song = kwargs["song"]
-        if song is not None and artist is not None:
-            # TODO background image maybe ?
-            self.frame_songinfo = tk.Frame(self.tk_window, width=20, bg=UI_BACKGROUND_COLOR)
-            font_size = int(self.tk_window.winfo_height() /25);
-            PrintTraceInUi("FontSize ", font_size)
-            label_artist = tk.Label(self.frame_songinfo,text=artist, padx=10, pady=10, font=('calibri', font_size, 'bold'),fg="white", bg=UI_BACKGROUND_COLOR)
-            label_song   = tk.Label(self.frame_songinfo,text=song, padx=10, pady=10, font=('calibri', font_size),fg="white", bg=UI_BACKGROUND_COLOR)
-            
-            label_artist.pack(side=tk.LEFT)
-            label_song.  pack(side=tk.RIGHT)
+        """! Setup """
+        if super().tk_window is None and "tk_window" in kwargs:
+            super().setup(tk_window=kwargs["tk_window"])
+        elif "artist" in kwargs and "song" in kwargs:
+            artist = kwargs["artist"]
+            song = kwargs["song"]
+                
+            if song is not None and artist is not None:
+                # TODO background image maybe ?
+                self.frame_songinfo = tk.Frame(self.tk_window, width=20, bg=UI_BACKGROUND_COLOR)
+                font_size = int(self.tk_window.winfo_height() /25);
+                PrintTraceInUi("FontSize ", font_size)
+                label_artist = tk.Label(self.frame_songinfo,text=artist, padx=10, pady=10, font=('calibri', font_size, 'bold'),fg="white", bg=UI_BACKGROUND_COLOR)
+                label_song   = tk.Label(self.frame_songinfo,text=song, padx=10, pady=10, font=('calibri', font_size),fg="white", bg=UI_BACKGROUND_COLOR)
+                
+                label_artist.pack(side=tk.LEFT)
+                label_song.  pack(side=tk.RIGHT)
     
     def on_begin(self):
         """! Called at the beginning of a video playback """
@@ -59,13 +57,9 @@ class SongInfoPlugin:
             self.frame_songinfo = None
     
     
-    def on_destroy(self):
-        """! Called to stop the plugin and release resources """
-        self.is_running = False
-        # self.on_exit()
+# Keep parent's on_destroy
 
 # Private functions
-
     def _show_song_info_thread(self):
         """! Thread to handle the display of the song info pane """
         for x in range(-500, 50, 5):
