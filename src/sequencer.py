@@ -13,6 +13,7 @@ from functools import partial
 # Application related imports
 from colors import *
 from logger import PrintTraceInUi, LoggerSubscribeUI
+from plugin_base import PluginType
 
 class MainSequencer():
     """! Handle the sequencing of videos to be played back """
@@ -568,9 +569,14 @@ class UiSequenceManager:
             if child.tag == "Title":
                 PrintTraceInUi("Title of the sequence : " + child.text)
                 self.title = child.text
-            if child.tag == "Sequence":
+            elif child.tag == "Plugin":
+                PrintTraceInUi("Load plugin " + child.text)
+                if child.text == "SongInfo":
+                    self.plugin_manager.add_plugin(PluginType.SONG_INFO_PLUGIN);
+                elif child.text == "Messaging":
+                    self.plugin_manager.add_plugin(PluginType.MESSAGING_PLUGIN);
+            elif child.tag == "Sequence":
                 PrintTraceInUi("Sequence found!")
-
                 self.sequence_data = SequenceBlock("sequence")
                 self._build_sequence(sequence_xml_node=child,
                                      sequence_data_node=self.sequence_data)

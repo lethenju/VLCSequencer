@@ -77,13 +77,6 @@ class UiPlayer():
             self.is_fullscreen_flag = not self.is_fullscreen_flag
         self.window.bind("<F11>", toggle_full_screen)
         self.is_running_flag = True
-        
-        # TODO Conditionning over a parameter
-        self.plugin_manager.add_plugin(PluginType.SONG_INFO_PLUGIN);
-        self.plugin_manager.add_plugin(PluginType.MESSAGING_PLUGIN);
-        for plugin in self.plugin_manager.get_plugins():
-            plugin.setup(tk_window = self.window)
-
 
     def _play_on_specific_frame(self, media, index_media_players, length_s,
                                 metadata = None):
@@ -125,7 +118,7 @@ class UiPlayer():
         
         # Setup the plugins
         for plugin in self.plugin_manager.get_plugins():
-            plugin.setup(artist=artist, song=song)
+            plugin.setup(tk_window = self.window, artist=artist, song=song)
 
         if end_s == 0:
             end_s = length_s
@@ -259,12 +252,11 @@ class UiPlayer():
     def mute_trigger(self):
         player = self._get_active_media_player()
         if player.audio_get_volume() != 0:
-            self.current_volume = player.audio_get_volume()
             self.is_muted = True
             player.audio_set_volume(0)
         else:
             self.is_muted = False
-            player.audio_set_volume(self.current_volume)
+            player.audio_set_volume(100)
 
     def next(self):
         self.is_next_asked = True

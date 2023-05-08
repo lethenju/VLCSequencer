@@ -172,10 +172,7 @@ class MessagingPlugin(PluginBase):
             self.is_running = False
         
         def _compute_messages(self):
-            #for message in self.active_messages:
-                # If its been more than 10 minutes, the message disappears from the sequence
-             #   if time() - message.timestamp_activation > 10 * 60:
-              #      self.active_messages.remove(message)
+            # If its been more than 10 minutes, the message disappears from the sequence
             PrintTraceInUi("Recomputing messages..")
             self.active_messages = list(filter(lambda message: (
                 message.timestamp_activation + 10*60 > time()), self.active_messages))

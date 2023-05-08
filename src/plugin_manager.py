@@ -1,8 +1,9 @@
-from song_info_plugin import SongInfoPlugin
-from messaging_plugin import MessagingPlugin
+from plugins.song_info_plugin import SongInfoPlugin
+from plugins.messaging_plugin import MessagingPlugin
 from plugin_base import *
 
 class PluginManager:
+    """! Functionnal overlays of the """
     active_plugins = []
 
     def __init__(self):
@@ -13,7 +14,6 @@ class PluginManager:
         return self.active_plugins
     
     def add_plugin(self, type_of_plugin):
-        #self.active_plugins.append(PluginType[type_of_plugin])
         if type_of_plugin == PluginType.SONG_INFO_PLUGIN:
             self.active_plugins.append(SongInfoPlugin())
         elif type_of_plugin == PluginType.MESSAGING_PLUGIN:
