@@ -1,18 +1,41 @@
 <head>
   <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
   <meta content="utf-8" http-equiv="encoding">
+  <style>
+    body {background-color: #0d1117;}
+    .text   
+    {
+      color: #faa356;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      text-align: center;
+    }
+    input{
+
+      width: 100%;
+      padding: 12px 20px;
+      margin: 8px 0;
+      box-sizing: border-box;
+    }
+    textarea {
+      width: 100%;
+      padding: 12px 20px;
+      margin: 8px 0;
+      box-sizing: border-box;
+    }
+    </style>
 </head>
 <body>
-  <h1> Anniversaire de JJ </h1>
-  <h2> Message a diffuser </h2>
-  <p> 
+  <h1 class="text" > Anniversaire de JJ </h1>
+  <h2 class="text" > Message a diffuser </h2>
+  <p class="text" > 
     Si vous le souhaitez, vous pouvez diffuser un message sur la vidéo.
     Remplissez les champs ci dessous et votre message sera diffusé pendant 20 minutes
   </p>
 
   <form action="/submit_message" method="post">
-      Nom : <input type="text" id="name" name="name">
-      Message : <input type="text" id="message" name="message">
+      <p class="text"> Nom : </p> <input type="text" id="name" name="name">
+      <p class="text"> Message : </p> <textarea type="text" id="message" name="message"></textarea>
+      <p />
       <input type="submit" value="Envoyer">
   </form>
     
