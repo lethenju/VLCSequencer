@@ -22,6 +22,9 @@ DISPLAY_TIME_LONG_MESSAGE_PARAM_DEFAULT = "15"
 DELETE_AFTER_MINUTES_PARAM = "DeleteAfterMinutes"
 DELETE_AFTER_MINUTES_PARAM_DEFAULT = "10"
 
+MESSAGE_FILE_PATH_PARAM = "MessageFilePath"
+
+
 class MessagingPlugin(PluginBase):
     """! Plugin to show live messages under the video """
     http_server = None
@@ -197,7 +200,7 @@ class MessagingPlugin(PluginBase):
                 time_to_wait = 1
                 if len(self.active_messages) > 0:
                     # If we display a message, we display it for DISPLAY_TIME seconds
-                    time_to_wait = self.params[DISPLAY_TIME_PARAM]
+                    time_to_wait = int(self.params[DISPLAY_TIME_PARAM])
                     self.index_sequence_message = (self.index_sequence_message + 1) % len(self.active_messages)
                     PrintTraceInUi("Index of current message = ", self.index_sequence_message, " Author : ",  
                         self.active_messages[self.index_sequence_message].author, " Message ",
@@ -215,7 +218,7 @@ class MessagingPlugin(PluginBase):
                     if self.active_label_message.winfo_width() >= self.player_window.winfo_width() - self.active_label_author.winfo_width():
                         PrintTraceInUi("Message is too long, we need to make it scroll")
                         # A long message needs to be let a longer time
-                        time_to_wait = self.params[DISPLAY_TIME_LONG_MESSAGE_PARAM] 
+                        time_to_wait = int(self.params[DISPLAY_TIME_LONG_MESSAGE_PARAM])
                         def _scroll_thread():
                             # Repack with text on the left
                             self.active_label_author.pack_forget()
@@ -260,14 +263,17 @@ class MessagingPlugin(PluginBase):
                 active_message.author != message.author), self.active_messages))
 
             self.active_messages.append(message)
+            
+            time = datetime.fromtimestamp(
+                message.timestamp_activation).time()
+            full_message = "{:02d}".format(time.hour) + ":" + "{:02d}".format(time.minute) + ":" + "{:02d}".format(time.second) + " "  +  message.author + " : " + message.message
+
+            if MESSAGE_FILE_PATH_PARAM in self.params:
+                with open(self.params[MESSAGE_FILE_PATH_PARAM], 'a+', encoding='utf-8') as f:
+                    f.write(full_message + '\n')
 
             if self.maintenance_listbox is not None:
-                time = datetime.fromtimestamp(
-                    message.timestamp_activation).time()
-                self.maintenance_listbox.insert(0, "{:02d}".format(time.hour) + ":" +
-                                                  "{:02d}".format(time.minute) + ":" +
-                                                  "{:02d}".format(time.second) + " "  + 
-                                                  message.author + " : " + message.message)
+                self.maintenance_listbox.insert(0,full_message)
 
             #Recompute show (we now have messages)
             if self.is_shown:
@@ -293,7 +299,7 @@ class MessagingPlugin(PluginBase):
             # If its been more than 10 minutes, the message disappears from the sequence
             PrintTraceInUi("Recomputing messages..")
             self.active_messages = list(filter(lambda message: (
-                message.timestamp_activation + self.params[DELETE_AFTER_MINUTES_PARAM]*60 > time()), self.active_messages))
+                message.timestamp_activation + int(self.params[DELETE_AFTER_MINUTES_PARAM])*60 > time()), self.active_messages))
         
         def subscribe_listbox(self, listbox):
             self.maintenance_listbox = listbox

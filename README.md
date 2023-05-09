@@ -49,4 +49,3 @@ python3 -m pip install python-vlc python-magic
 - Add a button to get back to the beginning of the current video
 - Gather the actual device output volume to enable automatic volume correction
 - For sequencing : Add '\<if sooner_than="time"/>' and '\<if later_than="time" />' statements parsing
-- Plugin configuration : Song info theming, messaging parameters (how long should the messages stays, max message nb etc)

@@ -572,14 +572,15 @@ class UiSequenceManager:
             elif child.tag == "Plugin":
                 plugin_name = child.attrib['name']
                 PrintTraceInUi(f"Load plugin {plugin_name}")
+                # Childs of a plugins are its parameter
+                params = {}
+                for param in child:
+                    params[param.tag] = param.text
+                    PrintTraceInUi(f"Parameter {param.tag} = {param.text}")
                 if plugin_name == "SongInfo":
-                    self.plugin_manager.add_plugin(PluginType.SONG_INFO_PLUGIN);
+                    self.plugin_manager.add_plugin(PluginType.SONG_INFO_PLUGIN, params);
                 elif plugin_name == "Messaging":
-                    # Childs of a plugins are its parameter
-                    params = {}
-                    for param in child:
-                        params[param.tag] = param.text
-                        PrintTraceInUi(f"Parameter {param.tag} = {param.text}")
+
                     self.plugin_manager.add_plugin(PluginType.MESSAGING_PLUGIN, params);
             elif child.tag == "Sequence":
                 PrintTraceInUi("Sequence found!")
