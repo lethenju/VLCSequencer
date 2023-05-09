@@ -4,8 +4,10 @@ import socketserver
 import threading
 import tkinter as tk
 from time import time, sleep
+from datetime import datetime
 from urllib import parse
 from functools import partial
+from collections import namedtuple
 
 from colors import *
 from logger import PrintTraceInUi
@@ -20,6 +22,8 @@ class MessagingPlugin(PluginBase):
 
     message_ui = None
     message_ui_thread = None
+
+    maintenance_listbox = None
 
     class Message:
         author = ""
@@ -37,16 +41,37 @@ class MessagingPlugin(PluginBase):
     def setup(self, **kwargs):
         """! Setup """
 
-        if self.tk_window is None and "tk_window" in kwargs:
-            PrintTraceInUi("Setup of the messaging plugin")
-            super().setup(tk_window=kwargs["tk_window"])
+        if self.player_window is None and "player_window" in kwargs:
+            PrintTraceInUi("Link player window to us")
+            super().setup(player_window=kwargs["player_window"])
+
             # TODO Maybe store/read active messages in file 
-            self.message_ui = self.MessagingUiThread(self.tk_window)
+            self.message_ui = self.MessagingUiThread(self.player_window)
             self.message_ui_thread = threading.Thread(target=self.message_ui.runtime).start()
 
             self.http_server = socketserver.TCPServer(("", HTTP_PORT), partial(self.MyHttpRequestHandler, self.message_ui.add_message))
             self.server_thread = threading.Thread(target=self.http_server.serve_forever)
             self.server_thread.start()
+
+        if self.maintenance_frame is None and "maintenance_frame" in kwargs:
+            PrintTraceInUi("Link maintenance window to us")
+            super().setup(maintenance_frame=kwargs["maintenance_frame"])
+            PrintTraceInUi("Setup")
+
+            # Create listbox
+            scrollbar_messages = tk.Scrollbar(self.maintenance_frame)
+            scrollbar_messages.pack(side=tk.RIGHT, fill=tk.Y)
+
+            self.maintenance_listbox = tk.Listbox(
+                self.maintenance_frame, yscrollcommand=scrollbar_messages.set, width=200, background=UI_BACKGROUND_COLOR, foreground="white")
+            # Give the listbox ref to the message ui object
+            self.maintenance_listbox.pack(side=tk.LEFT, fill=tk.BOTH)
+
+            scrollbar_messages.config(command=self.maintenance_listbox.yview)
+        
+        if self.maintenance_listbox is not None and self.message_ui is not None:
+            # Everything is loaded
+            self.message_ui.subscribe_listbox(self.maintenance_listbox)
 
 
     def on_begin(self):
@@ -68,6 +93,14 @@ class MessagingPlugin(PluginBase):
         self.http_server.shutdown()
         self.server_thread.join()
 
+    def is_maintenance_frame(self):
+        """! Returns True if the plugin needs a maintenance frame, for UI controls """
+        # We need a maintenance frame in the messaging plugin :
+        # Listbox display current and old messages
+        return True
+    
+    def get_name(self):
+        return "Messaging"
 # Private members
 
     class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
@@ -101,9 +134,10 @@ class MessagingPlugin(PluginBase):
     class MessagingUiThread:
         active_messages = []
         is_shown = False
-        tk_window = None
+        player_window = None
         scroll_thread = None
         frame_messages = None
+        maintenance_listbox = None
         active_label_author = ""
         active_label_message = ""
         index_sequence_message = 0
@@ -112,13 +146,14 @@ class MessagingPlugin(PluginBase):
 
         def __init__(self, tk_root):
             """! Init """
-            self.tk_window = tk_root
+            self.player_window = tk_root
             self.is_shown = False 
+            self.maintenance_listbox = None
             self.scroll_thread = None
             self.is_running = True
-            self.frame_messages = tk.Frame(self.tk_window, bg=UI_BACKGROUND_COLOR)
+            self.frame_messages = tk.Frame(self.player_window, bg=UI_BACKGROUND_COLOR)
 
-            font_size = int(self.tk_window.winfo_height() /20);
+            font_size = int(self.player_window.winfo_height() /20);
             PrintTraceInUi("FontSize ", font_size)
             self.active_label_author  = tk.Label(self.frame_messages,text="", padx=10, pady=1, font=('calibri', font_size, 'bold'),fg="white", bg=UI_BACKGROUND_COLOR)
             self.active_label_message = tk.Label(self.frame_messages,text="", padx=10, pady=1, font=('calibri', font_size),fg="white", bg=UI_BACKGROUND_COLOR)
@@ -141,7 +176,7 @@ class MessagingPlugin(PluginBase):
                         self.active_messages[self.index_sequence_message].author, " Message ",
                         self.active_messages[self.index_sequence_message].message)
                         
-                    font_size = int(self.tk_window.winfo_height() /20);
+                    font_size = int(self.player_window.winfo_height() /20);
                     PrintTraceInUi("FontSize ", font_size)
                     self.active_label_author.configure(text = self.active_messages[self.index_sequence_message].author, 
                         font=('calibri', font_size, 'bold'))
@@ -150,8 +185,8 @@ class MessagingPlugin(PluginBase):
                     # Let time to recalculate the message size
                     sleep(0.1)
                     PrintTraceInUi("Message size ", self.active_label_message.winfo_width())
-                    PrintTraceInUi("Size of message space ", self.tk_window.winfo_width() - self.active_label_author.winfo_width())
-                    if self.active_label_message.winfo_width() >= self.tk_window.winfo_width() - self.active_label_author.winfo_width():
+                    PrintTraceInUi("Size of message space ", self.player_window.winfo_width() - self.active_label_author.winfo_width())
+                    if self.active_label_message.winfo_width() >= self.player_window.winfo_width() - self.active_label_author.winfo_width():
                         PrintTraceInUi("Message is too long, we need to make it scroll")
                         time_to_wait = 15 # A long message needs to be let a longer time
                         def _scroll_thread():
@@ -168,7 +203,7 @@ class MessagingPlugin(PluginBase):
                             while self.is_running and current_index_message == self.index_sequence_message:
                                 wait = False
                                 # removing first char until it fits
-                                if self.active_label_message.winfo_width() >= self.tk_window.winfo_width() - self.active_label_author.winfo_width():
+                                if self.active_label_message.winfo_width() >= self.player_window.winfo_width() - self.active_label_author.winfo_width():
                                     message = message[1:]
                                 else:
                                     # Then when it fits, wait a bit 
@@ -198,12 +233,20 @@ class MessagingPlugin(PluginBase):
 
         def add_message(self, message):
             """! Adding a message in the dictionary of active message """
-            
             # Remove messages with the same author 
             self.active_messages = list(filter(lambda active_message: (
                 active_message.author != message.author), self.active_messages))
 
             self.active_messages.append(message)
+
+            if self.maintenance_listbox is not None:
+                time = datetime.fromtimestamp(
+                    message.timestamp_activation).time()
+                self.maintenance_listbox.insert(0, "{:02d}".format(time.hour) + ":" +
+                                                  "{:02d}".format(time.minute) + ":" +
+                                                  "{:02d}".format(time.second) + " "  + 
+                                                  message.author + " : " + message.message)
+
             #Recompute show (we now have messages)
             if self.is_shown:
                 self.show()
@@ -229,3 +272,6 @@ class MessagingPlugin(PluginBase):
             PrintTraceInUi("Recomputing messages..")
             self.active_messages = list(filter(lambda message: (
                 message.timestamp_activation + 10*60 > time()), self.active_messages))
+        
+        def subscribe_listbox(self, listbox):
+            self.maintenance_listbox = listbox

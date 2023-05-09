@@ -118,7 +118,7 @@ class UiPlayer():
         
         # Setup the plugins
         for plugin in self.plugin_manager.get_plugins():
-            plugin.setup(tk_window = self.window, artist=artist, song=song)
+            plugin.setup(player_window = self.window, artist=artist, song=song)
 
         if end_s == 0:
             end_s = length_s

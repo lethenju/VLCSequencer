@@ -6,7 +6,12 @@ class PluginType(Enum):
     MESSAGING_PLUGIN = 1
 
 class PluginBase:
-    tk_window = None
+    """! Base class of plugins
+
+        Plugins are extensions of the base program to enable advanced features
+    """
+    player_window = None      # Reference to the display window
+    maintenance_frame = None  # Reference to the maintenance frame in the sequencer window, to add UI controls
 
     def __init__(self):
         """! Links to the Tkinter Window """
@@ -15,9 +20,10 @@ class PluginBase:
     # Plugin interface
     def setup(self, **kwargs):
         """! Setup the plugins with custom parameters """
-        if "tk_window" in kwargs:
-            self.tk_window = kwargs["tk_window"]
-        
+        if "player_window" in kwargs:
+            self.player_window = kwargs["player_window"]
+        if "maintenance_frame" in kwargs:
+            self.maintenance_frame = kwargs["maintenance_frame"]
 
     def on_begin(self):
         """! Called at the beginning of a video playback """
@@ -31,3 +37,11 @@ class PluginBase:
     def on_destroy(self):
         """! Called to stop the plugin and release resources """
         self.is_running = False
+
+    def is_maintenance_frame(self):
+        """! Returns True if the plugin needs a maintenance frame, for UI controls """
+        # The base class doesnt need a maintenance frame
+        return False
+
+    def get_name(self):
+        return "unknown"

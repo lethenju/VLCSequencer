@@ -4,6 +4,7 @@ import tkinter as tk
 from tkinter import filedialog
 import os
 import argparse
+from collections import namedtuple
 
 # Application related imports
 from colors import *

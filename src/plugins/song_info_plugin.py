@@ -16,16 +16,16 @@ class SongInfoPlugin(PluginBase):
 # Plugin interface
     def setup(self, **kwargs):
         """! Setup """
-        if super().tk_window is None and "tk_window" in kwargs:
-            super().setup(tk_window=kwargs["tk_window"])
+        if super().player_window is None and "player_window" in kwargs:
+            super().setup(player_window=kwargs["player_window"])
         elif "artist" in kwargs and "song" in kwargs:
             artist = kwargs["artist"]
             song = kwargs["song"]
                 
             if song is not None and artist is not None:
                 # TODO background image maybe ?
-                self.frame_songinfo = tk.Frame(self.tk_window, width=20, bg=UI_BACKGROUND_COLOR)
-                font_size = int(self.tk_window.winfo_height() /25);
+                self.frame_songinfo = tk.Frame(self.player_window, width=20, bg=UI_BACKGROUND_COLOR)
+                font_size = int(self.player_window.winfo_height() /25);
                 PrintTraceInUi("FontSize ", font_size)
                 label_artist = tk.Label(self.frame_songinfo,text=artist, padx=10, pady=10, font=('calibri', font_size, 'bold'),fg="white", bg=UI_BACKGROUND_COLOR)
                 label_song   = tk.Label(self.frame_songinfo,text=song, padx=10, pady=10, font=('calibri', font_size),fg="white", bg=UI_BACKGROUND_COLOR)
@@ -55,8 +55,9 @@ class SongInfoPlugin(PluginBase):
             PrintTraceInUi("Warning ! Deleting song info lately")
             self.frame_songinfo.destroy()
             self.frame_songinfo = None
-    
-    
+
+    def get_name(self):
+        return "song_info"
 # Keep parent's on_destroy
 
 # Private functions

@@ -583,6 +583,17 @@ class UiSequenceManager:
         self._flatten_sequence(self.sequence_data)
         PrintTraceInUi(self.sequence_data)
 
+
+        # Add UI plugins
+        # TODO tab-based UI, cleaner
+        for plugin in self.plugin_manager.get_plugins():
+            # TODO tabbed interface
+            if plugin.is_maintenance_frame():
+                PrintTraceInUi("Creating frame for plugin ", plugin.get_name())
+                frame = tk.Frame(self.ui_sequence_manager, width=200, height=250, bg=UI_BACKGROUND_COLOR)
+                plugin.setup(maintenance_frame = frame)
+                frame.pack(side=tk.BOTTOM, fill=tk.BOTH)
+
         # Fill the UI
         for i, block in enumerate(self.sequence_data.inner_sequence):
             block.ui_frame = tk.Frame(
