@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import filedialog
+from tkinter import filedialog, ttk
 import threading
 import os
 import time
@@ -174,7 +174,7 @@ class UiSequenceManager:
 
         def __init__(self, ui_parent):
             listviews = tk.Frame(ui_parent, background=UI_BACKGROUND_COLOR)
-            listviews.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=1)
+            listviews.pack(fill=tk.BOTH, expand=1)
             listviews.columnconfigure(0, weight=1)
             listviews.columnconfigure(1, weight=1)
             listviews.rowconfigure(0, weight=1)
@@ -583,17 +583,6 @@ class UiSequenceManager:
         self._flatten_sequence(self.sequence_data)
         PrintTraceInUi(self.sequence_data)
 
-
-        # Add UI plugins
-        # TODO tab-based UI, cleaner
-        for plugin in self.plugin_manager.get_plugins():
-            # TODO tabbed interface
-            if plugin.is_maintenance_frame():
-                PrintTraceInUi("Creating frame for plugin ", plugin.get_name())
-                frame = tk.Frame(self.ui_sequence_manager, width=200, height=250, bg=UI_BACKGROUND_COLOR)
-                plugin.setup(maintenance_frame = frame)
-                frame.pack(side=tk.BOTTOM, fill=tk.BOTH)
-
         # Fill the UI
         for i, block in enumerate(self.sequence_data.inner_sequence):
             block.ui_frame = tk.Frame(
@@ -648,6 +637,16 @@ class UiSequenceManager:
                 block.modify_color(UI_BLOCK_REPEAT_VIDEO_COLOR)
             else:
                 block.modify_color(block.get_color())
+
+        # Add UI plugins
+        tabControl = ttk.Notebook(self.ui_sequence_manager)
+        for plugin in self.plugin_manager.get_plugins():
+            if plugin.is_maintenance_frame():
+                PrintTraceInUi("Creating frame for plugin ", plugin.get_name())
+                frame = ttk.Frame(tabControl)
+                plugin.setup(maintenance_frame = frame)
+                tabControl.add(frame, text = plugin.get_name())
+        tabControl.pack(side=tk.BOTTOM, expand=1, fill=tk.BOTH)
 
         # First sequence resolving. After each sequence iteration it will be called
         self._resolve_sequence()
