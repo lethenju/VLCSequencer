@@ -1,7 +1,9 @@
 <Document>
   <Title>JJ Birthday Sequence</Title>
-  <Plugin>SongInfo</Plugin>
-  <Plugin>Messaging</Plugin>
+  <Plugin name="SongInfo"></Plugin>
+  <Plugin name="Messaging">
+    <Port>11000</Port>
+  </Plugin>
   <Sequence>
     <Video path="jingle/jingle.mp4" repeat="1"/>
     <Repeat nb_time="3" >

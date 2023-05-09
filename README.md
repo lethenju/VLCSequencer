@@ -44,14 +44,9 @@ python3 -m pip install python-vlc python-magic
 
 ### TODO
 
-- Redirect after post in the server, html styling
-- Add messages list in the sequence view
 - Add screen preview on the sequence window
 - Add Metadata-related info on the sequence (if fade-in/out are activated, etc..)
 - Add a button to get back to the beginning of the current video
 - Gather the actual device output volume to enable automatic volume correction
 - For sequencing : Add '\<if sooner_than="time"/>' and '\<if later_than="time" />' statements parsing
-- Add a messaging system as a plugin (Web page to add a custom message)
-- Add parameters node in sequence file
-  -> Default behaviours
-  -> Plugin configuration : Song info theming, messaging parameters (how long should the messages stays, max message nb etc)
+- Plugin configuration : Song info theming, messaging parameters (how long should the messages stays, max message nb etc)

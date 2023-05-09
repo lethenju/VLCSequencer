@@ -14,7 +14,6 @@ class PluginBase:
     maintenance_frame = None  # Reference to the maintenance frame in the sequencer window, to add UI controls
 
     def __init__(self):
-        """! Links to the Tkinter Window """
         self.is_running = True
 
     # Plugin interface

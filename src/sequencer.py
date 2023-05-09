@@ -567,14 +567,20 @@ class UiSequenceManager:
         assert (xml_root.tag == 'Document')
         for child in xml_root:
             if child.tag == "Title":
-                PrintTraceInUi("Title of the sequence : " + child.text)
+                PrintTraceInUi(f"Title of the sequence : {child.text}")
                 self.title = child.text
             elif child.tag == "Plugin":
-                PrintTraceInUi("Load plugin " + child.text)
-                if child.text == "SongInfo":
+                plugin_name = child.attrib['name']
+                PrintTraceInUi(f"Load plugin {plugin_name}")
+                if plugin_name == "SongInfo":
                     self.plugin_manager.add_plugin(PluginType.SONG_INFO_PLUGIN);
-                elif child.text == "Messaging":
-                    self.plugin_manager.add_plugin(PluginType.MESSAGING_PLUGIN);
+                elif plugin_name == "Messaging":
+                    # Childs of a plugins are its parameter
+                    params = {}
+                    for param in child:
+                        params[param.tag] = param.text
+                        PrintTraceInUi(f"Parameter {param.tag} = {param.text}")
+                    self.plugin_manager.add_plugin(PluginType.MESSAGING_PLUGIN, params);
             elif child.tag == "Sequence":
                 PrintTraceInUi("Sequence found!")
                 self.sequence_data = SequenceBlock("sequence")

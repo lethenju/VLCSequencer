@@ -13,9 +13,14 @@ class PluginManager:
     def get_plugins(self):
         return self.active_plugins
     
-    def add_plugin(self, type_of_plugin):
+    def add_plugin(self, type_of_plugin, params = None):
+        """! Add a plugin with some params as a dictionnary 
+            @param type_of_plugin : enum of the plugin type, as defined in the PluginType definition
+            @param params : reference to the parameters of the plugins
+        """
         if type_of_plugin == PluginType.SONG_INFO_PLUGIN:
+            # For now, no params in the song info plugin
             self.active_plugins.append(SongInfoPlugin())
         elif type_of_plugin == PluginType.MESSAGING_PLUGIN:
-            self.active_plugins.append(MessagingPlugin())   
+            self.active_plugins.append(MessagingPlugin(params))   
             

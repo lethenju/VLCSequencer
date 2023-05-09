@@ -13,7 +13,8 @@ from colors import *
 from logger import PrintTraceInUi
 from plugin_base import PluginBase
 
-HTTP_PORT = 11000
+PORT_PARAM = "Port"
+PORT_PARAM_DEFAULT = "8000"
 
 class MessagingPlugin(PluginBase):
     """! Plugin to show live messages under the video """
@@ -24,6 +25,15 @@ class MessagingPlugin(PluginBase):
     message_ui_thread = None
 
     maintenance_listbox = None
+
+    params = None
+    def __init__(self, params = None):
+        super().__init__()
+        self.params = params
+
+        if PORT_PARAM not in self.params:
+            PrintTraceInUi(f"{PORT_PARAM} is not defined, use default value")
+            self.params[PORT_PARAM] = PORT_PARAM_DEFAULT
 
     class Message:
         author = ""
@@ -49,7 +59,7 @@ class MessagingPlugin(PluginBase):
             self.message_ui = self.MessagingUiThread(self.player_window)
             self.message_ui_thread = threading.Thread(target=self.message_ui.runtime).start()
 
-            self.http_server = socketserver.TCPServer(("", HTTP_PORT), partial(self.MyHttpRequestHandler, self.message_ui.add_message))
+            self.http_server = socketserver.TCPServer(("", int(self.params[PORT_PARAM])), partial(self.MyHttpRequestHandler, self.message_ui.add_message))
             self.server_thread = threading.Thread(target=self.http_server.serve_forever)
             self.server_thread.start()
 
