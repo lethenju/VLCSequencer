@@ -11,7 +11,7 @@ from colors import *
 from logger import PrintTraceInUi
 from plugin_base import PluginBase
 
-HTTP_PORT = 8000
+HTTP_PORT = 11000
 
 class MessagingPlugin(PluginBase):
     """! Plugin to show live messages under the video """
@@ -78,8 +78,10 @@ class MessagingPlugin(PluginBase):
             super().__init__(*args, **kwargs)
 
         def do_GET(self):
-            #Only one page
-            self.path = 'src/static/index.html'
+            if self.path == "/style.css":
+                self.path = "src/static/style.css"
+            else:
+                self.path = "src/static/index.html"
             return http.server.SimpleHTTPRequestHandler.do_GET(self)
 
         def do_POST(self):
@@ -89,7 +91,7 @@ class MessagingPlugin(PluginBase):
             PrintTraceInUi(fields)
             # Subscribe the message in the active list 
             if self.cb_add_message is not None and "message" in fields and "name" in fields:
-                message = fields["message"][0].replace('\n', '')
+                message = fields["message"][0].replace('\r', '').replace('\n', '')
                 # Check if the message is not too long
                 self.cb_add_message(MessagingPlugin.Message(fields["name"][0], message))
             self.path = 'src/static/done.html'
