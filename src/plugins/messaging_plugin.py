@@ -15,6 +15,12 @@ from plugin_base import PluginBase
 
 PORT_PARAM = "Port"
 PORT_PARAM_DEFAULT = "8000"
+DISPLAY_TIME_PARAM = "DisplayTime"
+DISPLAY_TIME_PARAM_DEFAULT = "5"
+DISPLAY_TIME_LONG_MESSAGE_PARAM = "DisplayTimeLongMessage"
+DISPLAY_TIME_LONG_MESSAGE_PARAM_DEFAULT = "15"
+DELETE_AFTER_MINUTES_PARAM = "DeleteAfterMinutes"
+DELETE_AFTER_MINUTES_PARAM_DEFAULT = "10"
 
 class MessagingPlugin(PluginBase):
     """! Plugin to show live messages under the video """
@@ -34,6 +40,15 @@ class MessagingPlugin(PluginBase):
         if PORT_PARAM not in self.params:
             PrintTraceInUi(f"{PORT_PARAM} is not defined, use default value")
             self.params[PORT_PARAM] = PORT_PARAM_DEFAULT
+        if DISPLAY_TIME_PARAM not in self.params:
+            PrintTraceInUi(f"{DISPLAY_TIME_PARAM} is not defined, use default value")
+            self.params[DISPLAY_TIME_PARAM] = DISPLAY_TIME_PARAM_DEFAULT
+        if DISPLAY_TIME_LONG_MESSAGE_PARAM not in self.params:
+            PrintTraceInUi(f"{DISPLAY_TIME_LONG_MESSAGE_PARAM} is not defined, use default value")
+            self.params[DISPLAY_TIME_LONG_MESSAGE_PARAM] = DISPLAY_TIME_LONG_MESSAGE_PARAM_DEFAULT
+        if DELETE_AFTER_MINUTES_PARAM not in self.params:
+            PrintTraceInUi(f"{DELETE_AFTER_MINUTES_PARAM} is not defined, use default value")
+            self.params[DELETE_AFTER_MINUTES_PARAM] = DELETE_AFTER_MINUTES_PARAM_DEFAULT
 
     class Message:
         author = ""
@@ -56,7 +71,7 @@ class MessagingPlugin(PluginBase):
             super().setup(player_window=kwargs["player_window"])
 
             # TODO Maybe store/read active messages in file 
-            self.message_ui = self.MessagingUiThread(self.player_window)
+            self.message_ui = self.MessagingUiThread(self.player_window, self.params)
             self.message_ui_thread = threading.Thread(target=self.message_ui.runtime).start()
 
             self.http_server = socketserver.TCPServer(("", int(self.params[PORT_PARAM])), partial(self.MyHttpRequestHandler, self.message_ui.add_message))
@@ -153,10 +168,12 @@ class MessagingPlugin(PluginBase):
         index_sequence_message = 0
 
         is_running = False
+        params = {}
 
-        def __init__(self, tk_root):
+        def __init__(self, tk_root, params):
             """! Init """
             self.player_window = tk_root
+            self.params = params
             self.is_shown = False 
             self.maintenance_listbox = None
             self.scroll_thread = None
@@ -179,13 +196,12 @@ class MessagingPlugin(PluginBase):
                 # By default, compute messages every second
                 time_to_wait = 1
                 if len(self.active_messages) > 0:
-                    # If we display a message, we display it for 5 seconds
-                    time_to_wait = 5 
+                    # If we display a message, we display it for DISPLAY_TIME seconds
+                    time_to_wait = self.params[DISPLAY_TIME_PARAM]
                     self.index_sequence_message = (self.index_sequence_message + 1) % len(self.active_messages)
                     PrintTraceInUi("Index of current message = ", self.index_sequence_message, " Author : ",  
                         self.active_messages[self.index_sequence_message].author, " Message ",
                         self.active_messages[self.index_sequence_message].message)
-                        
                     font_size = int(self.player_window.winfo_height() /20);
                     PrintTraceInUi("FontSize ", font_size)
                     self.active_label_author.configure(text = self.active_messages[self.index_sequence_message].author, 
@@ -198,10 +214,10 @@ class MessagingPlugin(PluginBase):
                     PrintTraceInUi("Size of message space ", self.player_window.winfo_width() - self.active_label_author.winfo_width())
                     if self.active_label_message.winfo_width() >= self.player_window.winfo_width() - self.active_label_author.winfo_width():
                         PrintTraceInUi("Message is too long, we need to make it scroll")
-                        time_to_wait = 15 # A long message needs to be let a longer time
+                        # A long message needs to be let a longer time
+                        time_to_wait = self.params[DISPLAY_TIME_LONG_MESSAGE_PARAM] 
                         def _scroll_thread():
                             # Repack with text on the left
-                            
                             self.active_label_author.pack_forget()
                             self.active_label_author.pack(side=tk.LEFT, anchor=tk.CENTER)
                             self.active_label_message.pack_forget()
@@ -216,7 +232,7 @@ class MessagingPlugin(PluginBase):
                                 if self.active_label_message.winfo_width() >= self.player_window.winfo_width() - self.active_label_author.winfo_width():
                                     message = message[1:]
                                 else:
-                                    # Then when it fits, wait a bit 
+                                    # Then when it fits, wait a bit
                                     wait = True
 
                                 if wait:
@@ -227,16 +243,12 @@ class MessagingPlugin(PluginBase):
                                 else:
                                     sleep(0.05)
                                 self.active_label_message.configure(text = message)
-                                    
-
                         if self.scroll_thread is not None:
                             self.scroll_thread.join()
                             self.scroll_thread = None
 
                         self.scroll_thread = threading.Thread(target=_scroll_thread)
                         self.scroll_thread.start()
-       
-
                 sleep(time_to_wait)
 
             self.frame_messages.destroy()
@@ -281,7 +293,7 @@ class MessagingPlugin(PluginBase):
             # If its been more than 10 minutes, the message disappears from the sequence
             PrintTraceInUi("Recomputing messages..")
             self.active_messages = list(filter(lambda message: (
-                message.timestamp_activation + 10*60 > time()), self.active_messages))
+                message.timestamp_activation + self.params[DELETE_AFTER_MINUTES_PARAM]*60 > time()), self.active_messages))
         
         def subscribe_listbox(self, listbox):
             self.maintenance_listbox = listbox
