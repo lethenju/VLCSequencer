@@ -173,16 +173,18 @@ class UiSequenceManager:
         history_listbox = None
 
         def __init__(self, ui_parent):
-            listviews = tk.Frame(ui_parent, background=UI_BACKGROUND_COLOR)
-            listviews.pack(fill=tk.BOTH, expand=1)
+            
+            listviews = ttk.Notebook(ui_parent)#tk.Frame(ui_parent, background=UI_BACKGROUND_COLOR)
+
             listviews.columnconfigure(0, weight=1)
             listviews.columnconfigure(1, weight=1)
             listviews.rowconfigure(0, weight=1)
 
             self.history_view = tk.Frame(
                 listviews, background=UI_BACKGROUND_COLOR)
+            listviews.add(self.history_view, text = "History")
 
-            self.history_view.grid(row=0, column=0, sticky="news")
+            #self.history_view.grid(row=0, column=0, sticky="news")
 
             title_history = tk.Label(self.history_view, text="History", font=(
                 'calibri', 20), bg=UI_BACKGROUND_COLOR, fg="white")
@@ -192,14 +194,15 @@ class UiSequenceManager:
             scrollbar_history.pack(side=tk.RIGHT, fill=tk.Y)
 
             self.history_listbox = tk.Listbox(
-                self.history_view, yscrollcommand=scrollbar_history.set, width=200, background=UI_BACKGROUND_COLOR, foreground="white")
+                self.history_view, yscrollcommand=scrollbar_history.set, width=100, background=UI_BACKGROUND_COLOR, foreground="white")
 
             self.history_listbox.pack(side=tk.LEFT, fill=tk.BOTH)
             scrollbar_history.config(command=self.history_listbox.yview)
 
             self.logs_view = tk.Frame(
                 listviews, background=UI_BACKGROUND_COLOR)
-            self.logs_view.grid(row=0, column=1,  sticky="news")
+            
+            listviews.add(self.logs_view, text = "Logs")
 
             title_logs = tk.Label(self.logs_view, text="Logs", font=(
                 'calibri', 20), bg=UI_BACKGROUND_COLOR, fg="white")
@@ -209,12 +212,13 @@ class UiSequenceManager:
             scrollbar_logs.pack(side=tk.RIGHT, fill=tk.Y)
 
             ui_trace_listbox = tk.Listbox(
-                self.logs_view, yscrollcommand=scrollbar_logs.set, width=200, background=UI_BACKGROUND_COLOR, foreground="white")
-            
+                self.logs_view, yscrollcommand=scrollbar_logs.set, width=100, background=UI_BACKGROUND_COLOR, foreground="white")
+
             LoggerSubscribeUI(ui_trace_listbox)
             ui_trace_listbox.pack(side=tk.LEFT, fill=tk.BOTH)
 
             scrollbar_logs.config(command=ui_trace_listbox.yview)
+            listviews.pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
 
     # Reference to the player object to connect the playback buttons to the associated callbacks
     ui_player = None
@@ -225,10 +229,11 @@ class UiSequenceManager:
     #  Reference to the Vlc instance to get true metadata about the video (length..)
     vlc_instance = None
 
-    # main Tkinter panes
-    main_clock_view = None
-    sequence_view = None
-    ui_playback_control_view = None
+    # main Tkinter panes, from top to bottom
+    main_clock_view = None          # Top view with the clock
+    sequence_view = None            # View of the sequence with its different blocks
+    ui_playback_control_view = None # Control buttons
+    bottom_view = None              # Bottom view : listboxes of history and logs, and plugins management UIs
 
     listviews = None
     # Dictionary of parsed videos
@@ -319,7 +324,10 @@ class UiSequenceManager:
         self.quit_button.grid(column=4, row=0, padx=10, pady=10)
         self.ui_playback_control_view.pack(side=tk.TOP,  fill=tk.BOTH)
 
-        self.listviews = self.ListViews(self.ui_sequence_manager)
+        self.bottom_view = tk.Frame(self.ui_sequence_manager, background=UI_BACKGROUND_COLOR)
+        self.bottom_view.pack(fill=tk.BOTH, expand=1)
+
+        self.listviews = self.ListViews(self.bottom_view)
 
         # Store file data
         self.xml_path = path
@@ -646,14 +654,14 @@ class UiSequenceManager:
                 block.modify_color(block.get_color())
 
         # Add UI plugins
-        tabControl = ttk.Notebook(self.ui_sequence_manager)
+        tabControl = ttk.Notebook(self.bottom_view)
         for plugin in self.plugin_manager.get_plugins():
             if plugin.is_maintenance_frame():
                 PrintTraceInUi("Creating frame for plugin ", plugin.get_name())
                 frame = ttk.Frame(tabControl)
                 plugin.setup(maintenance_frame = frame)
                 tabControl.add(frame, text = plugin.get_name())
-        tabControl.pack(side=tk.BOTTOM, expand=1, fill=tk.BOTH)
+        tabControl.pack(side=tk.RIGHT, expand=1, fill=tk.BOTH)
 
         # First sequence resolving. After each sequence iteration it will be called
         self._resolve_sequence()
