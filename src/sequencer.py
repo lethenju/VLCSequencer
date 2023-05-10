@@ -575,8 +575,8 @@ class UiSequenceManager:
                 # Childs of a plugins are its parameter
                 params = {}
                 for param in child:
-                    params[param.tag] = param.text
-                    PrintTraceInUi(f"Parameter {param.tag} = {param.text}")
+                    assert( "name" in param.attrib and "value" in param.attrib)
+                    params[param.attrib["name"]] = param.attrib["value"]
                 if plugin_name == "SongInfo":
                     self.plugin_manager.add_plugin(PluginType.SONG_INFO_PLUGIN, params);
                 elif plugin_name == "Messaging":

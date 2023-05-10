@@ -2,11 +2,11 @@
   <Title>JJ Birthday Sequence</Title>
   <Plugin name="SongInfo"></Plugin>
   <Plugin name="Messaging">
-    <Port>11000</Port>
-    <DisplayTime>5</DisplayTime>
-    <DisplayTimeLongMessage>15</DisplayTimeLongMessage>
-    <DeleteAfterMinutes>20</DeleteAfterMinutes>
-    <MessageFilePath>res/messages.txt</MessageFilePath>
+    <Param name="Port" value="11000"/>
+    <Param name="DisplayTime" value="5"/>
+    <Param name="DisplayTimeLongMessage" value="15" />
+    <Param name="DeleteAfterMinutes" value="20" />
+    <Param name="MessageFilePath" value="res/messages.txt" />
   </Plugin>
   <Sequence>
     <Video path="jingle/jingle.mp4" repeat="1"/>
