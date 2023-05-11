@@ -44,8 +44,29 @@ python3 -m pip install python-vlc python-magic
 
 ### TODO
 
+Plugins :
+
+- Rework listboxes
 - Add screen preview on the sequence window
+- Add time and logo on the screen
+- Fix long messages : author and message are overlapping, and text is badly padded
+
+Ui :
+
 - Add Metadata-related info on the sequence (if fade-in/out are activated, etc..)
 - Add a button to get back to the beginning of the current video
+
+Video playback :
+
 - Gather the actual device output volume to enable automatic volume correction
+- Fix mute mode
+
+Sequencing :
+
 - For sequencing : Add '\<if sooner_than="time"/>' and '\<if later_than="time" />' statements parsing
+
+Other :
+
+- Better separate UI code from fonctionnal code
+- Documentation and refactors
+- Documentation in readme
