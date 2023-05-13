@@ -20,6 +20,34 @@ import tkinter as tk
 from typing import Any
 
 from colors import *
+from logger import PrintTraceInUi
+
+class HistoryListboxEntry(tk.Frame):
+    timestamp_label = None
+    video_name_label = None
+
+    """! Represents an entry in the history list view."""
+    def __init__(self, master, **kwargs):
+        super().__init__(master, **kwargs)
+        self.timestamp_label = tk.Label(self)
+        self.timestamp_label.pack(side=tk.LEFT, expand=True)
+        
+        self.video_name_label = tk.Label(self)
+        self.video_name_label.pack(side=tk.RIGHT, expand=True)
+    
+    def setup(self, timestamp, video_name):
+        """! Setup the widget with the timestamp and video_name """
+        PrintTraceInUi("History list entry ", timestamp, " - ", video_name)
+    
+        self.timestamp_label.configure(text=timestamp)
+        self.video_name_label.configure(text=video_name)
+
+    def destroy(self):
+        self.timestamp_label.pack_forget()
+        self.timestamp_label.destroy()
+        
+        self.video_name_label.pack_forget()
+        self.video_name_label.destroy()
 
 class HistoryListbox:
     _history_view = None
@@ -56,3 +84,7 @@ class HistoryListbox:
     
     def add_entry(self, timestamp, video_name):
         """! Add an entry in the listbox """
+        entry = HistoryListboxEntry(self._history_listbox)
+        entry.setup(timestamp, video_name)
+        entry.pack(fill=tk.X)
+        self._history_listbox.insert(0, entry)

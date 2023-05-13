@@ -735,9 +735,10 @@ class UiSequenceManager:
             time_last_playback = datetime.fromtimestamp(
                 video.last_playback).time()
             
-            self.listviews.history_object.get_history_listbox().insert(0, "{:02d}".format(time_last_playback.hour) + ":" +
-                                                                        "{:02d}".format(time_last_playback.minute) + ":" +
-                                                                        "{:02d}".format(time_last_playback.second) + " " + video.path)
+            self.listviews.history_object.add_entry(timestamp="{:02d}".format(time_last_playback.hour) + ":" +
+                                                                "{:02d}".format(time_last_playback.minute) + ":" +
+                                                                "{:02d}".format(time_last_playback.second),
+                                                                video_name= video.path)
 
         # Resolve the sext sequence
         if self.index_playing_video == len(self.sequence_data.inner_sequence) - 1:
