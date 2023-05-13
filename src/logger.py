@@ -31,7 +31,7 @@ class Logger():
     def __init__(self):
         """! Logging module initialization """
 
-    def add_ui_listbox(self, ui_trace_listbox):
+    def set_ui_listbox(self, ui_trace_listbox):
         self.ui_trace_listbox = ui_trace_listbox
 
     def log(self, trace):
@@ -45,7 +45,7 @@ def LoggerSubscribeUI(ui_trace_listbox):
     # Logger is a singleton
     if (logger is None):
         logger = Logger()
-    logger.add_ui_listbox(ui_trace_listbox)
+    logger.set_ui_listbox(ui_trace_listbox)
 
 
 def PrintTraceInUi(*args):
