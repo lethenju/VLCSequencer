@@ -33,6 +33,7 @@ from functools import partial
 from colors import *
 from logger import PrintTraceInUi, LoggerSubscribeUI
 from plugin_base import PluginType
+from history import HistoryListbox
 
 class MainSequencer():
     """! Handle the sequencing of videos to be played back """
@@ -186,37 +187,18 @@ class UiSequenceManager:
         Open a UI to visualize and modify the sequence 
     """
     class ListViews:
-        history_view = None
         logs_view = None
-        # Tkinter Listbox of played video with time of last playback
-        history_listbox = None
+        history_object = None
 
         def __init__(self, ui_parent):
             
-            listviews = ttk.Notebook(ui_parent)#tk.Frame(ui_parent, background=UI_BACKGROUND_COLOR)
+            listviews = ttk.Notebook(ui_parent)
 
             listviews.columnconfigure(0, weight=1)
             listviews.columnconfigure(1, weight=1)
             listviews.rowconfigure(0, weight=1)
-
-            self.history_view = tk.Frame(
-                listviews, background=UI_BACKGROUND_COLOR)
-            listviews.add(self.history_view, text = "History")
-
-            #self.history_view.grid(row=0, column=0, sticky="news")
-
-            title_history = tk.Label(self.history_view, text="History", font=(
-                'calibri', 20), bg=UI_BACKGROUND_COLOR, fg="white")
-            title_history.pack(side=tk.TOP, fill=tk.X)
-
-            scrollbar_history = tk.Scrollbar(self.history_view)
-            scrollbar_history.pack(side=tk.RIGHT, fill=tk.Y)
-
-            self.history_listbox = tk.Listbox(
-                self.history_view, yscrollcommand=scrollbar_history.set, width=100, background=UI_BACKGROUND_COLOR, foreground="white")
-
-            self.history_listbox.pack(side=tk.LEFT, fill=tk.BOTH)
-            scrollbar_history.config(command=self.history_listbox.yview)
+            
+            self.history_object = HistoryListbox(listviews)
 
             self.logs_view = tk.Frame(
                 listviews, background=UI_BACKGROUND_COLOR)
@@ -752,9 +734,10 @@ class UiSequenceManager:
             # Add to the history
             time_last_playback = datetime.fromtimestamp(
                 video.last_playback).time()
-            self.listviews.history_listbox.insert(0, "{:02d}".format(time_last_playback.hour) + ":" +
-                                                  "{:02d}".format(time_last_playback.minute) + ":" +
-                                                  "{:02d}".format(time_last_playback.second) + " " + video.path)
+            
+            self.listviews.history_object.get_history_listbox().insert(0, "{:02d}".format(time_last_playback.hour) + ":" +
+                                                                        "{:02d}".format(time_last_playback.minute) + ":" +
+                                                                        "{:02d}".format(time_last_playback.second) + " " + video.path)
 
         # Resolve the sext sequence
         if self.index_playing_video == len(self.sequence_data.inner_sequence) - 1:
