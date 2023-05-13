@@ -25,7 +25,7 @@ from time import time, sleep
 from datetime import datetime
 from urllib import parse
 from functools import partial
-from collections import namedtuple
+from dataclasses import dataclass
 
 from colors import *
 from logger import PrintTraceInUi
@@ -71,16 +71,11 @@ class MessagingPlugin(PluginBase):
             PrintTraceInUi(f"{DELETE_AFTER_MINUTES_PARAM} is not defined, use default value")
             self.params[DELETE_AFTER_MINUTES_PARAM] = DELETE_AFTER_MINUTES_PARAM_DEFAULT
 
+    @dataclass
     class Message:
-        author = ""
-        message = ""
-        timestamp_activation = None
-        def __init__(self, author, message):
-            """! Initialization of a message """
-
-            self.author = author
-            self.message = message
-            self.timestamp_activation = time()
+        author : str
+        message : str
+        timestamp_activation : float = time()
 
 # Plugin interface
 
@@ -118,6 +113,8 @@ class MessagingPlugin(PluginBase):
         if self.maintenance_listbox is not None and self.message_ui is not None:
             # Everything is loaded
             self.message_ui.subscribe_listbox(self.maintenance_listbox)
+
+            # Load file messages
 
 
     def on_begin(self):
@@ -171,9 +168,13 @@ class MessagingPlugin(PluginBase):
             # Subscribe the message in the active list 
             if self.cb_add_message is not None and "message" in fields and "name" in fields:
                 message = fields["message"][0].replace('\r', '').replace('\n', '')
+                self.path = 'src/static/done.html'
                 # Check if the message is not too long
-                self.cb_add_message(MessagingPlugin.Message(fields["name"][0], message))
-            self.path = 'src/static/done.html'
+                if len(message) < 128:
+                    self.cb_add_message(MessagingPlugin.Message(fields["name"][0], message))
+                else:
+                    PrintTraceInUi("Message too long.. Not keeping this one")
+                    self.path = 'src/static/ko.html'
             return http.server.SimpleHTTPRequestHandler.do_GET(self)
         
 
@@ -238,11 +239,7 @@ class MessagingPlugin(PluginBase):
                         # A long message needs to be let a longer time
                         time_to_wait = int(self.params[DISPLAY_TIME_LONG_MESSAGE_PARAM])
                         def _scroll_thread():
-                            # Repack with text on the left
-                            self.active_label_author.pack_forget()
-                            self.active_label_author.pack(side=tk.LEFT, anchor=tk.CENTER)
-                            self.active_label_message.pack_forget()
-                            self.active_label_message.pack(side=tk.LEFT, anchor=tk.W)
+                            self.active_label_message.configure(anchor=tk.W)
                             current_index_message = self.index_sequence_message
                             message = self.active_messages[self.index_sequence_message].message
                             # First 2 seconds are fixed
@@ -262,7 +259,7 @@ class MessagingPlugin(PluginBase):
                                     self.active_label_message.configure(text = message)
                                     sleep(2)
                                 else:
-                                    sleep(0.05)
+                                    sleep(0.08)
                                 self.active_label_message.configure(text = message)
                         if self.scroll_thread is not None:
                             self.scroll_thread.join()

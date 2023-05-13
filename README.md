@@ -48,12 +48,20 @@ Plugins :
 
 - Add screen preview on the sequence window
 - Add time and logo on the screen
-- Fix long messages : author and message are overlapping, and text is badly padded
+- Load messages from output (if the program crashed, we want to keep the old messages active)
 
 Ui :
 
+- Add better message UI
+    - State if server is active or not
+    - See active messages separately
+    - Disable an active message or enable an inactive one
 - Add Metadata-related info on the sequence (if fade-in/out are activated, etc..)
 - Add a button to get back to the beginning of the current video
+
+Web : 
+
+- Js check of message size before sending the post
 
 Video playback :
 
