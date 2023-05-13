@@ -1,3 +1,0 @@
-
-Pour augmenter le volume d'une vidéo 
-ffmpeg -i .\kimcarnes_bettedavieseyes.mp4 -filter:a "volume=4" .\kimcarnes_bettedavieseyes_fixed.mp4

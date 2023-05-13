@@ -46,7 +46,6 @@ python3 -m pip install python-vlc python-magic
 
 Plugins :
 
-- Rework listboxes
 - Add screen preview on the sequence window
 - Add time and logo on the screen
 - Fix long messages : author and message are overlapping, and text is badly padded
