@@ -22,11 +22,9 @@ import tkinter as tk
 from tkinter import filedialog
 import os
 import argparse
-from collections import namedtuple
 
 # Application related imports
 from colors import *
-from logger import PrintTraceInUi, LoggerSubscribeUI
 from metadata_manager import MetaDataManager
 from plugin_manager import PluginManager
 from ui_player import UiPlayer
