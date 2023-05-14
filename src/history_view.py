@@ -58,6 +58,7 @@ class HistoryListbox(BaseListbox):
             @param nb_elements : the max nb_elements to be displayed at once
         """
         super().__init__(tk_notebook, "History", nb_elements)
+        tk_notebook.add(super().get_view(), text = "History")
 
     def add_entry(self, timestamp, video_name):
         """! Add an entry in the listbox """

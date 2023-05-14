@@ -64,7 +64,8 @@ class LogListbox(BaseListbox):
             @param nb_elements : the max nb_elements to be displayed at once
         """
         super().__init__(tk_notebook, "Logs", nb_elements)
-
+        
+        tk_notebook.add(super().get_view(), text = "Logs")
         LoggerSubscribeUI(super().get_listbox())
 
     # Actually not called because the log listbox is subcribed in the logger, and no other logs are added that way

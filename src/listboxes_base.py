@@ -24,14 +24,13 @@ class BaseListbox:
     _view = None
     _listbox = None
 
-    def __init__(self, tk_notebook, title,  nb_elements = 10):
+    def __init__(self, tk_frame, title,  nb_elements = 10):
         """! Initialize the listbox 
-            @param tk_notebook : the tk notebook in which add the listbox
+            @param tk_frame : the tkinter frame in which add the listbox
             @param nb_elements : the max nb_elements to be displayed at once
         """
         self._view = tk.Frame(
-            tk_notebook, background=UI_BACKGROUND_COLOR, height = nb_elements)
-        tk_notebook.add(self._view, text = title)
+            tk_frame, background=UI_BACKGROUND_COLOR, height = nb_elements)
 
         _title = tk.Label(self._view, text=title, font=(
             'calibri', 20), bg=UI_BACKGROUND_COLOR, fg="white")
