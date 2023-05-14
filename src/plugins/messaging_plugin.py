@@ -84,6 +84,7 @@ class MessagingPlugin(PluginBase):
     def start_server(self):
         if not self.is_server_running:
             PrintTraceInUi("Starting http server")
+            self.server_thread = threading.Thread(target=self.my_serve_forever)
             self.is_server_running = True
             self.server_thread.start()
         else:
@@ -98,8 +99,23 @@ class MessagingPlugin(PluginBase):
                 PrintTraceInUi("ERR : Thread is still active !")
             else:
                 PrintTraceInUi("Thread is correctly stopped")
+                self.server_thread = None
         else:
             PrintTraceInUi("Server is already stopped")
+
+    def my_serve_forever(self):
+        """! Little helper serve_forever thread function for the http server
+                that stops if the is_server_running method is stopped
+        """
+        PrintTraceInUi("HTTP Server Thread begin")
+        # Set an 1 second timeout for server handling request
+        self.http_server.timeout = 1
+        while self.is_server_running:
+            PrintTraceInUi("HTTP Server Thread Handling request")
+            self.http_server.handle_request()
+        # FIXME Workaround to stop the tcp server
+        self.http_server._BaseServer__shutdown_request = True
+        
 
     def setup(self, **kwargs):
         """! Setup """
@@ -113,21 +129,6 @@ class MessagingPlugin(PluginBase):
             self.message_ui_thread = threading.Thread(target=self.message_ui.runtime).start()
 
             self.http_server = socketserver.TCPServer(("", int(self.params[PORT_PARAM])), partial(self.MyHttpRequestHandler, self.message_ui.add_message))
-            def my_serve_forever():
-                """! Little helper serve_forever thread function for the http server
-                     that stops if the is_server_running method is stopped
-                """
-                PrintTraceInUi("HTTP Server Thread begin")
-                # Set an 1 second timeout for server handling request
-                self.http_server.timeout = 1
-                while self.is_server_running:
-                    PrintTraceInUi("HTTP Server Thread Handling request")
-                    self.http_server.handle_request()
-                # FIXME Workaround to stop the tcp server
-                self.http_server._BaseServer__shutdown_request = True
-                PrintTraceInUi("HTTP Server Thread end")
-                
-            self.server_thread = threading.Thread(target=my_serve_forever)
 
         if self.maintenance_frame is None and "maintenance_frame" in kwargs:
             PrintTraceInUi("Link maintenance window to us")
