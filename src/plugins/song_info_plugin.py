@@ -60,10 +60,10 @@ class SongInfoPlugin(PluginBase):
             # And it stays only for 10 seconds
             if time_s == 10:
                 PrintTraceInUi("Showing song info")
-                Thread(target=self._show_song_info_thread).start()
+                Thread(name="Show song info Thread",  target=self._show_song_info_thread).start()
             if time_s == 20:
                 PrintTraceInUi("Hiding song info")
-                Thread(target=self._hide_song_info_thread).start()
+                Thread(name="Hide song info Thread", target=self._hide_song_info_thread).start()
 
     def on_exit(self):
         """! Called at the end of a video playback """

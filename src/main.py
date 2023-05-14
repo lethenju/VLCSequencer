@@ -158,6 +158,8 @@ class MainManager:
             ui_player=player, ui_sequencer=self.sequence_manager)
         self.sequencer.launch_sequencer()
 
+        self.sequence_manager.set_main_sequencer_stop_cb(self.sequencer.kill)
+
         def on_close():
             self.sequence_manager.kill()
             self.sequencer.kill()

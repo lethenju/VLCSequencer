@@ -84,7 +84,7 @@ class MessagingPlugin(PluginBase):
     def start_server(self):
         if not self.is_server_running:
             PrintTraceInUi("Starting http server")
-            self.server_thread = threading.Thread(target=self.my_serve_forever)
+            self.server_thread = threading.Thread(name="HTTP Server Thread", target=self.my_serve_forever)
             self.is_server_running = True
             self.server_thread.start()
         else:
@@ -113,8 +113,6 @@ class MessagingPlugin(PluginBase):
         while self.is_server_running:
             PrintTraceInUi("HTTP Server Thread Handling request")
             self.http_server.handle_request()
-        # FIXME Workaround to stop the tcp server
-        self.http_server._BaseServer__shutdown_request = True
         
 
     def setup(self, **kwargs):
@@ -126,7 +124,8 @@ class MessagingPlugin(PluginBase):
 
             # TODO Maybe store/read active messages in file 
             self.message_ui = self.MessagingUiThread(self.player_window, self.params)
-            self.message_ui_thread = threading.Thread(target=self.message_ui.runtime).start()
+            self.message_ui_thread = threading.Thread(name="MessageUI Thread", target=self.message_ui.runtime)
+            self.message_ui_thread.start()
 
             self.http_server = socketserver.TCPServer(("", int(self.params[PORT_PARAM])), partial(self.MyHttpRequestHandler, self.message_ui.add_message))
 
@@ -194,9 +193,18 @@ class MessagingPlugin(PluginBase):
     def on_destroy(self):
         """! Called to stop the plugin and release resources """
         self.is_running = False
+        print("On destroy messaging")
         self.message_ui.stop()
-        self.http_server.shutdown()
-        self.server_thread.join()
+        print("On destroy messaging - Message UI stopped")
+        self.message_ui_thread.join()
+        print("On destroy messaging - Message UI thread joined")
+        self.stop_server()
+        print("On destroy messaging - Http Server stopped")
+        # FIXME Workaround to stop the tcp server 
+        #self.http_server.shutdown()
+        # setattr(self.http_server, '_BaseServer__shutdown_request', True)
+        #self.http_server._BaseServer__shutdown_request = True
+        self.http_server = None
 
     def is_maintenance_frame(self):
         """! Returns True if the plugin needs a maintenance frame, for UI controls """
@@ -327,11 +335,15 @@ class MessagingPlugin(PluginBase):
                             self.scroll_thread.join()
                             self.scroll_thread = None
 
-                        self.scroll_thread = threading.Thread(target=_scroll_thread)
+                        self.scroll_thread = threading.Thread(name="MessageUI Scroll Thread", target=_scroll_thread)
                         self.scroll_thread.start()
+                
+                
                 sleep(time_to_wait)
-
-            self.frame_messages.destroy()
+            #self.frame_messages.destroy()
+            if self.scroll_thread is not None:
+                self.scroll_thread.join()
+                self.scroll_thread = None
 
         def add_message(self, message):
             """! Adding a message in the dictionary of active message """
@@ -370,6 +382,7 @@ class MessagingPlugin(PluginBase):
             self.frame_messages.place(relx=0, rely= 0.95, relheight=0, relwidth=1)
 
         def stop(self):
+            print("Destroy !")
             self.is_running = False
         
         def _compute_messages(self):

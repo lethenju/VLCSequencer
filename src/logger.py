@@ -23,6 +23,8 @@ import tkinter as tk
 
 # Static data
 logger = None
+# To be set when the app is stopping
+is_stopping = False
 
 class Logger():
     # Reference to the tkinter listbox used to gather the logs
@@ -35,9 +37,12 @@ class Logger():
         self.ui_trace_listbox = ui_trace_listbox
 
     def log(self, trace):
-        if self.ui_trace_listbox is not None:
-            self.ui_trace_listbox.insert(tk.END, " " + trace)
-            self.ui_trace_listbox.yview(tk.END)
+        try:
+            if self.ui_trace_listbox is not None:
+                self.ui_trace_listbox.insert(tk.END, " " + trace)
+                self.ui_trace_listbox.yview(tk.END)
+        except:
+            print("Log listbox incorrect !")            
 
 
 def LoggerSubscribeUI(ui_trace_listbox):
@@ -48,15 +53,22 @@ def LoggerSubscribeUI(ui_trace_listbox):
     logger.set_ui_listbox(ui_trace_listbox)
 
 
+def LoggerSetIsStopping():
+    global is_stopping
+    is_stopping = True
+
 def PrintTraceInUi(*args):
     global logger
-    # Logger is a singleton
-    if (logger is None):
-        logger = Logger()
 
     function_caller_name = inspect.stack()[1].function
     trace = time.strftime('%H:%M:%S') + " " + function_caller_name + "() : "
     for arg in args:
         trace = trace + arg.__str__()
-    print(trace)
-    logger.log(trace)
+    if not is_stopping:
+        # Logger is a singleton
+        if (logger is None):
+            logger = Logger()
+        logger.log(trace)
+        print(trace)
+    else:
+        print(trace)
