@@ -30,6 +30,7 @@ from dataclasses import dataclass
 from colors import *
 from logger import PrintTraceInUi
 from plugin_base import PluginBase
+from plugins.messaging_view import MessageListbox
 
 PORT_PARAM = "Port"
 PORT_PARAM_DEFAULT = "8000"
@@ -158,18 +159,11 @@ class MessagingPlugin(PluginBase):
             self.server_toggle_button.pack(side=tk.LEFT)
 
             self.list_frame = tk.Frame(self.maintenance_frame)
-            self.list_frame.pack(side=tk.BOTTOM, fill=tk.X)
 
             # Create listbox
-            scrollbar_messages = tk.Scrollbar(self.list_frame)
-            scrollbar_messages.pack(side=tk.RIGHT, fill=tk.Y)
+            self.maintenance_listbox = MessageListbox(self.list_frame)
+            self.list_frame.pack(side=tk.BOTTOM,fill=tk.BOTH, expand=True)
 
-            self.maintenance_listbox = tk.Listbox(
-                self.maintenance_frame, yscrollcommand=scrollbar_messages.set, width=200, background=UI_BACKGROUND_COLOR, foreground="white")
-            # Give the listbox ref to the message ui object
-            self.maintenance_listbox.pack(side=tk.LEFT, fill=tk.BOTH)
-
-            scrollbar_messages.config(command=self.maintenance_listbox.yview)
         
         if self.maintenance_listbox is not None and self.message_ui is not None:
             # Everything is loaded
@@ -198,7 +192,7 @@ class MessagingPlugin(PluginBase):
         self.stop_server()
         # FIXME Workaround to stop the tcp server 
         self.http_server._BaseServer__shutdown_request = True
-        self.http_server = None
+        # self.http_server = None
 
     def is_maintenance_frame(self):
         """! Returns True if the plugin needs a maintenance frame, for UI controls """
@@ -239,6 +233,9 @@ class MessagingPlugin(PluginBase):
                 else:
                     PrintTraceInUi("Message too long.. Not keeping this one")
                     self.path = 'src/static/ko.html'
+            else:
+                # Error
+                self.path = 'src/static/ko.html'
             return http.server.SimpleHTTPRequestHandler.do_GET(self)
         
 
@@ -349,14 +346,14 @@ class MessagingPlugin(PluginBase):
             
             time = datetime.fromtimestamp(
                 message.timestamp_activation).time()
-            full_message = "{:02d}".format(time.hour) + ":" + "{:02d}".format(time.minute) + ":" + "{:02d}".format(time.second) + " "  +  message.author + " : " + message.message
-
+            timestamp = "{:02d}".format(time.hour) + ":" + "{:02d}".format(time.minute) + ":" + "{:02d}".format(time.second)
+            
             if MESSAGE_FILE_PATH_PARAM in self.params:
                 with open(self.params[MESSAGE_FILE_PATH_PARAM], 'a+', encoding='utf-8') as f:
-                    f.write(full_message + '\n')
+                    f.write(timestamp + " "  +  message.author + " : " + message.message + '\n')
 
             if self.maintenance_listbox is not None:
-                self.maintenance_listbox.insert(0,full_message)
+                self.maintenance_listbox.add_entry(timestamp, message.author, message.message)
 
             #Recompute show (we now have messages)
             if self.is_shown:

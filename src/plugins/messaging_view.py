@@ -16,56 +16,63 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
+
+"""! Handles the message listbox """
 import tkinter as tk
 
 from colors import *
-from logger import PrintTraceInUi, LoggerSubscribeUI
+from logger import PrintTraceInUi
 from listboxes_base import BaseListbox
 
-class LogListboxEntry(tk.Frame):
-    """! Represents an entry in the log list view."""
+class MessageListboxEntry(tk.Frame):
+    """! Represents an entry in the message list view."""
     timestamp_label = None
-    log_text_label  = None
+    author_label  = None
+    message_label  = None
 
     def __init__(self, master, **kwargs):
         super().__init__(master, **kwargs)
         self.timestamp_label = tk.Label(self, font=(
-            'calibri', 11, 'bold'), bg=UI_BACKGROUND_COLOR, fg="white")
+            'calibri', 11), bg=UI_BACKGROUND_COLOR, fg="white")
         self.timestamp_label.pack(side=tk.LEFT, expand=False)
         
-        self.log_text_label = tk.Label(self,  font=(
-            'calibri', 11), bg=UI_BACKGROUND_COLOR, fg="white")
-        self.log_text_label.pack(side=tk.RIGHT, expand=False, padx = 10)
+        self.author_label = tk.Label(self,  font=(
+            'calibri', 11, 'bold'), bg=UI_BACKGROUND_COLOR, fg="white")
+        self.author_label.pack(side=tk.LEFT, expand=False, padx = 10)
     
-    def setup(self, timestamp, log_text):
+        self.message_label = tk.Label(self,  font=(
+            'calibri', 11, 'bold'), bg=UI_BACKGROUND_COLOR, fg="white")
+        self.message_label.pack(side=tk.LEFT, expand=False, padx = 10)
+
+    def setup(self, timestamp, author, message):
         """! Setup the widget with the timestamp and video_name """
-        PrintTraceInUi("Log list entry ", timestamp, " - ", log_text)
+        PrintTraceInUi("Message list entry ", timestamp, " - ", author, " : ", message)
     
         self.timestamp_label.configure(text=timestamp)
-        self.log_text_label.configure(text=log_text)
+        self.author_label.configure(text=author)
+        self.message_label.configure(text=message)
 
     def destroy(self):
         self.timestamp_label.pack_forget()
-        self.log_text_label.pack_forget()
+        self.author_label.pack_forget()
+        self.message_label.pack_forget()
 
         self.timestamp_label.destroy()
-        self.log_text_label.destroy()
+        self.author_label.destroy()
+        self.message_label.destroy()
 
-class LogListbox(BaseListbox):
-
-    def __init__(self, tk_notebook, nb_elements = 10):
+class MessageListbox(BaseListbox):
+    def __init__(self, tk_frame, nb_elements = 10):
         """! Initialize the listbox 
-            @param tk_notebook : the tk notebook in which add the listbox
+            @param tk_frame : the tkinter frame in which add the listbox
             @param nb_elements : the max nb_elements to be displayed at once
         """
-        super().__init__(tk_notebook, "Logs", nb_elements)
-        tk_notebook.add(super().get_view(), text = "Logs")
-        LoggerSubscribeUI(super().get_listbox())
+        super().__init__(tk_frame, "Messages", nb_elements)
+        super().get_view().pack(expand=True, fill=tk.BOTH)
 
-    # Actually not called because the log listbox is subcribed in the logger, and no other logs are added that way
-    def add_entry(self, timestamp, log):
+    def add_entry(self, timestamp, author, message):
         """! Add an entry in the listbox """
-        entry = LogListboxEntry(super().get_listbox(), bg=UI_BACKGROUND_COLOR)
-        entry.setup(timestamp, log)
+        entry = MessageListboxEntry(super().get_listbox(), bg=UI_BACKGROUND_COLOR)
+        entry.setup(timestamp, author, message)
         entry.pack(fill=tk.X)
         super().get_listbox().insert(0, entry)
