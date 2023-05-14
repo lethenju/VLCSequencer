@@ -193,17 +193,11 @@ class MessagingPlugin(PluginBase):
     def on_destroy(self):
         """! Called to stop the plugin and release resources """
         self.is_running = False
-        print("On destroy messaging")
         self.message_ui.stop()
-        print("On destroy messaging - Message UI stopped")
         self.message_ui_thread.join()
-        print("On destroy messaging - Message UI thread joined")
         self.stop_server()
-        print("On destroy messaging - Http Server stopped")
         # FIXME Workaround to stop the tcp server 
-        #self.http_server.shutdown()
-        # setattr(self.http_server, '_BaseServer__shutdown_request', True)
-        #self.http_server._BaseServer__shutdown_request = True
+        self.http_server._BaseServer__shutdown_request = True
         self.http_server = None
 
     def is_maintenance_frame(self):
@@ -382,7 +376,6 @@ class MessagingPlugin(PluginBase):
             self.frame_messages.place(relx=0, rely= 0.95, relheight=0, relwidth=1)
 
         def stop(self):
-            print("Destroy !")
             self.is_running = False
         
         def _compute_messages(self):

@@ -763,8 +763,8 @@ class UiSequenceManager:
         self.main_sequencer_kill_cb = main_sequencer_kill_cb
 
     def kill(self):
-        print("Exiting app")
         LoggerSetIsStopping()
+        PrintTraceInUi("Exiting app")
         self.is_running_flag = False
         self.ui_player.kill()
         
@@ -772,7 +772,7 @@ class UiSequenceManager:
         self._ui_tkroot.destroy()
         
         for plugin in self.plugin_manager.get_plugins():
-            print("Exiting ", plugin.get_name())
+            PrintTraceInUi("Exiting ", plugin.get_name())
             plugin.on_destroy()
 
         if self.clock_thread is not None:
@@ -781,9 +781,4 @@ class UiSequenceManager:
 
         if self.main_sequencer_kill_cb is not None:
             self.main_sequencer_kill_cb()
-
-        for thread in threading.enumerate():
-            print("This thread ", thread.getName(), " is still active")
-            if thread.getName() != "MainThread":
-                thread.join(timeout=1)
         
