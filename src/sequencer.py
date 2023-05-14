@@ -31,7 +31,7 @@ from functools import partial
 
 # Application related imports
 from colors import *
-from logger import PrintTraceInUi
+from logger import PrintTraceInUi, LoggerSetIsStopping
 from plugin_base import PluginType
 from history_view import HistoryListbox
 from log_view import LogListbox
@@ -50,17 +50,24 @@ class MainSequencer():
 
     # Launch the sequencer thread
     def launch_sequencer(self):
-        self.thread = threading.Thread(target=self.sequencer_thread)
+        self.thread = threading.Thread(name="MainSequencer Thread", target=self.sequencer_thread)
         self.is_running_flag = True
         self.thread.start()
 
     def sequencer_thread(self):
-        while (self.is_running_flag):
+        while self.is_running_flag:
             (path, length_s) = self.ui_sequencer.get_next_video()
+            if path is None and length_s is None:
+                # We are exiting
+                self.is_running_flag = False
+                break;
             self.ui_player.play(path=path, length_s=length_s)
 
+
     def kill(self):
+        PrintTraceInUi("End of the main sequencer")
         self.is_running_flag = False
+        self.thread.join()
         self.ui_player.kill()
 
 
@@ -212,6 +219,9 @@ class UiSequenceManager:
     plugin_manager = None
     #  Reference to the Vlc instance to get true metadata about the video (length..)
     vlc_instance = None
+    # Reference to the kill callback of the main sequencer, which is a parent but we need access to the kill feature
+    # from the UI
+    main_sequencer_kill_cb = None
 
     # main Tkinter panes, from top to bottom
     main_clock_view = None          # Top view with the clock
@@ -250,6 +260,7 @@ class UiSequenceManager:
 
         # start UI
         self.ui_sequence_manager = tk.Toplevel(tkroot)
+        self._ui_tkroot = tkroot
         self.ui_sequence_manager.title("Sequence Manager")
 
         self.main_clock_view = tk.Frame(
@@ -267,7 +278,8 @@ class UiSequenceManager:
                 lbl.config(text=string)
                 time.sleep(1)
 
-        threading.Thread(target=update_clock).start()
+        self.clock_thread = threading.Thread(name="UpdateClock Thread", target=update_clock)
+        self.clock_thread.start()
 
         self.sequence_view = tk.Frame(
             self.ui_sequence_manager, width=1000, height=500, background=UI_BACKGROUND_COLOR)
@@ -344,7 +356,7 @@ class UiSequenceManager:
                             video.ui_playing_time.configure(text="{:02d}".format(ui_playing_label_time.hour) + ":" +
                                                             "{:02d}".format(ui_playing_label_time.minute) + ":" +
                                                             "{:02d}".format(ui_playing_label_time.second))
-            threading.Thread(target=current_playing_is_paused_thread).start()
+            threading.Thread(name="OnPause Thread", target=current_playing_is_paused_thread).start()
         else:
             self.is_paused = False
 
@@ -703,8 +715,11 @@ class UiSequenceManager:
 
 
     def get_next_video(self):
-        video = self.sequence_data.inner_sequence[self.index_playing_video]
 
+        if not self.is_running_flag:
+            PrintTraceInUi("We are stopping the app")
+            return (None, None)
+        video = self.sequence_data.inner_sequence[self.index_playing_video]
         # If the current video is set on repeat, we select it again
         if video.is_on_repeat:
             self._reconfigure_timestamps(self.index_playing_video)
@@ -743,12 +758,32 @@ class UiSequenceManager:
 
         # Gathering the video details
         return (video.path, video.length)
+    
+    def set_main_sequencer_stop_cb(self, main_sequencer_kill_cb):
+        self.main_sequencer_kill_cb = main_sequencer_kill_cb
 
     def kill(self):
+        print("Exiting app")
+        LoggerSetIsStopping()
         self.is_running_flag = False
         self.ui_player.kill()
-        try:
-            self.ui_sequence_manager.destroy()
-        except:
-            exit(1)
+        
+        self.ui_sequence_manager.destroy()
+        self._ui_tkroot.destroy()
+        
+        for plugin in self.plugin_manager.get_plugins():
+            print("Exiting ", plugin.get_name())
+            plugin.on_destroy()
 
+        if self.clock_thread is not None:
+            self.clock_thread.join()
+            self.clock_thread = None
+
+        if self.main_sequencer_kill_cb is not None:
+            self.main_sequencer_kill_cb()
+
+        for thread in threading.enumerate():
+            print("This thread ", thread.getName(), " is still active")
+            if thread.getName() != "MainThread":
+                thread.join(timeout=1)
+        

@@ -170,7 +170,7 @@ class UiPlayer():
 
         # We shouldnt launch multiple concurrent fade_in
         if fade_in and not self.fade_in_thread_active:
-            threading.Thread(target=fade_in_thread).start()
+            threading.Thread(name="FadeIn Thread", target=fade_in_thread).start()
         elif not self.is_muted:
             player.audio_set_volume(100)
 
@@ -205,7 +205,7 @@ class UiPlayer():
 
         # We shouldnt launch multiple concurrent fade_out
         if fade_out and not self.fade_out_thread_active:
-            threading.Thread(target=fade_out_thread).start()
+            threading.Thread(name="FadeOut Thread", target=fade_out_thread).start()
         else:
             player.audio_set_volume(0)
 
@@ -263,9 +263,7 @@ class UiPlayer():
 
     def kill(self):
         """! Kill the window and release the vlc instance """
-        for plugin in self.plugin_manager.get_plugins():
-            plugin.on_destroy()
         self.is_running_flag = False
         time.sleep(1) # Wait for all processes to stop
-        self.window.destroy()
         self.vlc_instance.release()
+        #self.window.destroy()
