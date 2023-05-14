@@ -52,6 +52,7 @@ class MessagingPlugin(PluginBase):
     message_ui_thread = None
 
     maintenance_listbox = None
+    is_server_running = False
 
     params = None
     def __init__(self, params = None):
@@ -79,6 +80,27 @@ class MessagingPlugin(PluginBase):
 
 # Plugin interface
 
+
+    def start_server(self):
+        if not self.is_server_running:
+            PrintTraceInUi("Starting http server")
+            self.is_server_running = True
+            self.server_thread.start()
+        else:
+            PrintTraceInUi("Server is already started")
+    
+    def stop_server(self):
+        if self.is_server_running:
+            PrintTraceInUi("Stopping http server")
+            self.is_server_running = False    
+            self.server_thread.join(timeout=2)
+            if self.server_thread.is_alive():
+                PrintTraceInUi("ERR : Thread is still active !")
+            else:
+                PrintTraceInUi("Thread is correctly stopped")
+        else:
+            PrintTraceInUi("Server is already stopped")
+
     def setup(self, **kwargs):
         """! Setup """
 
@@ -91,16 +113,55 @@ class MessagingPlugin(PluginBase):
             self.message_ui_thread = threading.Thread(target=self.message_ui.runtime).start()
 
             self.http_server = socketserver.TCPServer(("", int(self.params[PORT_PARAM])), partial(self.MyHttpRequestHandler, self.message_ui.add_message))
-            self.server_thread = threading.Thread(target=self.http_server.serve_forever)
-            self.server_thread.start()
+            def my_serve_forever():
+                """! Little helper serve_forever thread function for the http server
+                     that stops if the is_server_running method is stopped
+                """
+                PrintTraceInUi("HTTP Server Thread begin")
+                # Set an 1 second timeout for server handling request
+                self.http_server.timeout = 1
+                while self.is_server_running:
+                    PrintTraceInUi("HTTP Server Thread Handling request")
+                    self.http_server.handle_request()
+                # FIXME Workaround to stop the tcp server
+                self.http_server._BaseServer__shutdown_request = True
+                PrintTraceInUi("HTTP Server Thread end")
+                
+            self.server_thread = threading.Thread(target=my_serve_forever)
 
         if self.maintenance_frame is None and "maintenance_frame" in kwargs:
             PrintTraceInUi("Link maintenance window to us")
             super().setup(maintenance_frame=kwargs["maintenance_frame"])
             PrintTraceInUi("Setup")
 
+            # Server status maintenance view 
+            # Provide info about the server being active and provide options
+            # to enable and disable the server
+
+            self.server_status_frame = tk.Frame(self.maintenance_frame, bg=UI_BACKGROUND_COLOR)
+            self.server_status_frame.pack(side=tk.TOP, fill=tk.X)
+
+            self.server_status_label = tk.Label(self.server_status_frame, text="Server is currently inactive", font=('calibri', 11, 'bold'),fg="white", bg=UI_BACKGROUND_COLOR)
+            self.server_status_label.pack(side=tk.LEFT)
+
+            def server_toggle_button_cmd():
+                if self.is_server_running:
+                    self.stop_server()
+                    self.server_status_label.configure(text="Server is currently inactive")
+                else:
+                    self.start_server() 
+                    self.server_status_label.configure(text="Server is currently active")
+
+            
+            self.server_toggle_button = tk.Button(self.server_status_frame, text="Toggle server state", font=('calibri', 11),fg="white",
+             bg=UI_BACKGROUND_COLOR, command=server_toggle_button_cmd)
+            self.server_toggle_button.pack(side=tk.LEFT)
+
+            self.list_frame = tk.Frame(self.maintenance_frame)
+            self.list_frame.pack(side=tk.BOTTOM, fill=tk.X)
+
             # Create listbox
-            scrollbar_messages = tk.Scrollbar(self.maintenance_frame)
+            scrollbar_messages = tk.Scrollbar(self.list_frame)
             scrollbar_messages.pack(side=tk.RIGHT, fill=tk.Y)
 
             self.maintenance_listbox = tk.Listbox(
