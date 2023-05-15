@@ -142,11 +142,18 @@ class MessagingPlugin(PluginBase):
             self.status_frame = tk.Frame(self.maintenance_frame, bg=UI_BACKGROUND_COLOR)
             self.status_frame.pack(side=tk.TOP, fill=tk.X)
 
-            self.server_status_label = tk.Label(self.status_frame, text="Server is currently inactive", font=('calibri', 11, 'bold'),fg="white", bg=UI_BACKGROUND_COLOR)
+            self.server_status_frame = tk.Frame(self.status_frame, bg=UI_BACKGROUND_COLOR)
+            self.server_status_frame.pack(side=tk.LEFT, fill=tk.BOTH)
+            
+            self.message_ui_status_frame = tk.Frame(self.status_frame, bg=UI_BACKGROUND_COLOR)
+            self.message_ui_status_frame.pack(side=tk.RIGHT, fill=tk.BOTH)
+
+
+            self.server_status_label = tk.Label(self.server_status_frame, text="Server is currently inactive", font=('calibri', 11, 'bold'),fg="white", bg=UI_BACKGROUND_COLOR)
             self.server_status_label.pack(side=tk.LEFT)
 
-            self.message_ui_status_label = tk.Label(self.status_frame, text="Message UI is currently active", font=('calibri', 11, 'bold'),fg="white", bg=UI_BACKGROUND_COLOR)
-            self.message_ui_status_label.pack(side=tk.RIGHT)
+            self.message_ui_status_label = tk.Label(self.message_ui_status_frame, text="Message UI is currently active", font=('calibri', 11, 'bold'),fg="white", bg=UI_BACKGROUND_COLOR)
+            self.message_ui_status_label.pack(side=tk.LEFT)
 
 
             def server_toggle_button_cmd():
@@ -166,11 +173,11 @@ class MessagingPlugin(PluginBase):
                     self.message_ui_status_label.configure(text="Message UI is active")
 
             
-            self.server_toggle_button = tk.Button(self.status_frame, text="Toggle server state", font=('calibri', 11),fg="white",
+            self.server_toggle_button = tk.Button(self.server_status_frame, text="Toggle server state", font=('calibri', 11),fg="white",
              bg=UI_BACKGROUND_COLOR, command=server_toggle_button_cmd)
-            self.server_toggle_button.pack(side=tk.LEFT)
+            self.server_toggle_button.pack(side=tk.RIGHT)
 
-            self.message_ui_toggle_button = tk.Button(self.status_frame, text="Toggle UI state", font=('calibri', 11),fg="white",
+            self.message_ui_toggle_button = tk.Button(self.message_ui_status_frame, text="Toggle UI state", font=('calibri', 11),fg="white",
              bg=UI_BACKGROUND_COLOR, command=show_toggle_button_cmd)
             self.message_ui_toggle_button.pack(side=tk.RIGHT)
 
