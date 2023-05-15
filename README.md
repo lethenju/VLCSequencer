@@ -53,7 +53,6 @@ Plugins :
 Ui :
 
 - Add better message UI
-    - State if server is active or not
     - See active messages separately
     - Disable an active message or enable an inactive one
 - Add Metadata-related info on the sequence (if fade-in/out are activated, etc..)

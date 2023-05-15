@@ -192,7 +192,7 @@ class MessagingPlugin(PluginBase):
             # Everything is loaded
             self.message_ui.subscribe_listbox(self.maintenance_listbox)
 
-            # Load file messages
+            # TODO Load file messages
 
 
     def on_begin(self):
