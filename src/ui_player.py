@@ -208,8 +208,6 @@ class UiPlayer():
         for plugin in self.plugin_manager.get_plugins():
             plugin.on_exit()
 
-        PrintTraceInUi("Plugin exited")
-
         # We shouldnt launch multiple concurrent fade_out
         if fade_out and not self.fade_out_thread_active:
             self.fade_out_thread = threading.Thread(name="FadeOut Thread", target=fade_out_thread)
@@ -256,16 +254,22 @@ class UiPlayer():
                     media, index_media_players=self.nb_video_played % 2,  length_s=length_s)
 
     def _get_active_media_player(self):
-        # Get the active player
+        """! Get the active player object """
         return self.media_frames[self.nb_video_played % 2].media_player
 
     def pause_resume(self):
+        """! Toggle play/pause state of the ui_player
+             doesnt affect plugins
+        """
         self.is_paused = not self.is_paused
         player = self._get_active_media_player()
         player.pause()
         pass
 
     def mute_trigger(self):
+        """! Toggle mute level 
+             FIXME isnt working properly
+        """
         player = self._get_active_media_player()
         if player.audio_get_volume() != 0:
             self.is_muted = True
@@ -275,6 +279,7 @@ class UiPlayer():
             player.audio_set_volume(100)
 
     def next(self):
+        """! Asks to move to the next video now"""
         self.is_next_asked = True
 
     def kill(self):
