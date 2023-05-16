@@ -211,8 +211,8 @@ class MessagingPlugin(PluginBase):
         """! Called to stop the plugin and release resources """
         self.is_running = False
         self.message_ui.stop()
-        self.message_ui_thread.join()
         self.stop_server()
+        self.message_ui_thread.join()
         # FIXME Workaround to stop the tcp server 
         self.http_server._BaseServer__shutdown_request = True
         # self.http_server = None
