@@ -126,6 +126,7 @@ class SongInfoPlugin(PluginBase):
         """! Thread to handle the display of the song info pane 
              Single thread that shows and hide !
         """
+        self.show_button.configure(state=tk.DISABLED)
         self.is_showing_info = True
         self.timestamp_show_info = time()
         for x in range(-500, 50, 5):
@@ -149,4 +150,5 @@ class SongInfoPlugin(PluginBase):
         #self.frame_songinfo = None
         self.is_hiding_info = False
         self.timestamp_show_info = 0
+        self.show_button.configure(state=tk.NORMAL)
 
