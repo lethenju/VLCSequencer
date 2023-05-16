@@ -24,6 +24,21 @@ class PluginType(Enum):
     SONG_INFO_PLUGIN = 0
     MESSAGING_PLUGIN = 1
     TIME_AND_CHANNEL_PLUGIN = 2
+    
+    def PluginTypeFactory(str_name):
+        """! Returns the appropriate enum with the name of the plugin """
+        if str_name == "SongInfo":
+            return PluginType.SONG_INFO_PLUGIN
+        elif str_name == "Messaging":
+            return PluginType.MESSAGING_PLUGIN
+        elif str_name == "TimeAndChannel":
+            return PluginType.TIME_AND_CHANNEL_PLUGIN
+
+        # A plugin name should always be defined
+        # FIXME
+        assert(False)
+
+
 
 class PluginBase:
     """! Base class of plugins
@@ -33,7 +48,8 @@ class PluginBase:
     player_window = None      # Reference to the display window
     maintenance_frame = None  # Reference to the maintenance frame in the sequencer window, to add UI controls
 
-    def __init__(self):
+    def __init__(self, params = None):
+        self.params = params
         self.is_running = True
 
     # Plugin interface

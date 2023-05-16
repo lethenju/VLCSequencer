@@ -581,11 +581,8 @@ class UiSequenceManager:
                 for param in child:
                     assert( "name" in param.attrib and "value" in param.attrib)
                     params[param.attrib["name"]] = param.attrib["value"]
-                if plugin_name == "SongInfo":
-                    self.plugin_manager.add_plugin(PluginType.SONG_INFO_PLUGIN, params);
-                elif plugin_name == "Messaging":
 
-                    self.plugin_manager.add_plugin(PluginType.MESSAGING_PLUGIN, params);
+                self.plugin_manager.add_plugin(PluginType.PluginTypeFactory(plugin_name), params);
             elif child.tag == "Sequence":
                 PrintTraceInUi("Sequence found!")
                 self.sequence_data = SequenceBlock("sequence")

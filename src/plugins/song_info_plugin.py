@@ -34,12 +34,7 @@ class SongInfoPlugin(PluginBase):
     is_showing_info = False
     timestamp_show_info = 0
 
-    params = None
     thread_ui_info = None
-
-    def __init__(self, params = None):
-        super().__init__()
-        self.params = params
 
 # Plugin interface
     def setup(self, **kwargs):

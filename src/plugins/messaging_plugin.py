@@ -54,12 +54,10 @@ class MessagingPlugin(PluginBase):
 
     maintenance_listbox = None
     is_server_running = False
-
-    params = None
+    
     def __init__(self, params = None):
-        super().__init__()
-        self.params = params
-
+        super().__init__(params)
+        
         if PORT_PARAM not in self.params:
             PrintTraceInUi(f"{PORT_PARAM} is not defined, use default value")
             self.params[PORT_PARAM] = PORT_PARAM_DEFAULT

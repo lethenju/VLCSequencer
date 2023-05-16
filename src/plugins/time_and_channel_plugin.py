@@ -17,8 +17,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 import tkinter as tk
-from time import sleep, time
-from threading import Thread
+from time import strftime
 
 from colors import *
 from logger import PrintTraceInUi
@@ -28,6 +27,9 @@ class TimeAndChannelPlugin(PluginBase):
     """! Plugin to show the song info as it plays """
     frame_time_channel = None
 
+    font_size = 0       # Stored font size, update if the window height changes
+    label_time = None   # Label of the current time
+
 # Plugin interface
     def setup(self, **kwargs):
         """! Setup """
@@ -35,6 +37,12 @@ class TimeAndChannelPlugin(PluginBase):
         if super().player_window is None and "player_window" in kwargs:
             super().setup(player_window=kwargs["player_window"])
 
+            self.frame_time_channel = tk.Frame(self.player_window, width=20, bg=UI_BACKGROUND_COLOR)
+            self.font_size = int(self.player_window.winfo_height() /25);
+            self.label_time = tk.Label(self.frame_time_channel,text="00:00", padx=10, pady=10, font=('calibri', self.font_size, 'bold'),fg="white", bg=UI_BACKGROUND_COLOR)
+            self.label_time.pack(fill=tk.BOTH, expand=True)
+            self.frame_time_channel.place(relx = 0.9, rely = 0.06)
+            print("Show")
     def on_begin(self):
         """! Called at the beginning of a video playback """
 
@@ -42,7 +50,14 @@ class TimeAndChannelPlugin(PluginBase):
         """! Called every second of a video playback """
         if self.frame_time_channel is not None:
             # TODO Update time
-            pass
+            new_font_size = int(self.player_window.winfo_height() /25);
+            if new_font_size != self.font_size:
+                PrintTraceInUi("Update font size from ", self.font_size, " to ", new_font_size)
+                self.font_size = new_font_size
+                self.label_time.configure(font=('calibri', self.font_size, 'bold'))
+
+            self.label_time.configure(text=strftime('%H:%M'))
+            self.frame_time_channel.place(relx = 0.9, rely = 0.06)
 
     def on_exit(self):
         """! Called at the end of a video playback """
