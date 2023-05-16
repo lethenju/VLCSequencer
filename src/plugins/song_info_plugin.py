@@ -34,15 +34,11 @@ class SongInfoPlugin(PluginBase):
     is_showing_info = False
     timestamp_show_info = 0
 
-    thread_show_info = None
-    thread_hide_info = None
+    thread_ui_info = None
 
 # Plugin interface
     def setup(self, **kwargs):
         """! Setup """
-
-        self.thread_show_info = Thread(name="Show song info Thread", target=self._show_song_info_thread)
-        self.thread_hide_info = Thread(name="Hide song info Thread", target=self._hide_song_info_thread)
 
         if super().player_window is None and "player_window" in kwargs:
             super().setup(player_window=kwargs["player_window"])
@@ -72,10 +68,10 @@ class SongInfoPlugin(PluginBase):
             # Provides a button to show the song info manually
             def button_show_song_info():
                 if self.frame_songinfo is not None:
-                    if not self.is_showing_info:
-                        if self.thread_show_info.is_alive():
-                            self.thread_show_info.join(timeout=0.1)
-                        self.thread_show_info.start()
+                    if not self._is_show_song_info_thread_active():
+                        # Recreate thread
+                        self.thread_ui_info = Thread(name="Manual UI song info Thread", target=self._show_song_info_thread)
+                        self.thread_ui_info.start()
                     else:
                         PrintTraceInUi("It is already showing !")
                 else:
@@ -86,8 +82,6 @@ class SongInfoPlugin(PluginBase):
                 bg=UI_BACKGROUND_COLOR, command=button_show_song_info)
             self.show_button.pack()
 
-            
-    
     def on_begin(self):
         """! Called at the beginning of a video playback """
 
@@ -95,21 +89,14 @@ class SongInfoPlugin(PluginBase):
         """! Called every second of a video playback """
         if self.frame_songinfo is not None:
             # And it stays only for 10 seconds
-            if time_s == 10 and not self.is_showing_info:
+            if time_s == 10 and not self._is_show_song_info_thread_active():
                 PrintTraceInUi("Showing song info")
-                if self.thread_hide_info.is_alive():
-                    self.thread_hide_info.join()
+                # Recreate thread
+                self.thread_ui_info = Thread(name="Automatic UI song info Thread", target=self._show_song_info_thread)
                 self.thread_show_info.start()
-
-            if time() - self.timestamp_show_info > 10 and self.is_showing_info and not self.is_hiding_info:
-                PrintTraceInUi("Hiding song info")
-                if self.thread_show_info.is_alive():
-                    self.thread_show_info.join()
-                self.thread_hide_info.start()
 
     def on_exit(self):
         """! Called at the end of a video playback """
-        
         # If we didnt have time to delete the frame info, we do it now to prevent future weird behaviours
         if self.frame_songinfo is not None:
             PrintTraceInUi("Warning ! Deleting song info lately")
@@ -124,11 +111,20 @@ class SongInfoPlugin(PluginBase):
 
     def get_name(self):
         return "Song info"
-# Keep parent's on_destroy
+
+    def on_destroy(self):
+        super().on_destroy()
+        if self.thread_ui_info is not None:
+            self.thread_ui_info.join()
+
+    def _is_show_song_info_thread_active(self):
+        return self.is_showing_info or self.is_hiding_info
 
 # Private functions
     def _show_song_info_thread(self):
-        """! Thread to handle the display of the song info pane """
+        """! Thread to handle the display of the song info pane 
+             Single thread that shows and hide !
+        """
         self.is_showing_info = True
         self.timestamp_show_info = time()
         for x in range(-500, 50, 5):
@@ -136,10 +132,13 @@ class SongInfoPlugin(PluginBase):
                 break
             self.frame_songinfo.place(x=x, rely= 0.8)
             sleep(0.01)
-
-    def _hide_song_info_thread(self):
-        """! Thread to handle the end of display of the song info pane """
         self.is_hiding_info = True
+        # Wait for 10 seconds if running
+        for _ in range(10):
+            if not self.is_running:
+                break
+            sleep(1)
+        self.is_showing_info = False
         for x in range(50, -500, -5):
             if not self.is_running:
                 break
@@ -148,5 +147,5 @@ class SongInfoPlugin(PluginBase):
         #self.frame_songinfo.destroy()
         #self.frame_songinfo = None
         self.is_hiding_info = False
-        self.is_showing_info = False
         self.timestamp_show_info = 0
+
