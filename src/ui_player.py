@@ -33,8 +33,10 @@ class UiPlayer():
     is_next_asked = False
     is_paused = False
 
+    fade_out_thread = None
+    fade_in_thread  = None
     fade_out_thread_active = False
-    fade_in_thread_active = False
+    fade_in_thread_active  = False
 
     class MediaFrame:
         """! Structure that links a Tkinter frame with a Vlc media player """
@@ -170,7 +172,8 @@ class UiPlayer():
 
         # We shouldnt launch multiple concurrent fade_in
         if fade_in and not self.fade_in_thread_active:
-            threading.Thread(name="FadeIn Thread", target=fade_in_thread).start()
+            self.fade_in_thread = threading.Thread(name="FadeIn Thread", target=fade_in_thread)
+            self.fade_in_thread.start()
         elif not self.is_muted:
             player.audio_set_volume(100)
 
@@ -200,16 +203,29 @@ class UiPlayer():
             time.sleep(1)
             timer = timer + 1
 
+        PrintTraceInUi("End of video")
+
         for plugin in self.plugin_manager.get_plugins():
             plugin.on_exit()
 
+        PrintTraceInUi("Plugin exited")
+
         # We shouldnt launch multiple concurrent fade_out
         if fade_out and not self.fade_out_thread_active:
-            threading.Thread(name="FadeOut Thread", target=fade_out_thread).start()
+            self.fade_out_thread = threading.Thread(name="FadeOut Thread", target=fade_out_thread)
+            self.fade_out_thread.start()
         else:
             player.audio_set_volume(0)
 
+        if not self.is_running_flag:
+            PrintTraceInUi("Stopping UI_Player ")
+            if self.fade_in_thread is not None and self.fade_in_thread.is_alive():
+                self.fade_in_thread.join()
+            if self.fade_out_thread is not None and self.fade_out_thread.is_alive():
+                self.fade_out_thread.join()
+
         self.is_next_asked = False
+
 
     def play(self, path, length_s):
         """! Main play API

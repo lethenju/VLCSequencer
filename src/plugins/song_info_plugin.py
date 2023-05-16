@@ -93,14 +93,15 @@ class SongInfoPlugin(PluginBase):
                 PrintTraceInUi("Showing song info")
                 # Recreate thread
                 self.thread_ui_info = Thread(name="Automatic UI song info Thread", target=self._show_song_info_thread)
-                self.thread_show_info.start()
+                self.thread_ui_info.start()
 
     def on_exit(self):
         """! Called at the end of a video playback """
         # If we didnt have time to delete the frame info, we do it now to prevent future weird behaviours
         if self.frame_songinfo is not None:
             PrintTraceInUi("Warning ! Deleting song info lately")
-            self.frame_songinfo.destroy()
+            if self.thread_ui_info is not None and self.thread_ui_info.is_alive():
+                self.thread_ui_info.join()
             self.frame_songinfo = None
 
     def is_maintenance_frame(self):
