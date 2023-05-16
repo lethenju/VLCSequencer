@@ -34,7 +34,12 @@ class SongInfoPlugin(PluginBase):
     is_showing_info = False
     timestamp_show_info = 0
 
+    params = None
     thread_ui_info = None
+
+    def __init__(self, params = None):
+        super().__init__()
+        self.params = params
 
 # Plugin interface
     def setup(self, **kwargs):
@@ -42,11 +47,11 @@ class SongInfoPlugin(PluginBase):
 
         if super().player_window is None and "player_window" in kwargs:
             super().setup(player_window=kwargs["player_window"])
-        
+
         if "artist" in kwargs and "song" in kwargs:
             artist = kwargs["artist"]
             song = kwargs["song"]
-                
+
             if song is not None and artist is not None:
                 # TODO background image maybe ?
                 self.frame_songinfo = tk.Frame(self.player_window, width=20, bg=UI_BACKGROUND_COLOR)
