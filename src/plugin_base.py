@@ -23,6 +23,7 @@ from enum import Enum
 class PluginType(Enum):
     SONG_INFO_PLUGIN = 0
     MESSAGING_PLUGIN = 1
+    TIME_AND_CHANNEL_PLUGIN = 2
 
 class PluginBase:
     """! Base class of plugins

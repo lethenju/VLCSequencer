@@ -19,6 +19,7 @@
 
 from plugins.song_info_plugin import SongInfoPlugin
 from plugins.messaging_plugin import MessagingPlugin
+from plugins.time_and_channel_plugin import TimeAndChannelPlugin
 from plugin_base import *
 
 class PluginManager:
@@ -39,7 +40,9 @@ class PluginManager:
         """
         if type_of_plugin == PluginType.SONG_INFO_PLUGIN:
             # For now, no params in the song info plugin
-            self.active_plugins.append(SongInfoPlugin())
+            self.active_plugins.append(SongInfoPlugin(params))
         elif type_of_plugin == PluginType.MESSAGING_PLUGIN:
-            self.active_plugins.append(MessagingPlugin(params))   
+            self.active_plugins.append(MessagingPlugin(params))
+        elif type_of_plugin == PluginType.TIME_AND_CHANNEL_PLUGIN:
+            self.active_plugins.append(TimeAndChannelPlugin(params))
             

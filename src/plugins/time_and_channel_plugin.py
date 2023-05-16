@@ -16,5 +16,45 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
+import tkinter as tk
+from time import sleep, time
+from threading import Thread
 
-# TODO Create plugin to simply show current time and the channel png in a corner
+from colors import *
+from logger import PrintTraceInUi
+from plugin_base import PluginBase
+
+class TimeAndChannelPlugin(PluginBase):
+    """! Plugin to show the song info as it plays """
+    frame_time_channel = None
+
+# Plugin interface
+    def setup(self, **kwargs):
+        """! Setup """
+
+        if super().player_window is None and "player_window" in kwargs:
+            super().setup(player_window=kwargs["player_window"])
+
+    def on_begin(self):
+        """! Called at the beginning of a video playback """
+
+    def on_progress(self, time_s):
+        """! Called every second of a video playback """
+        if self.frame_time_channel is not None:
+            # TODO Update time
+            pass
+
+    def on_exit(self):
+        """! Called at the end of a video playback """
+
+    def is_maintenance_frame(self):
+        """! Returns if the plugins has a maintenance frame """
+        # No maintenance frame for this plugin, as for now
+        return False
+
+    def get_name(self):
+        return "Time and Channel"
+
+    def on_destroy(self):
+        super().on_destroy()
+
