@@ -141,13 +141,13 @@ class SongInfoPlugin(PluginBase):
                 break
             sleep(1)
         self.is_showing_info = False
-        for x in range(50, -500, -5):
+        for x in range(50, -1000, -5):
             if not self.is_running:
                 break
             self.frame_songinfo.place(x=x, rely= 0.8)
             sleep(0.01)
         #self.frame_songinfo.destroy()
-        #self.frame_songinfo = None
+        self.frame_songinfo.pack_forget()
         self.is_hiding_info = False
         self.timestamp_show_info = 0
         self.show_button.configure(state=tk.NORMAL)
