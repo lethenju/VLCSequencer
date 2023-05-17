@@ -330,7 +330,24 @@ class MessagingPlugin(PluginBase):
                                 wait = False
                                 # removing first char until it fits
                                 if self.active_label_message.winfo_width() >= self.player_window.winfo_width() - self.active_label_author.winfo_width():
-                                    message = message[1:]
+
+                                    chunk_message = tk.Label(self.frame_messages,text=message[0:5], font=('calibri', font_size))
+                                    chunk_message.place(relx=-1,rely=-1)
+                                    sleep(0.05)
+                                    width = chunk_message.winfo_width()
+                                    PrintTraceInUi(f"Size of chunk {message[0:5]} : {width}")
+                                    message = message[6:]
+                                    self.active_label_message.configure(text = message)
+                                    
+                                    while width > 0 and self.is_running:
+                                        # Thats a big hack to approximately get the size right.. 
+                                        # the padx width is not exactly the true 
+                                        self.active_label_message.configure(padx = 10 + 1.07*width)
+                                        width = width - 2
+                                        sleep(0.01)
+                                    chunk_message.destroy()
+
+
                                 else:
                                     # Then when it fits, wait a bit
                                     wait = True
