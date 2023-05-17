@@ -408,7 +408,7 @@ class MessagingPlugin(PluginBase):
             """! hide api """
             PrintTraceInUi("Hide message UI")
             self.is_shown = False
-            self.frame_messages.place(relx=0, rely= 0.95, relheight=0, relwidth=1)
+            self.frame_messages.place(relx=0, rely= -1)
 
         def stop(self):
             self.is_running = False

@@ -29,6 +29,7 @@ class MessageListboxEntry(tk.Frame):
     timestamp_label = None
     author_label  = None
     message_label  = None
+    button_toggle_active = None
 
     def __init__(self, master, **kwargs):
         super().__init__(master, **kwargs)
@@ -43,6 +44,10 @@ class MessageListboxEntry(tk.Frame):
         self.message_label = tk.Label(self,  font=(
             'calibri', 11, 'bold'), bg=UI_BACKGROUND_COLOR, fg="white")
         self.message_label.pack(side=tk.LEFT, expand=False, padx = 10)
+
+        self.button_toggle_active = tk.Button(self, text="Active",  font=(
+            'calibri', 11, 'bold'), bg=UI_BACKGROUND_COLOR, fg="white")
+        self.button_toggle_active.pack(side=tk.RIGHT, expand=False, padx = 10)
 
     def setup(self, timestamp, author, message):
         """! Setup the widget with the timestamp and video_name """
@@ -62,7 +67,7 @@ class MessageListboxEntry(tk.Frame):
         self.message_label.destroy()
 
 class MessageListbox(BaseListbox):
-    def __init__(self, tk_frame, nb_elements = 10):
+    def __init__(self, tk_frame, nb_elements = 3):
         """! Initialize the listbox 
             @param tk_frame : the tkinter frame in which add the listbox
             @param nb_elements : the max nb_elements to be displayed at once
@@ -72,7 +77,7 @@ class MessageListbox(BaseListbox):
 
     def add_entry(self, timestamp, author, message):
         """! Add an entry in the listbox """
-        entry = MessageListboxEntry(super().get_listbox(), bg=UI_BACKGROUND_COLOR)
+        entry = MessageListboxEntry(super().get_listbox(), bg=UI_BACKGROUND_COLOR, height=100)
         entry.setup(timestamp, author, message)
         entry.pack(fill=tk.X)
         super().get_listbox().insert(0, entry)
