@@ -111,11 +111,14 @@ class MessageListbox(BaseListbox):
         """
         self.nb_elements_by_page = nb_elements
         super().__init__(tk_frame, "Messages", nb_elements)
-        self.button_next = tk.Button(tk_frame, text="+", command=self.get_next_page)
-        self.button_previous = tk.Button(tk_frame, text="-", command=self.get_previous_page)
+
+        change_page_pane = tk.Frame(tk_frame, bg=UI_BACKGROUND_COLOR)
+        change_page_pane.pack(side=tk.LEFT, fill=tk.Y)
+        self.button_next = tk.Button(change_page_pane, text="+", command=self.get_next_page, fg="white", bg=UI_BACKGROUND_COLOR)
+        self.button_previous = tk.Button(change_page_pane, text="-", command=self.get_previous_page, fg="white", bg=UI_BACKGROUND_COLOR)
         
-        self.button_next.pack(side=tk.LEFT)
-        self.button_previous.pack(side=tk.LEFT)
+        self.button_next.pack(side=tk.TOP, expand=True)
+        self.button_previous.pack(side=tk.BOTTOM, expand=True)
 
         super().get_view().pack(expand=True, fill=tk.BOTH)
         
@@ -180,5 +183,3 @@ class MessageListbox(BaseListbox):
             entry.pack(fill=tk.X)
 
         self.all_elements.append(entry)
-
-        #super().get_listbox().insert(tk.ANCHOR, entry)
