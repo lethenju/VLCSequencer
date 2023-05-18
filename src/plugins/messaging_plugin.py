@@ -75,7 +75,7 @@ class MessagingPlugin(PluginBase):
     class Message:
         author : str
         message : str
-        timestamp_activation : float = time()
+        timestamp_activation : float
 
         _is_active : bool = False
         _is_current_message_shown : bool = False
@@ -294,7 +294,7 @@ class MessagingPlugin(PluginBase):
                 self.path = 'src/static/done.html'
                 # Check if the message is not too long
                 if len(message) < 128:
-                    self.cb_add_message(MessagingPlugin.Message(fields["name"][0], message))
+                    self.cb_add_message(MessagingPlugin.Message(fields["name"][0], message, time()))
                 else:
                     PrintTraceInUi("Message too long.. Not keeping this one")
                     self.path = 'src/static/ko.html'
@@ -441,7 +441,7 @@ class MessagingPlugin(PluginBase):
             if MESSAGE_FILE_PATH_PARAM in self.params:
                 with open(self.params[MESSAGE_FILE_PATH_PARAM], 'a+', encoding='utf-8') as f:
                     f.write(timestamp + " "  +  message.author + " : " + message.message + '\n')
-
+            
             if self.maintenance_listbox is not None:
                 self.maintenance_listbox.add_entry(timestamp, message.author, message.message, message.store_active_state_cb, message.store_current_message_cb)
 
@@ -473,6 +473,7 @@ class MessagingPlugin(PluginBase):
             # Change state of messages
             for message in self.active_messages:
                 if message.timestamp_activation + int(self.params[DELETE_AFTER_MINUTES_PARAM])*60 < time():
+                    PrintTraceInUi(f"Message going inactive ! {message.message}")
                     message.set_inactive()
                     self.active_messages.remove(message)
     
