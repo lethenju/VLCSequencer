@@ -77,6 +77,50 @@ class MessagingPlugin(PluginBase):
         message : str
         timestamp_activation : float = time()
 
+        _is_active : bool = False
+        _is_current_message_shown : bool = False
+
+        _active_state_cb : any = None
+        _current_message_state_cb : any = None
+
+        def set_current_message(self):
+            if not self._is_active:
+                PrintTraceInUi(f"This message is not active ! {self.message}")
+            PrintTraceInUi(f"Message is shown")
+            self._is_current_message_shown = True
+            if self._current_message_state_cb is not None:
+                self._current_message_state_cb(True)
+
+        def set_not_current_message(self):
+            if not self._is_active:
+                PrintTraceInUi(f"This message is not active ! {self.message}")
+            self._is_current_message_shown = False
+            if self._current_message_state_cb is not None:
+                self._current_message_state_cb(False)
+        
+        def set_active(self):
+            self._is_active = True
+            if self._active_state_cb is not None:
+                self._active_state_cb(True)
+        
+        def set_inactive(self):
+            self._is_active = False
+            if self._active_state_cb is not None:
+                self._active_state_cb(False)
+
+        def is_current_message(self):
+            return self._is_current_message_shown
+        
+        def is_active(self):
+            return self._is_active
+        
+        def store_active_state_cb(self, active_state_cb):
+            self._active_state_cb = active_state_cb
+        
+        def store_current_message_cb(self, current_message_state_cb):
+            self._current_message_state_cb = current_message_state_cb
+        
+
 # Plugin interface
 
 
@@ -302,10 +346,13 @@ class MessagingPlugin(PluginBase):
                 if len(self.active_messages) > 0:
                     # If we display a message, we display it for DISPLAY_TIME seconds
                     time_to_wait = int(self.params[DISPLAY_TIME_PARAM])
+                    self.active_messages[self.index_sequence_message].set_not_current_message()
                     self.index_sequence_message = (self.index_sequence_message + 1) % len(self.active_messages)
                     PrintTraceInUi("Index of current message = ", self.index_sequence_message, " Author : ",  
                         self.active_messages[self.index_sequence_message].author, " Message ",
                         self.active_messages[self.index_sequence_message].message)
+                    
+                    self.active_messages[self.index_sequence_message].set_current_message()
                     font_size = int(self.player_window.winfo_height() /20);
                     PrintTraceInUi("FontSize ", font_size)
                     self.active_label_author.configure(text = self.active_messages[self.index_sequence_message].author, 
@@ -377,8 +424,13 @@ class MessagingPlugin(PluginBase):
         def add_message(self, message):
             """! Adding a message in the dictionary of active message """
             # Remove messages with the same author 
-            self.active_messages = list(filter(lambda active_message: (
-                active_message.author != message.author), self.active_messages))
+            for active_message in self.active_messages:
+                if active_message.author == message.author:
+                    active_message.set_inactive()
+                    self.active_messages.remove(active_message)
+
+            #self.active_messages = list(filter(lambda active_message: (
+            #    active_message.author != message.author), self.active_messages))
 
             self.active_messages.append(message)
             
@@ -391,7 +443,9 @@ class MessagingPlugin(PluginBase):
                     f.write(timestamp + " "  +  message.author + " : " + message.message + '\n')
 
             if self.maintenance_listbox is not None:
-                self.maintenance_listbox.add_entry(timestamp, message.author, message.message)
+                self.maintenance_listbox.add_entry(timestamp, message.author, message.message, message.store_active_state_cb, message.store_current_message_cb)
+
+            message.set_active()
 
             #Recompute show (we now have messages)
             if self.is_shown:
@@ -416,8 +470,14 @@ class MessagingPlugin(PluginBase):
         def _compute_messages(self):
             # If its been more than 10 minutes, the message disappears from the sequence
             PrintTraceInUi("Recomputing messages..")
-            self.active_messages = list(filter(lambda message: (
-                message.timestamp_activation + int(self.params[DELETE_AFTER_MINUTES_PARAM])*60 > time()), self.active_messages))
+            # Change state of messages
+            for message in self.active_messages:
+                if message.timestamp_activation + int(self.params[DELETE_AFTER_MINUTES_PARAM])*60 < time():
+                    message.set_inactive()
+                    self.active_messages.remove(message)
+    
+            #self.active_messages = list(filter(lambda message: (
+            #    message.timestamp_activation + int(self.params[DELETE_AFTER_MINUTES_PARAM])*60 > time()), self.active_messages))
         
         def subscribe_listbox(self, listbox):
             self.maintenance_listbox = listbox

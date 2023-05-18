@@ -49,13 +49,42 @@ class MessageListboxEntry(tk.Frame):
             'calibri', 11, 'bold'), bg=UI_BACKGROUND_COLOR, fg="white")
         self.button_toggle_active.pack(side=tk.RIGHT, expand=False, padx = 10)
 
-    def setup(self, timestamp, author, message):
+    def setup(self, timestamp, author, message, active_cb, current_cb):
         """! Setup the widget with the timestamp and video_name """
         PrintTraceInUi("Message list entry ", timestamp, " - ", author, " : ", message)
     
         self.timestamp_label.configure(text=timestamp)
         self.author_label.configure(text=author)
         self.message_label.configure(text=message)
+
+        active_cb(self.message_active_callback)
+        current_cb(self.message_current_callback)
+    
+    def message_active_callback(self, is_active):
+        PrintTraceInUi(f"Is this message active : {is_active}")
+        if is_active:
+            super().configure(bg=UI_BLOCK_SELECTED_VIDEO_FRAME_COLOR)
+            self.timestamp_label.configure(bg=UI_BLOCK_SELECTED_VIDEO_FRAME_COLOR)
+            self.author_label.configure(bg=UI_BLOCK_SELECTED_VIDEO_FRAME_COLOR)
+            self.message_label.configure(bg=UI_BLOCK_SELECTED_VIDEO_FRAME_COLOR)
+        else:
+            super().configure(bg=UI_BACKGROUND_COLOR)
+            self.timestamp_label.configure(bg=UI_BACKGROUND_COLOR)
+            self.author_label.configure(bg=UI_BACKGROUND_COLOR)
+            self.message_label.configure(bg=UI_BACKGROUND_COLOR)
+
+    def message_current_callback(self, is_current):
+        PrintTraceInUi(f"Is this message current : {is_current}")
+        if is_current:
+            super().configure(bg=UI_BLOCK_REPEAT_VIDEO_COLOR)
+            self.timestamp_label.configure(bg=UI_BLOCK_REPEAT_VIDEO_COLOR)
+            self.author_label.configure(bg=UI_BLOCK_REPEAT_VIDEO_COLOR)
+            self.message_label.configure(bg=UI_BLOCK_REPEAT_VIDEO_COLOR)
+        else:
+            super().configure(bg=UI_BLOCK_SELECTED_VIDEO_FRAME_COLOR)
+            self.timestamp_label.configure(bg=UI_BLOCK_SELECTED_VIDEO_FRAME_COLOR)
+            self.author_label.configure(bg=UI_BLOCK_SELECTED_VIDEO_FRAME_COLOR)
+            self.message_label.configure(bg=UI_BLOCK_SELECTED_VIDEO_FRAME_COLOR)
 
     def destroy(self):
         self.timestamp_label.pack_forget()
@@ -75,9 +104,9 @@ class MessageListbox(BaseListbox):
         super().__init__(tk_frame, "Messages", nb_elements)
         super().get_view().pack(expand=True, fill=tk.BOTH)
 
-    def add_entry(self, timestamp, author, message):
+    def add_entry(self, timestamp, author, message, active_cb, current_cb):
         """! Add an entry in the listbox """
         entry = MessageListboxEntry(super().get_listbox(), bg=UI_BACKGROUND_COLOR, height=100)
-        entry.setup(timestamp, author, message)
+        entry.setup(timestamp, author, message, active_cb, current_cb)
         entry.pack(fill=tk.X)
-        super().get_listbox().insert(0, entry)
+        super().get_listbox().insert(tk.ANCHOR, entry)
