@@ -1,7 +1,9 @@
 <Document>
   <Title>JJ Birthday Sequence</Title>
   <Plugin name="SongInfo"></Plugin>
-  <Plugin name="TimeAndChannel"></Plugin>
+  <Plugin name="TimeAndChannel">
+    <Param name="PathLogoPng" value="res/pictures/logo.png" />
+  </Plugin>
   <Plugin name="Messaging">
     <Param name="Port" value="11000"/>
     <Param name="DisplayTime" value="5"/>
