@@ -47,24 +47,25 @@ python3 -m pip install python-vlc python-magic
 Plugins :
 
 - Add screen preview on the sequence window
-- Add time and logo on the screen
 - Load messages from output (if the program crashed, we want to keep the old messages active)
+- Add better message UI
+    - Disable an active message or enable an inactive one
+- Add enabling/disabling auto songinfo
 
 Ui :
 
-- Add better message UI
-    - See active messages separately
-    - Disable an active message or enable an inactive one
+- Fix custom listboxes (for history + remove scrollbar)
 - Add Metadata-related info on the sequence (if fade-in/out are activated, etc..)
 - Add a button to get back to the beginning of the current video
 
 Web : 
 
 - Js check of message size before sending the post
+- Responsive web page design (as for now we have a really poor experience on mobile)
 
 Video playback :
 
-- Gather the actual device output volume to enable automatic volume correction
+- Gather the actual device output volume to enable automatic volume correction (Cross platform ? We need windows API and ALSA/portaudio API for linux)
 - Fix mute mode
 
 Sequencing :
