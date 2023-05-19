@@ -443,7 +443,7 @@ class MessagingPlugin(PluginBase):
                     f.write(timestamp + " "  +  message.author + " : " + message.message + '\n')
             
             if self.maintenance_listbox is not None:
-                self.maintenance_listbox.add_entry(timestamp, message.author, message.message, message.store_active_state_cb, message.store_current_message_cb)
+                self.maintenance_listbox.add_entry(timestamp, author=message.author, message=message.message, active_cb=message.store_active_state_cb, current_cb=message.store_current_message_cb)
 
             message.set_active()
 

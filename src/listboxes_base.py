@@ -93,7 +93,7 @@ class BasePagingList:
         self._listbox.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
         self.nb_elements_by_page = nb_elements
 
-        change_page_pane = tk.Frame(tk_frame, bg=UI_BACKGROUND_COLOR)
+        change_page_pane = tk.Frame(self._view, bg=UI_BACKGROUND_COLOR)
         change_page_pane.pack(side=tk.LEFT, fill=tk.Y)
         self.button_next = tk.Button(change_page_pane, text="+", command=self.get_next_page, fg="white", bg=UI_BACKGROUND_COLOR)
         self.button_previous = tk.Button(change_page_pane, text="-", command=self.get_previous_page, fg="white", bg=UI_BACKGROUND_COLOR)
@@ -105,8 +105,10 @@ class BasePagingList:
         
 
     def get_next_page(self):
+        
+        PrintTraceInUi(f"Button next page")
         if len(self.all_elements) < self.nb_elements_by_page:
-            # Not enough elements to enable paging
+            PrintTraceInUi(f"Not enough elements to enable paging")
             return
 
         begin_index_elements_to_hide = (self.current_page-1)*self.nb_elements_by_page
@@ -130,8 +132,9 @@ class BasePagingList:
             element.pack(fill=tk.X)
 
     def get_previous_page(self):
+        PrintTraceInUi(f"Button previous page")
         if len(self.all_elements) < self.nb_elements_by_page:
-            # Not enough elements to enable paging
+            PrintTraceInUi(f"Not enough elements to enable paging")
             return
 
         begin_index_elements_to_hide = (self.current_page-1)*self.nb_elements_by_page
@@ -154,10 +157,10 @@ class BasePagingList:
             element.pack(fill=tk.X)
 
 
-    def add_entry(self, type, timestamp, author, message, active_cb, current_cb):
+    def add_entry(self, type, **kwargs):
         """! Add an entry in the listbox """
         entry = type(self._listbox, bg=UI_BACKGROUND_COLOR, height=100)
-        entry.setup(timestamp, author, message, active_cb, current_cb)
+        entry.setup(**kwargs)
 
         # if on current page, pack it
         if (self.current_page-1)*self.nb_elements_by_page <= len(self.all_elements) and self.current_page*self.nb_elements_by_page > len(self.all_elements):

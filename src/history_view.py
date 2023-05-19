@@ -20,7 +20,7 @@ import tkinter as tk
 
 from colors import *
 from logger import PrintTraceInUi
-from listboxes_base import BaseListbox
+from listboxes_base import BasePagingList
 
 class HistoryListboxEntry(tk.Frame):
     """! Represents an entry in the history list view."""
@@ -51,18 +51,15 @@ class HistoryListboxEntry(tk.Frame):
         self.timestamp_label.destroy()
         self.video_name_label.destroy()
 
-class HistoryListbox(BaseListbox):
+class HistoryListbox(BasePagingList):
     def __init__(self, tk_notebook, nb_elements = 10):
         """! Initialize the listbox 
             @param tk_notebook : the tk notebook in which add the listbox
             @param nb_elements : the max nb_elements to be displayed at once
         """
         super().__init__(tk_notebook, "History", nb_elements)
-        tk_notebook.add(super().get_view(), text = "History")
+        tk_notebook.add(self._view, text = "History")
 
     def add_entry(self, timestamp, video_name):
-        """! Add an entry in the listbox """
-        entry = HistoryListboxEntry(super().get_listbox(), bg=UI_BACKGROUND_COLOR)
-        entry.setup(timestamp, video_name)
-        entry.pack(fill=tk.X)
-        super().get_listbox().insert(0, entry)
+        """! Add an entry in the HistoryListboxEntry """
+        super().add_entry(HistoryListboxEntry, timestamp=timestamp, video_name=video_name)
