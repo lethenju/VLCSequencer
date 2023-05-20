@@ -119,8 +119,12 @@ class MessagingPlugin(PluginBase):
         
         def store_current_message_cb(self, current_message_state_cb):
             self._current_message_state_cb = current_message_state_cb
-        
 
+        def activate_toggle_cb(self):
+            if self._is_active:
+                self.set_inactive()
+            else:
+                self.set_active()
 # Plugin interface
 
 
@@ -305,7 +309,7 @@ class MessagingPlugin(PluginBase):
         
 
     class MessagingUiThread:
-        active_messages = []
+        message_list = []
         is_shown = False
         player_window = None
         scroll_thread = None
@@ -343,21 +347,25 @@ class MessagingPlugin(PluginBase):
                 self._compute_messages()
                 # By default, compute messages every second
                 time_to_wait = 1
-                if len(self.active_messages) > 0:
+                active_messages = list(filter(lambda message : ( message.is_active() ), self.message_list))
+                if len(active_messages) > 0:
+                    
+                    self.show() # ?
+
                     # If we display a message, we display it for DISPLAY_TIME seconds
                     time_to_wait = int(self.params[DISPLAY_TIME_PARAM])
-                    self.active_messages[self.index_sequence_message].set_not_current_message()
-                    self.index_sequence_message = (self.index_sequence_message + 1) % len(self.active_messages)
+                    active_messages[self.index_sequence_message].set_not_current_message()
+                    self.index_sequence_message = (self.index_sequence_message + 1) % len(active_messages)
                     PrintTraceInUi("Index of current message = ", self.index_sequence_message, " Author : ",  
-                        self.active_messages[self.index_sequence_message].author, " Message ",
-                        self.active_messages[self.index_sequence_message].message)
+                        active_messages[self.index_sequence_message].author, " Message ",
+                        active_messages[self.index_sequence_message].message)
                     
-                    self.active_messages[self.index_sequence_message].set_current_message()
+                    active_messages[self.index_sequence_message].set_current_message()
                     font_size = int(self.player_window.winfo_height() /20);
                     PrintTraceInUi("FontSize ", font_size)
-                    self.active_label_author.configure(text = self.active_messages[self.index_sequence_message].author, 
+                    self.active_label_author.configure(text =active_messages[self.index_sequence_message].author, 
                         font=('calibri', font_size, 'bold'))
-                    self.active_label_message.configure(text = self.active_messages[self.index_sequence_message].message,
+                    self.active_label_message.configure(text = active_messages[self.index_sequence_message].message,
                         font=('calibri', font_size))
                     # Let time to recalculate the message size
                     sleep(0.1)
@@ -370,7 +378,7 @@ class MessagingPlugin(PluginBase):
                         def _scroll_thread():
                             self.active_label_message.configure(anchor=tk.W)
                             current_index_message = self.index_sequence_message
-                            message = self.active_messages[self.index_sequence_message].message
+                            message = active_messages[self.index_sequence_message].message
                             # First 2 seconds are fixed
                             sleep(2)
                             while self.is_running and current_index_message == self.index_sequence_message:
@@ -401,9 +409,17 @@ class MessagingPlugin(PluginBase):
 
                                 if wait:
                                     sleep(2)
-                                    message = self.active_messages[current_index_message].message
-                                    self.active_label_message.configure(text = message)
-                                    sleep(2)
+                                    if current_index_message >= len(active_messages):
+                                        PrintTraceInUi("Active list message have changed ! Reset index")
+                                        current_index_message = 0
+                                        
+                                    if len(active_messages) == 0:
+                                        PrintTraceInUi("No more active messages, get out")
+                                        break
+                                    else:
+                                        message = active_messages[current_index_message].message
+                                        self.active_label_message.configure(text = message)
+                                        sleep(2)
                                 else:
                                     sleep(0.08)
                                 self.active_label_message.configure(text = message)
@@ -413,8 +429,9 @@ class MessagingPlugin(PluginBase):
 
                         self.scroll_thread = threading.Thread(name="MessageUI Scroll Thread", target=_scroll_thread)
                         self.scroll_thread.start()
-                
-                
+                else:
+                    # If there is no message to show
+                    self.hide()
                 sleep(time_to_wait)
             #self.frame_messages.destroy()
             if self.scroll_thread is not None:
@@ -424,15 +441,11 @@ class MessagingPlugin(PluginBase):
         def add_message(self, message):
             """! Adding a message in the dictionary of active message """
             # Remove messages with the same author 
-            for active_message in self.active_messages:
+            for active_message in self.message_list:
                 if active_message.author == message.author:
                     active_message.set_inactive()
-                    self.active_messages.remove(active_message)
-
-            #self.active_messages = list(filter(lambda active_message: (
-            #    active_message.author != message.author), self.active_messages))
-
-            self.active_messages.append(message)
+            
+            self.message_list.append(message)
             
             time = datetime.fromtimestamp(
                 message.timestamp_activation).time()
@@ -443,7 +456,12 @@ class MessagingPlugin(PluginBase):
                     f.write(timestamp + " "  +  message.author + " : " + message.message + '\n')
             
             if self.maintenance_listbox is not None:
-                self.maintenance_listbox.add_entry(timestamp, author=message.author, message=message.message, active_cb=message.store_active_state_cb, current_cb=message.store_current_message_cb)
+                self.maintenance_listbox.add_entry(timestamp,
+                                                author=message.author,
+                                                message=message.message,
+                                                active_cb=message.store_active_state_cb,
+                                                current_cb=message.store_current_message_cb,
+                                                activate_toggle_cb=message.activate_toggle_cb)
 
             message.set_active()
 
@@ -455,7 +473,7 @@ class MessagingPlugin(PluginBase):
             """! Show api """
             PrintTraceInUi("Show message UI")
             self.is_shown = True
-            if len(self.active_messages) > 0:
+            if len(self.message_list) > 0:
                 self.frame_messages.place(relx=0, rely= 0.95, relheight=0.05, relwidth=1)
 
         def hide(self):
@@ -471,14 +489,14 @@ class MessagingPlugin(PluginBase):
             # If its been more than 10 minutes, the message disappears from the sequence
             PrintTraceInUi("Recomputing messages..")
             # Change state of messages
-            for message in self.active_messages:
+            for message in self.message_list:
                 if message.timestamp_activation + int(self.params[DELETE_AFTER_MINUTES_PARAM])*60 < time():
                     PrintTraceInUi(f"Message going inactive ! {message.message}")
                     message.set_inactive()
-                    self.active_messages.remove(message)
+                    #self.message_list.remove(message)
     
-            #self.active_messages = list(filter(lambda message: (
-            #    message.timestamp_activation + int(self.params[DELETE_AFTER_MINUTES_PARAM])*60 > time()), self.active_messages))
+            #self.message_list = list(filter(lambda message: (
+            #    message.timestamp_activation + int(self.params[DELETE_AFTER_MINUTES_PARAM])*60 > time()), self.message_list))
         
         def subscribe_listbox(self, listbox):
             self.maintenance_listbox = listbox

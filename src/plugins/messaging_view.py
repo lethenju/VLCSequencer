@@ -50,7 +50,7 @@ class MessageListboxEntry(tk.Frame):
             'calibri', 11, 'bold'), bg=UI_BACKGROUND_COLOR, fg="white")
         self.button_toggle_active.pack(side=tk.RIGHT, expand=False, padx = 10)
 
-    def setup(self, timestamp, author, message, active_cb, current_cb):
+    def setup(self, timestamp, author, message, active_cb, current_cb, activate_toggle_cb):
         """! Setup the widget with the timestamp and video_name """
         PrintTraceInUi("Message list entry ", timestamp, " - ", author, " : ", message)
     
@@ -60,6 +60,8 @@ class MessageListboxEntry(tk.Frame):
 
         active_cb(self.message_active_callback)
         current_cb(self.message_current_callback)
+
+        self.button_toggle_active.configure(command=activate_toggle_cb)
     
     def message_active_callback(self, is_active):
         PrintTraceInUi(f"Is this message active : {is_active}")
@@ -68,11 +70,13 @@ class MessageListboxEntry(tk.Frame):
             self.timestamp_label.configure(bg=UI_BLOCK_SELECTED_VIDEO_FRAME_COLOR)
             self.author_label.configure(bg=UI_BLOCK_SELECTED_VIDEO_FRAME_COLOR)
             self.message_label.configure(bg=UI_BLOCK_SELECTED_VIDEO_FRAME_COLOR)
+            self.button_toggle_active.configure(text="Deactivate")
         else:
             super().configure(bg=UI_BACKGROUND_COLOR)
             self.timestamp_label.configure(bg=UI_BACKGROUND_COLOR)
             self.author_label.configure(bg=UI_BACKGROUND_COLOR)
             self.message_label.configure(bg=UI_BACKGROUND_COLOR)
+            self.button_toggle_active.configure(text="Activate")
 
     def message_current_callback(self, is_current):
         PrintTraceInUi(f"Is this message current : {is_current}")
@@ -105,6 +109,24 @@ class MessageListbox(BasePagingList):
         """
         super().__init__(tk_frame, "Messages", nb_elements)
 
-    def add_entry(self, timestamp, author, message, active_cb, current_cb):
-        super().add_entry(MessageListboxEntry, timestamp, author, message, active_cb, current_cb)
+    def add_entry(self, timestamp, author, message, active_cb, current_cb, activate_toggle_cb):
+        """! Adds an entry in the message list
+            @param timestamp : Time of the message arrival in float as returned by time()
+            @param Author : Author of the message
+            @param message : Message in itself
+            @param active_cb : A callback that stores a entry-defined callback in the caller
+                                Args : active_cb( callback )
+                                    And this param will be the one actually called :
+                                        -> callback that is called when the 'active' state changes 
+                                        (an active message is a message that is programmed to show on the screen)
+            @param current_cb : Same but for the 'current' state changes : the message is shown on the screen or not
+            @param activate_toggle_cb : Simpler callback (direct callback) for when the user presses the activate/deactivate button on each row
+        """
+        super().add_entry(MessageListboxEntry,
+                          timestamp=timestamp,
+                          author=author,
+                          message=message,
+                          active_cb=active_cb,
+                          current_cb=current_cb,
+                          activate_toggle_cb=activate_toggle_cb)
 

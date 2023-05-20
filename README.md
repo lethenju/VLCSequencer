@@ -49,12 +49,11 @@ Plugins :
 - Add screen preview on the sequence window
 - Load messages from output (if the program crashed, we want to keep the old messages active)
 - Add better message UI
-    - Disable an active message or enable an inactive one
+    - Disable an active message or enable an inactive one => Debug that
 - Add enabling/disabling auto songinfo
 
 Ui :
 
-- Fix custom listboxes (for history + remove scrollbar)
 - Add Metadata-related info on the sequence (if fade-in/out are activated, etc..)
 - Add a button to get back to the beginning of the current video
 
