@@ -492,16 +492,16 @@ class MessagingPlugin(PluginBase):
             self.message_list.append(message)
 
             if self.maintenance_listbox is not None:
-                time = datetime.fromtimestamp(
+                message_time = datetime.fromtimestamp(
                     message.timestamp_activation).time()
-                date = datetime.fromtimestamp(
+                message_date = datetime.fromtimestamp(
                     message.timestamp_activation).date()
-                timestamp = "{:04d}".format(date.year)   + "-" \
-                        + "{:02d}".format(date.month)  + "-" \
-                        + "{:02d}".format(date.day)    + " " \
-                        + "{:02d}".format(time.hour)   + ":" \
-                        + "{:02d}".format(time.minute) + ":" \
-                        + "{:02d}".format(time.second)
+                timestamp = "{:04d}".format(message_date.year)   + "-" \
+                        + "{:02d}".format(message_date.month)  + "-" \
+                        + "{:02d}".format(message_date.day)    + " " \
+                        + "{:02d}".format(message_time.hour)   + ":" \
+                        + "{:02d}".format(message_time.minute) + ":" \
+                        + "{:02d}".format(message_time.second)
                 
                 self.maintenance_listbox.add_entry(timestamp,
                                             author=message.author,
