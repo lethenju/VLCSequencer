@@ -48,8 +48,6 @@ Plugins :
 
 - Add screen preview on the sequence window
 - Load messages from output (if the program crashed, we want to keep the old messages active)
-- Add better message UI
-    - Disable an active message or enable an inactive one => Debug that
 - Add enabling/disabling auto songinfo
 
 Ui :

@@ -92,11 +92,14 @@ class MessagingPlugin(PluginBase):
                 self._current_message_state_cb(True)
 
         def set_not_current_message(self):
+            self._is_current_message_shown = False
+            
             if not self._is_active:
                 PrintTraceInUi(f"This message is not active ! {self.message}")
-            self._is_current_message_shown = False
-            if self._current_message_state_cb is not None:
-                self._current_message_state_cb(False)
+            else:
+                # Not sending current message state cb if the message is not active !
+                if self._current_message_state_cb is not None:
+                    self._current_message_state_cb(False)
         
         def set_active(self):
             self._is_active = True
@@ -340,6 +343,75 @@ class MessagingPlugin(PluginBase):
             self.active_label_author .pack(side=tk.LEFT, anchor=tk.CENTER)
             self.active_label_message.pack(side=tk.LEFT, anchor=tk.CENTER)
     
+
+        def runtime_display_message(self):
+            PrintTraceInUi("Index of current message = ", self.index_sequence_message, " Author : ",  
+                self.message_list[self.index_sequence_message].author, " Message ",
+                self.message_list[self.index_sequence_message].message)
+            
+            self.message_list[self.index_sequence_message].set_current_message()
+            font_size = int(self.player_window.winfo_height() /20);
+            PrintTraceInUi("FontSize ", font_size)
+            self.active_label_author.configure(text =self.message_list[self.index_sequence_message].author, 
+                font=('calibri', font_size, 'bold'))
+            self.active_label_message.configure(text = self.message_list[self.index_sequence_message].message,
+                font=('calibri', font_size))
+            # Let time to recalculate the message size
+            sleep(0.1)
+            PrintTraceInUi("Message size ", self.active_label_message.winfo_width())
+            PrintTraceInUi("Size of message space ", self.player_window.winfo_width() - self.active_label_author.winfo_width())
+            if self.active_label_message.winfo_width() >= self.player_window.winfo_width() - self.active_label_author.winfo_width():
+                PrintTraceInUi("Message is too long, we need to make it scroll")
+                # A long message needs to be let a longer time
+                time_to_wait = int(self.params[DISPLAY_TIME_LONG_MESSAGE_PARAM])
+                def _scroll_thread():
+                    self.active_label_message.configure(anchor=tk.W)
+                    current_index_message = self.index_sequence_message
+                    message = self.message_list[self.index_sequence_message].message
+                    # First 2 seconds are fixed
+                    sleep(2)
+                    while self.is_running and current_index_message == self.index_sequence_message and self.message_list[current_index_message].is_active():
+                        wait = False
+                        # removing first char until it fits
+                        if self.active_label_message.winfo_width() >= self.player_window.winfo_width() - self.active_label_author.winfo_width():
+
+                            chunk_message = tk.Label(self.frame_messages,text=message[0:5], font=('calibri', font_size))
+                            chunk_message.place(relx=-1,rely=-1)
+                            sleep(0.05)
+                            width = chunk_message.winfo_width()
+                            PrintTraceInUi(f"Size of chunk {message[0:5]} : {width}")
+                            message = message[6:]
+                            self.active_label_message.configure(text = message)
+                            
+                            while width > 0 and self.is_running:
+                                # Thats a big hack to approximately get the size right.. 
+                                # the padx width is not exactly the true 
+                                self.active_label_message.configure(padx = 10 + 1.07*width)
+                                width = width - 2
+                                sleep(0.01)
+                            chunk_message.destroy()
+                        else:
+                            # Then when it fits, wait a bit
+                            wait = True
+
+                        if wait:
+                            sleep(2)
+                            if  self.message_list[current_index_message].is_active():
+                                message =  self.message_list[current_index_message].message
+                                self.active_label_message.configure(text = message)
+                                sleep(2)
+                            else:
+                                PrintTraceInUi("Current message is not active anymore ! ")
+                        else:
+                            sleep(0.08)
+                        self.active_label_message.configure(text = message)
+                if self.scroll_thread is not None:
+                    self.scroll_thread.join()
+                    self.scroll_thread = None
+
+                self.scroll_thread = threading.Thread(name="MessageUI Scroll Thread", target=_scroll_thread)
+                self.scroll_thread.start()
+
         def runtime(self):
             """! Runtime """
             PrintTraceInUi("Messaging UI Runtime")
@@ -354,81 +426,28 @@ class MessagingPlugin(PluginBase):
 
                     # If we display a message, we display it for DISPLAY_TIME seconds
                     time_to_wait = int(self.params[DISPLAY_TIME_PARAM])
-                    active_messages[self.index_sequence_message].set_not_current_message()
-                    self.index_sequence_message = (self.index_sequence_message + 1) % len(active_messages)
-                    PrintTraceInUi("Index of current message = ", self.index_sequence_message, " Author : ",  
-                        active_messages[self.index_sequence_message].author, " Message ",
-                        active_messages[self.index_sequence_message].message)
+                    self.message_list[self.index_sequence_message].set_not_current_message()
+
+                    # Get the next active message
+                    is_next_active_message = False
+                    index_sequence_message = self.index_sequence_message
+
+                    # Ranging around the message list starting from our index message
+                    for message_id in range(self.index_sequence_message + 1 , self.index_sequence_message + 1 + len(self.message_list)):
+                        true_message_id = message_id % len(self.message_list)
+                        if self.message_list[true_message_id].is_active():
+                            index_sequence_message = true_message_id
+                            is_next_active_message = True
+                            break
                     
-                    active_messages[self.index_sequence_message].set_current_message()
-                    font_size = int(self.player_window.winfo_height() /20);
-                    PrintTraceInUi("FontSize ", font_size)
-                    self.active_label_author.configure(text =active_messages[self.index_sequence_message].author, 
-                        font=('calibri', font_size, 'bold'))
-                    self.active_label_message.configure(text = active_messages[self.index_sequence_message].message,
-                        font=('calibri', font_size))
-                    # Let time to recalculate the message size
-                    sleep(0.1)
-                    PrintTraceInUi("Message size ", self.active_label_message.winfo_width())
-                    PrintTraceInUi("Size of message space ", self.player_window.winfo_width() - self.active_label_author.winfo_width())
-                    if self.active_label_message.winfo_width() >= self.player_window.winfo_width() - self.active_label_author.winfo_width():
-                        PrintTraceInUi("Message is too long, we need to make it scroll")
-                        # A long message needs to be let a longer time
-                        time_to_wait = int(self.params[DISPLAY_TIME_LONG_MESSAGE_PARAM])
-                        def _scroll_thread():
-                            self.active_label_message.configure(anchor=tk.W)
-                            current_index_message = self.index_sequence_message
-                            message = active_messages[self.index_sequence_message].message
-                            # First 2 seconds are fixed
-                            sleep(2)
-                            while self.is_running and current_index_message == self.index_sequence_message:
-                                wait = False
-                                # removing first char until it fits
-                                if self.active_label_message.winfo_width() >= self.player_window.winfo_width() - self.active_label_author.winfo_width():
-
-                                    chunk_message = tk.Label(self.frame_messages,text=message[0:5], font=('calibri', font_size))
-                                    chunk_message.place(relx=-1,rely=-1)
-                                    sleep(0.05)
-                                    width = chunk_message.winfo_width()
-                                    PrintTraceInUi(f"Size of chunk {message[0:5]} : {width}")
-                                    message = message[6:]
-                                    self.active_label_message.configure(text = message)
-                                    
-                                    while width > 0 and self.is_running:
-                                        # Thats a big hack to approximately get the size right.. 
-                                        # the padx width is not exactly the true 
-                                        self.active_label_message.configure(padx = 10 + 1.07*width)
-                                        width = width - 2
-                                        sleep(0.01)
-                                    chunk_message.destroy()
-
-
-                                else:
-                                    # Then when it fits, wait a bit
-                                    wait = True
-
-                                if wait:
-                                    sleep(2)
-                                    if current_index_message >= len(active_messages):
-                                        PrintTraceInUi("Active list message have changed ! Reset index")
-                                        current_index_message = 0
-                                        
-                                    if len(active_messages) == 0:
-                                        PrintTraceInUi("No more active messages, get out")
-                                        break
-                                    else:
-                                        message = active_messages[current_index_message].message
-                                        self.active_label_message.configure(text = message)
-                                        sleep(2)
-                                else:
-                                    sleep(0.08)
-                                self.active_label_message.configure(text = message)
-                        if self.scroll_thread is not None:
-                            self.scroll_thread.join()
-                            self.scroll_thread = None
-
-                        self.scroll_thread = threading.Thread(name="MessageUI Scroll Thread", target=_scroll_thread)
-                        self.scroll_thread.start()
+                    if not is_next_active_message:
+                        # Normally impossible because we filtered active messages just before
+                        PrintTraceInUi("No more active messages ! ")
+                        # If there is no message to show
+                        self.hide()    
+                    else:
+                        self.index_sequence_message = index_sequence_message
+                        self.runtime_display_message()
                 else:
                     # If there is no message to show
                     self.hide()
