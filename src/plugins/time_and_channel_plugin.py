@@ -49,11 +49,14 @@ class TimeAndChannelPlugin(PluginBase):
             self.frame_time_channel.place(relx = 0.85, rely = 0.06)
 
             if PATH_LOGO_PNG in self.params:
-                display = ImageTk.PhotoImage(Image.open(self.params[PATH_LOGO_PNG]))
+                try:
+                    display = ImageTk.PhotoImage(Image.open(self.params[PATH_LOGO_PNG]))
 
-                self.label_channel = tk.Label(self.frame_time_channel, image=display)
-                self.label_channel.image = display
-                self.label_channel.pack(side=tk.RIGHT)
+                    self.label_channel = tk.Label(self.frame_time_channel, image=display)
+                    self.label_channel.image = display
+                    self.label_channel.pack(side=tk.RIGHT)
+                except:
+                    PrintTraceInUi(f"ERR No such file or directory : ", self.params[PATH_LOGO_PNG])
 
             print("Show")
     def on_begin(self):
