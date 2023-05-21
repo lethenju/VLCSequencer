@@ -48,14 +48,13 @@ Plugins :
 
 - Add screen preview on the sequence window
 - Add clear message button to clear the database table
-- Add enabling/disabling auto songinfo
 
 Ui :
 
 - Add Metadata-related info on the sequence (if fade-in/out are activated, etc..)
 - Add a button to get back to the beginning of the current video
 
-Web : 
+Web :
 
 - Js check of message size before sending the post
 - Responsive web page design (as for now we have a really poor experience on mobile)

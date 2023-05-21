@@ -30,6 +30,8 @@ class SongInfoPlugin(PluginBase):
     frame_songinfo = None
     artist = ""
     song = ""
+
+    is_automatic_show_song_info = True # Activated by default
     is_hiding_info = False
     is_showing_info = False
     timestamp_show_info = 0
@@ -82,18 +84,31 @@ class SongInfoPlugin(PluginBase):
                 bg=UI_BACKGROUND_COLOR, command=button_show_song_info)
             self.show_button.pack()
 
+            def button_toggle_auto_song_info():
+                self.is_automatic_show_song_info = not self.is_automatic_show_song_info 
+                
+                if self.is_automatic_show_song_info:
+                    self.toggle_automatic_button.configure(text="Disable automatic song info")
+                else:
+                    self.toggle_automatic_button.configure(text="Enable automatic song info")
+
+            self.toggle_automatic_button = tk.Button(self.maintenance_song_info_frame, text="Disable automatic song info", font=('calibri', 11),fg="white",
+                bg=UI_BACKGROUND_COLOR, command=button_toggle_auto_song_info)
+            self.toggle_automatic_button.pack()
+
     def on_begin(self):
         """! Called at the beginning of a video playback """
 
     def on_progress(self, time_s):
         """! Called every second of a video playback """
         if self.frame_songinfo is not None:
-            # And it stays only for 10 seconds
-            if time_s == 10 and not self._is_show_song_info_thread_active():
-                PrintTraceInUi("Showing song info")
-                # Recreate thread
-                self.thread_ui_info = Thread(name="Automatic UI song info Thread", target=self._show_song_info_thread)
-                self.thread_ui_info.start()
+            if self.is_automatic_show_song_info:
+                # And it stays only for 10 seconds
+                if time_s == 10 and not self._is_show_song_info_thread_active():
+                    PrintTraceInUi("Showing song info")
+                    # Recreate thread
+                    self.thread_ui_info = Thread(name="Automatic UI song info Thread", target=self._show_song_info_thread)
+                    self.thread_ui_info.start()
 
     def on_exit(self):
         """! Called at the end of a video playback """
