@@ -29,6 +29,7 @@ from dataclasses import dataclass
 
 from colors import *
 from logger import PrintTraceInUi
+from data_manager import GetDataManager, DataManager
 from plugin_base import PluginBase
 from plugins.messaging_view import MessageListbox
 
@@ -55,6 +56,8 @@ class MessagingPlugin(PluginBase):
     maintenance_listbox = None
     is_server_running = False
     
+    _first_loading = True
+    
     def __init__(self, params = None):
         super().__init__(params)
         
@@ -70,6 +73,9 @@ class MessagingPlugin(PluginBase):
         if DELETE_AFTER_MINUTES_PARAM not in self.params:
             PrintTraceInUi(f"{DELETE_AFTER_MINUTES_PARAM} is not defined, use default value")
             self.params[DELETE_AFTER_MINUTES_PARAM] = DELETE_AFTER_MINUTES_PARAM_DEFAULT
+        if not GetDataManager().is_table_exists("MESSAGES"):
+            GetDataManager().create_table("MESSAGES", ["TIMESTAMP", "AUTHOR", "MESSAGE"])
+
 
     @dataclass
     class Message:
@@ -238,10 +244,33 @@ class MessagingPlugin(PluginBase):
 
         
         if self.maintenance_listbox is not None and self.message_ui is not None:
-            # Everything is loaded
-            self.message_ui.subscribe_listbox(self.maintenance_listbox)
+            if self._first_loading:
+                self._first_loading = False
+                
+                # Everything is loaded
+                self.message_ui.subscribe_listbox(self.maintenance_listbox)
 
-            # TODO Load file messages
+                # Read message list from database
+                entries = GetDataManager().select_entries("MESSAGES", "*", order_by="TIMESTAMP")
+                for entry in entries:
+                    PrintTraceInUi("Reading from database : ", entry)
+                    if len(entry) == 3:
+                        try:
+                            time_message = datetime.strptime(entry[0], "%Y-%m-%d %H:%M:%S")
+                            # We cannot use datetime.timestamp() as it is buggy : 
+                            # cf https://bugs.python.org/issue37527
+                            epoch = datetime.utcfromtimestamp(0)
+                            total_seconds =  (time_message - epoch).total_seconds()
+
+                            new_message = MessagingPlugin.Message(entry[1], # Author
+                                                                entry[2], # Message
+                                                                total_seconds)
+                            self.message_ui.load_message(new_message)
+                        except:
+                            PrintTraceInUi("Time is incorrect in the db ! ")
+                    
+                    else:
+                        PrintTraceInUi("Message not added, not wellformed !")
 
 
     def on_begin(self):
@@ -259,12 +288,14 @@ class MessagingPlugin(PluginBase):
     def on_destroy(self):
         """! Called to stop the plugin and release resources """
         self.is_running = False
-        self.message_ui.stop()
+        if self.message_ui is not None:
+            self.message_ui.stop()
         self.stop_server()
         self.message_ui_thread.join()
         # FIXME Workaround to stop the tcp server 
         self.http_server._BaseServer__shutdown_request = True
         # self.http_server = None
+        GetDataManager().kill()
 
     def is_maintenance_frame(self):
         """! Returns True if the plugin needs a maintenance frame, for UI controls """
@@ -423,7 +454,6 @@ class MessagingPlugin(PluginBase):
                 if len(active_messages) > 0:
                     
                     self.show() # ?
-
                     # If we display a message, we display it for DISPLAY_TIME seconds
                     time_to_wait = int(self.params[DISPLAY_TIME_PARAM])
                     self.message_list[self.index_sequence_message].set_not_current_message()
@@ -457,36 +487,52 @@ class MessagingPlugin(PluginBase):
                 self.scroll_thread.join()
                 self.scroll_thread = None
 
+        def load_message(self, message):
+            """! Loading a message from the database, so not storing it again inside """
+            self.message_list.append(message)
+
+            if self.maintenance_listbox is not None:
+                time = datetime.fromtimestamp(
+                    message.timestamp_activation).time()
+                date = datetime.fromtimestamp(
+                    message.timestamp_activation).date()
+                timestamp = "{:04d}".format(date.year)   + "-" \
+                        + "{:02d}".format(date.month)  + "-" \
+                        + "{:02d}".format(date.day)    + " " \
+                        + "{:02d}".format(time.hour)   + ":" \
+                        + "{:02d}".format(time.minute) + ":" \
+                        + "{:02d}".format(time.second)
+                
+                self.maintenance_listbox.add_entry(timestamp,
+                                            author=message.author,
+                                            message=message.message,
+                                            active_cb=message.store_active_state_cb,
+                                            current_cb=message.store_current_message_cb,
+                                            activate_toggle_cb=message.activate_toggle_cb)
+            # if the timestamp is correct, set active
+            if message.timestamp_activation + int(self.params[DELETE_AFTER_MINUTES_PARAM])*60 > time():
+                message.set_active()
+                    
+                #Recompute show (we now have messages)
+                if self.is_shown:
+                    self.show()
+
         def add_message(self, message):
-            """! Adding a message in the dictionary of active message """
+            """! Adding a message in the dictionary of messages """
             # Remove messages with the same author 
             for active_message in self.message_list:
                 if active_message.author == message.author:
                     active_message.set_inactive()
             
-            self.message_list.append(message)
-            
-            time = datetime.fromtimestamp(
-                message.timestamp_activation).time()
-            timestamp = "{:02d}".format(time.hour) + ":" + "{:02d}".format(time.minute) + ":" + "{:02d}".format(time.second)
+            self.load_message(message)
             
             if MESSAGE_FILE_PATH_PARAM in self.params:
                 with open(self.params[MESSAGE_FILE_PATH_PARAM], 'a+', encoding='utf-8') as f:
                     f.write(timestamp + " "  +  message.author + " : " + message.message + '\n')
             
-            if self.maintenance_listbox is not None:
-                self.maintenance_listbox.add_entry(timestamp,
-                                                author=message.author,
-                                                message=message.message,
-                                                active_cb=message.store_active_state_cb,
-                                                current_cb=message.store_current_message_cb,
-                                                activate_toggle_cb=message.activate_toggle_cb)
+            GetDataManager().insert_entries("MESSAGES", [(timestamp, message.author, message.message)])
 
             message.set_active()
-
-            #Recompute show (we now have messages)
-            if self.is_shown:
-                self.show()
 
         def show(self):
             """! Show api """

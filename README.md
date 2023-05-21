@@ -47,7 +47,7 @@ python3 -m pip install python-vlc python-magic
 Plugins :
 
 - Add screen preview on the sequence window
-- Load messages from output (if the program crashed, we want to keep the old messages active)
+- Add clear message button to clear the database table
 - Add enabling/disabling auto songinfo
 
 Ui :
