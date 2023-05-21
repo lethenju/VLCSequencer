@@ -47,7 +47,7 @@ class SongInfoPlugin(PluginBase):
             artist = kwargs["artist"]
             song = kwargs["song"]
 
-            if song is not None and artist is not None:
+            if song is not None and artist is not None and song != "" and artist != "":
                 # TODO background image maybe ?
                 self.frame_songinfo = tk.Frame(self.player_window, width=20, bg=UI_BACKGROUND_COLOR)
                 font_size = int(self.player_window.winfo_height() /25);
