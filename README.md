@@ -24,14 +24,14 @@ You'll need Python3, VLC and some pip packages :
 ### For Windows
 
 ```powershell
-python.exe -m pip install python-vlc python-magic-bin=0.4.14
+python.exe -m pip install python-vlc python-magic-bin=0.4.14 pillow 
 ```
 
 ### For Linux
 
 ```bash
-sudo apt install vlc libvlc-dev
-python3 -m pip install python-vlc python-magic
+sudo apt install vlc libvlc-dev python3-pil python3-pil.imagetk
+python3 -m pip install python-vlc python-magic pillow 
 ```
 
 ## Usage
