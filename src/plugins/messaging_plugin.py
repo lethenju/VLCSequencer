@@ -527,7 +527,17 @@ class MessagingPlugin(PluginBase):
                     active_message.set_inactive()
             
             self.load_message(message)
-            
+        
+            message_time = datetime.fromtimestamp(
+                message.timestamp_activation).time()
+            message_date = datetime.fromtimestamp(
+                message.timestamp_activation).date()
+            timestamp = "{:04d}".format(message_date.year)   + "-" \
+                    + "{:02d}".format(message_date.month)  + "-" \
+                    + "{:02d}".format(message_date.day)    + " " \
+                    + "{:02d}".format(message_time.hour)   + ":" \
+                    + "{:02d}".format(message_time.minute) + ":" \
+                    + "{:02d}".format(message_time.second)
             if MESSAGE_FILE_PATH_PARAM in self.params:
                 with open(self.params[MESSAGE_FILE_PATH_PARAM], 'a+', encoding='utf-8') as f:
                     f.write(timestamp + " "  +  message.author + " : " + message.message + '\n')
