@@ -36,6 +36,7 @@ from plugin_base import PluginType
 from history_view import HistoryListbox
 from log_view import LogListbox
 
+
 class MainSequencer():
     """! Handle the sequencing of videos to be played back """
 
@@ -50,7 +51,9 @@ class MainSequencer():
 
     # Launch the sequencer thread
     def launch_sequencer(self):
-        self.thread = threading.Thread(name="MainSequencer Thread", target=self.sequencer_thread)
+        self.thread = threading.Thread(
+            name="MainSequencer Thread",
+            target=self.sequencer_thread)
         self.is_running_flag = True
         self.thread.start()
 
@@ -60,9 +63,8 @@ class MainSequencer():
             if path is None and length_s is None:
                 # We are exiting
                 self.is_running_flag = False
-                break;
+                break
             self.ui_player.play(path=path, length_s=length_s)
-
 
     def kill(self):
         PrintTraceInUi("End of the main sequencer")
@@ -74,9 +76,11 @@ class MainSequencer():
 class SequenceBlock:
     """! Describe a sequence block : a video or a block of videos
 
-    Used by the Sequence loader to read the sequence description file and flatten
-    the description loops, resolve random videos. Used afterward as the main sequence,
-    with its UI and block logic"""
+    Used by the Sequence loader to read the sequence description file
+    and flatten the description loops, resolve random videos.
+    Used afterward as the main sequence,
+    with its UI and block logic
+    """
 
     inner_sequence = []
     block_type = None
@@ -93,7 +97,10 @@ class SequenceBlock:
     is_on_repeat = False
     last_playback = 0
 
-    def __init__(self, block_type, block_args=None, repeat = False):
+    def __init__(self,
+                 block_type,
+                 block_args=None,
+                 repeat=False):
         self.inner_sequence = []
         self.ui_frame = None
         self.ui_playing_time = None
@@ -112,7 +119,6 @@ class SequenceBlock:
             self.is_on_repeat = True
         else:
             self.is_on_repeat = False
-
 
     def set_on_repeat(self):
         """! Toggle repeat mode """
@@ -181,7 +187,8 @@ class SequenceBlock:
         if self.block_type == "sequence":
             sequence_description = ("Sequence :\n")
             for child in self.inner_sequence:
-                sequence_description = sequence_description + child.__str__() + "\n"
+                sequence_description = \
+                    sequence_description + child.__str__() + "\n"
             return sequence_description
 
         if self.block_type is not None:
@@ -211,23 +218,31 @@ class UiSequenceManager:
 
             listviews.pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
 
-    # Reference to the player object to connect the playback buttons to the associated callbacks
+    # Reference to the player object to
+    # connect the playback buttons to the associated callbacks
     ui_player = None
-    # Reference to the metadata API to get the user-defined start/end playback timestamps
+    # Reference to the metadata API to get the
+    # user-defined start/end playback timestamps
     metadata_manager = None
     # Reference to the plugins API
     plugin_manager = None
-    #  Reference to the Vlc instance to get true metadata about the video (length..)
+    #  Reference to the Vlc instance to get true
+    #  metadata about the video (length..)
     vlc_instance = None
-    # Reference to the kill callback of the main sequencer, which is a parent but we need access to the kill feature
+    # Reference to the kill callback of the main sequencer,
+    # which is a parent but we need access to the kill feature
     # from the UI
     main_sequencer_kill_cb = None
 
     # main Tkinter panes, from top to bottom
-    main_clock_view = None          # Top view with the clock
-    sequence_view = None            # View of the sequence with its different blocks
-    ui_playback_control_view = None # Control buttons
-    bottom_view = None              # Bottom view : listboxes of history and logs, and plugins management UIs
+    # Top view with the clock
+    main_clock_view = None
+    # View of the sequence with its different blocks
+    sequence_view = None
+    # Control buttons
+    ui_playback_control_view = None
+    # Bottom view : listboxes of history and logs, and plugins management UIs
+    bottom_view = None
 
     listviews = None
     # Dictionary of parsed videos
@@ -245,7 +260,13 @@ class UiSequenceManager:
     # If the video is in pause, need to recalculate the timestamps every second
     is_paused = False
 
-    def __init__(self, tkroot, vlc_instance, ui_player, path, metadata_manager, plugin_manager):
+    def __init__(self,
+                 tkroot,
+                 vlc_instance,
+                 ui_player,
+                 path,
+                 metadata_manager,
+                 plugin_manager):
         """! The Sequence manager initializer
 
             @param path : path the sequence file
@@ -264,11 +285,18 @@ class UiSequenceManager:
         self.ui_sequence_manager.title("Sequence Manager")
 
         self.main_clock_view = tk.Frame(
-            self.ui_sequence_manager, width=1000, height=200, background=UI_BACKGROUND_COLOR)
-        self.main_clock_view.pack(side=tk.TOP,  fill=tk.BOTH)
+            self.ui_sequence_manager,
+            width=1000,
+            height=200,
+            background=UI_BACKGROUND_COLOR)
+        self.main_clock_view.pack(
+            side=tk.TOP,
+            fill=tk.BOTH)
 
-        lbl = tk.Label(self.main_clock_view, font=(
-            'calibri', 60, 'bold'), background=UI_BACKGROUND_COLOR, foreground='white')
+        lbl = tk.Label(self.main_clock_view,
+                       font=('calibri', 60, 'bold'),
+                       background=UI_BACKGROUND_COLOR,
+                       foreground='white')
         lbl.pack(side=tk.TOP,  fill=tk.BOTH, pady=50)
 
         # Launch clock thread
@@ -278,49 +306,70 @@ class UiSequenceManager:
                 lbl.config(text=string)
                 time.sleep(1)
 
-        self.clock_thread = threading.Thread(name="UpdateClock Thread", target=update_clock)
+        self.clock_thread = \
+            threading.Thread(
+                name="UpdateClock Thread",
+                target=update_clock)
         self.clock_thread.start()
 
         self.sequence_view = tk.Frame(
-            self.ui_sequence_manager, width=1000, height=500, background=UI_BACKGROUND_COLOR)
-        self.sequence_view.pack(side=tk.TOP,  fill=tk.BOTH)
+            self.ui_sequence_manager,
+            width=1000,
+            height=500,
+            background=UI_BACKGROUND_COLOR)
+        self.sequence_view.pack(
+            side=tk.TOP,
+            fill=tk.BOTH)
 
         self.ui_playback_control_view = tk.Frame(
-            self.ui_sequence_manager,  width=500,  background=UI_BACKGROUND_COLOR)
+            self.ui_sequence_manager,
+            width=500,
+            background=UI_BACKGROUND_COLOR)
 
         self.pause_button = tk.Button(
-            self.ui_playback_control_view, text="Pause/Resume", command=self.pause_resume_callback,
+            self.ui_playback_control_view,
+            text="Pause/Resume",
+            command=self.pause_resume_callback,
             padx=10, pady=10, font=('calibri', 12),
             fg="white",
             bg=UI_BACKGROUND_COLOR)
         self.mute_button = tk.Button(
-            self.ui_playback_control_view, text="Mute/Unmute",  command=self.ui_player.mute_trigger,
+            self.ui_playback_control_view,
+            text="Mute/Unmute",
+            command=self.ui_player.mute_trigger,
             padx=10, pady=10, font=('calibri', 12),
             fg="white",
             bg=UI_BACKGROUND_COLOR)
         self.next_button = tk.Button(
-            self.ui_playback_control_view, text="Next",         command=self.ui_player.next,
+            self.ui_playback_control_view,
+            text="Next",
+            command=self.ui_player.next,
             padx=10, pady=10, font=('calibri', 12),
             fg="white",
             bg=UI_BACKGROUND_COLOR)
         self.reload_csv_button = tk.Button(
-            self.ui_playback_control_view, text="Reload Metadata",         command=self.reload_metadata,
+            self.ui_playback_control_view,
+            text="Reload Metadata",
+            command=self.reload_metadata,
             padx=10, pady=10, font=('calibri', 12),
             fg="white",
             bg=UI_BACKGROUND_COLOR)
         self.quit_button = tk.Button(
-            self.ui_playback_control_view, text="Quit",         command=self.kill,
+            self.ui_playback_control_view,
+            text="Quit",
+            command=self.kill,
             padx=10, pady=10, font=('calibri', 12),
             fg="white",
             bg=UI_BACKGROUND_COLOR)
         self.pause_button.grid(column=0, row=0, padx=10, pady=10)
         self.mute_button.grid(column=1, row=0, padx=10, pady=10)
         self.next_button.grid(column=2, row=0, padx=10, pady=10)
-        self.reload_csv_button.grid(column=3, row=0,padx=10, pady=10)
+        self.reload_csv_button.grid(column=3, row=0, padx=10, pady=10)
         self.quit_button.grid(column=4, row=0, padx=10, pady=10)
         self.ui_playback_control_view.pack(side=tk.TOP,  fill=tk.BOTH)
 
-        self.bottom_view = tk.Frame(self.ui_sequence_manager, background=UI_BACKGROUND_COLOR)
+        self.bottom_view = tk.Frame(self.ui_sequence_manager,
+                                    background=UI_BACKGROUND_COLOR)
         self.bottom_view.pack(fill=tk.BOTH, expand=1)
 
         self.listviews = self.ListViews(self.bottom_view)
@@ -334,29 +383,45 @@ class UiSequenceManager:
 
         if not self.is_paused:
             self.is_paused = True
-            # Activate the thread that add a second to the length of the current video
+            # Activate the thread that add a second
+            # to the length of the current video
 
             def current_playing_is_paused_thread():
                 while self.is_paused and self.is_running_flag:
                     time.sleep(1)
-                    video = self.sequence_data.inner_sequence[self.index_playing_video]
+                    video = self.sequence_data \
+                                .inner_sequence[self.index_playing_video]
                     video.length = video.length + 1
 
-                    # Changing timestamps for the videos after the current one, if they exists
-                    if self.index_playing_video + 1 < len(self.sequence_data.inner_sequence):
-                        for i in range(self.index_playing_video + 1, len(self.sequence_data.inner_sequence)):
+                    # Changing timestamps for the videos after
+                    # the current one, if they exists
+                    if self.index_playing_video + 1 < \
+                            len(self.sequence_data.inner_sequence):
+                        for i in range(self.index_playing_video + 1,
+                                       len(self.sequence_data.inner_sequence)):
                             video = self.sequence_data.inner_sequence[i]
 
-                            self.sequence_data.inner_sequence[
-                                i].last_playback = self.sequence_data.inner_sequence[i].last_playback+1
+                            self.sequence_data.inner_sequence[i]. \
+                                last_playback = \
+                                self.sequence_data. \
+                                inner_sequence[i]. \
+                                last_playback+1
                             # self._resolve_timestamps(index=i)
 
                             ui_playing_label_time = datetime.fromtimestamp(
                                 video.last_playback).time()
-                            video.ui_playing_time.configure(text="{:02d}".format(ui_playing_label_time.hour) + ":" +
-                                                            "{:02d}".format(ui_playing_label_time.minute) + ":" +
-                                                            "{:02d}".format(ui_playing_label_time.second))
-            threading.Thread(name="OnPause Thread", target=current_playing_is_paused_thread).start()
+                            video.ui_playing_time.configure(
+                                text="{:02d}".
+                                     format(ui_playing_label_time.hour) +
+                                     ":" +
+                                     "{:02d}".
+                                     format(ui_playing_label_time.minute) +
+                                     ":" +
+                                     "{:02d}".
+                                     format(ui_playing_label_time.second))
+            threading.Thread(name="OnPause Thread",
+                             target=current_playing_is_paused_thread). \
+                start()
         else:
             self.is_paused = False
 
@@ -367,15 +432,16 @@ class UiSequenceManager:
         # TODO Reload UI
 
     def _get_metadata(self, video_name):
-            """! Gets the metadata through the API, wraps the None protection
-                @param video_name : name of the video file, key in the metadata dictionary
-                @return metadata object if it exists, None otherwise
-            """
-            metadata = None
-            if self.metadata_manager is not None:
-                metadata = self.metadata_manager.get_metadata(
-                    video_name=video_name)
-            return metadata
+        """! Gets the metadata through the API, wraps the None protection
+            @param video_name : name of the video file,
+                   key in the metadata dictionary
+            @return metadata object if it exists, None otherwise
+        """
+        metadata = None
+        if self.metadata_manager is not None:
+            metadata = self.metadata_manager.get_metadata(
+                video_name=video_name)
+        return metadata
 
     def _build_sequence(self, sequence_xml_node, sequence_data_node):
         for child in sequence_xml_node:
@@ -387,8 +453,8 @@ class UiSequenceManager:
                 sequence_data_node.add_block(block)
             if child.tag == "Video":
                 path = child.attrib['path']
-                repeat = child.attrib.setdefault('repeat',None)
-                block = SequenceBlock("video", path, repeat= (repeat == "1"))
+                repeat = child.attrib.setdefault('repeat', None)
+                block = SequenceBlock("video", path, repeat=(repeat == "1"))
                 sequence_data_node.add_block(block)
             if child.tag == "RandomVideo":
                 path = child.attrib['path']
@@ -409,11 +475,15 @@ class UiSequenceManager:
                 sequence_data_node.inner_sequence.remove(block)
 
     def _find_random_video(self, path, timeout_m, time_programmed_s):
-        """! Returns a video in the directory given by the path parameter and that hasnt played for timeout minutes
+        """! Returns a video in the directory given by the path
+             parameter and that hasnt played for timeout minutes
           @param path : the path of the directory to search videos in
           @param timeout_m : Timeout of the needed video in minutes :
-                             the video must not be chosen if it has been chosen the last timeout_m minutes
-          @param time_programmed_s : Timestamp in the future for the programmed video, when its gonna be played
+                             the video must not be chosen if
+                             it has been chosen the last timeout_m minutes
+          @param time_programmed_s : Timestamp in the future
+                                     for the programmed video,
+                                     when its gonna be played
         """
         # gather list of files
         files = os.listdir(self.path_dirname + "/" + path)
@@ -434,25 +504,32 @@ class UiSequenceManager:
                 if complete_path in self.history_knownvideos:
                     video = self.history_knownvideos[complete_path]
 
-                    PrintTraceInUi("Already known video... Last playback on ", datetime.fromtimestamp(
-                        video.last_playback), " and timeout ", int(timeout_m)*60, "s")
+                    PrintTraceInUi("Already known video... Last playback on ",
+                                   datetime.fromtimestamp(video.last_playback),
+                                   " and timeout ",
+                                   int(timeout_m)*60, "s")
                     PrintTraceInUi(" and timestamp of the programmed video  ",
                                    datetime.fromtimestamp(time_programmed_s))
-                    if (video.last_playback + int(timeout_m)*60 < time_programmed_s):
+                    if (video.last_playback + int(timeout_m)*60 <
+                            time_programmed_s):
                         video_found = complete_path
-                        # Overriding the last playback to now + last programmed videos time
-                        self.history_knownvideos[complete_path].last_playback = time_programmed_s
+                        # Overriding the last playback to now +
+                        # last programmed videos time
+                        self.history_knownvideos[complete_path]. \
+                            last_playback = time_programmed_s
                     else:
                         PrintTraceInUi("Last playback too recent.. ")
                         # Forbid this video to be tested again
                         forbidden_files.append(complete_path)
                         if len(forbidden_files) == len(files):
                             PrintTraceInUi(
-                                "ERROR ! All videos are forbidden !! Selecting ", complete_path, " anyway..")
+                                "ERR ! All videos are forbidden ! Selecting ",
+                                complete_path,
+                                " anyway..")
                             video_found = complete_path
-                            self.history_knownvideos[complete_path].last_playback = time_programmed_s
+                            self.history_knownvideos[complete_path]. \
+                                last_playback = time_programmed_s
                 else:
-                    # PrintTraceInUi("Unknown video for now, validating playback")
                     video_found = complete_path
             else:
                 PrintTraceInUi("Not a video file")
@@ -473,14 +550,16 @@ class UiSequenceManager:
             # Compute last video length
             path_video = self.sequence_data.inner_sequence[index-1].path
 
-            # Get the metadata to gather the actual programmed playing time of the videos
-
+            # Get the metadata to gather
+            # the actual programmed playing time of the videos
             metadata = self._get_metadata(path_video.split("/").pop())
 
             if metadata is not None:
                 if metadata.timestamp_end != 0:
-                    # If there is a end timestamp, we know the length is end - start
-                    playing_length_s = metadata.timestamp_end - metadata.timestamp_begin
+                    # If there is a end timestamp,
+                    # we know the length is end - start
+                    playing_length_s = metadata.timestamp_end - \
+                                       metadata.timestamp_begin
                 else:
                     # If theres a start we have to get the length and substract
                     playing_length_s = self.history_knownvideos[path_video].length - \
@@ -579,10 +658,11 @@ class UiSequenceManager:
                 # Childs of a plugins are its parameter
                 params = {}
                 for param in child:
-                    assert( "name" in param.attrib and "value" in param.attrib)
+                    assert ("name" in param.attrib and "value" in param.attrib)
                     params[param.attrib["name"]] = param.attrib["value"]
 
-                self.plugin_manager.add_plugin(PluginType.PluginTypeFactory(plugin_name), params);
+                self.plugin_manager.add_plugin(
+                    PluginType.PluginTypeFactory(plugin_name), params)
             elif child.tag == "Sequence":
                 PrintTraceInUi("Sequence found!")
                 self.sequence_data = SequenceBlock("sequence")
@@ -628,18 +708,28 @@ class UiSequenceManager:
                 bg=block.get_color())
             block.ui_button_frame.pack(fill=tk.BOTH, expand=True)
             block.ui_button_repeat_toggle = tk.Button(
-                block.ui_button_frame, text="Toggle Repeat", command=block.set_on_repeat,
+                block.ui_button_frame,
+                text="Toggle Repeat",
+                command=block.set_on_repeat,
                 font=('calibri', 12),
                 fg="white",
                 bg=block.get_color())
 
-            block.ui_button_repeat_toggle.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            block.ui_button_repeat_toggle.pack(
+                side=tk.LEFT,
+                fill=tk.BOTH,
+                expand=True)
             block.ui_button_change_video = tk.Button(
-                block.ui_button_frame, text="Change Video", command=partial(self._change_video, i),
+                block.ui_button_frame,
+                text="Change Video",
+                command=partial(self._change_video, i),
                 font=('calibri', 12),
                 fg="white",
                 bg=block.get_color())
-            block.ui_button_change_video.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
+            block.ui_button_change_video.pack(
+                side=tk.RIGHT,
+                fill=tk.BOTH,
+                expand=True)
 
             if block.is_on_repeat:
                 block.modify_color(UI_BLOCK_REPEAT_VIDEO_COLOR)
