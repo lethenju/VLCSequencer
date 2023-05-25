@@ -1,6 +1,7 @@
 <head>
   <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
   <meta content="utf-8" http-equiv="encoding">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -10,8 +11,28 @@
     Si vous le souhaitez, vous pouvez diffuser un message sur la vidéo.
     Remplissez les champs ci dessous et votre message sera diffusé pendant 20 minutes
   </p>
+  <script>
+    function validateForm() {
+        if (document.submit_message.name.value === '') {
+            window.alert("Attention le nom est vide !");
+            return false;
+        }
 
-  <form action="/submit_message" method="post">
+        if (document.submit_message.message.value === '') {
+            window.alert("Attention le message est vide !");
+            return false;
+        } else if (document.submit_message.message.value.length > 128)
+        {
+            window.alert("Attention le message est trop long ! Il doit faire moins de 128 caractères, il en fait actuellement "
+                          + document.submit_message.message.value.length);
+            return false;
+        }
+
+        return false;
+      }
+  </script>
+
+  <form name="submit_message" id="submit_message" action="/submit_message" onsubmit="return validateForm()" method="post">
       <p class="text"> Nom : </p> <input type="text" id="name" name="name">
       <p class="text"> Message : </p> <textarea type="text" id="message" name="message"></textarea>
       <p />

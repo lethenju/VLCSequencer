@@ -24,14 +24,14 @@ You'll need Python3, VLC and some pip packages :
 ### For Windows
 
 ```powershell
-python.exe -m pip install python-vlc python-magic-bin=0.4.14 pillow 
+python.exe -m pip install python-vlc python-magic-bin=0.4.14 pillow
 ```
 
 ### For Linux
 
 ```bash
 sudo apt install vlc libvlc-dev python3-pil python3-pil.imagetk
-python3 -m pip install python-vlc python-magic pillow 
+python3 -m pip install python-vlc python-magic pillow
 ```
 
 ## Usage
@@ -53,11 +53,6 @@ Ui :
 
 - Add Metadata-related info on the sequence (if fade-in/out are activated, etc..)
 - Add a button to get back to the beginning of the current video
-
-Web :
-
-- Js check of message size before sending the post
-- Responsive web page design (as for now we have a really poor experience on mobile)
 
 Video playback :
 
