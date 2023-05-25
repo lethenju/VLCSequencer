@@ -88,6 +88,7 @@ class MessagingPlugin(PluginBase):
 
         _active_state_cb : any = None
         _current_message_state_cb : any = None
+        manual_activation : bool = False
 
         def set_current_message(self):
             if not self._is_active:
@@ -133,6 +134,7 @@ class MessagingPlugin(PluginBase):
             if self._is_active:
                 self.set_inactive()
             else:
+                self.manual_activation = True
                 self.set_active()
 # Plugin interface
 
@@ -555,7 +557,8 @@ class MessagingPlugin(PluginBase):
             PrintTraceInUi("Recomputing messages..")
             # Change state of messages
             for message in self.message_list:
-                if message.timestamp_activation + int(self.params[DELETE_AFTER_MINUTES_PARAM])*60 < time():
+                if message.timestamp_activation + int(self.params[DELETE_AFTER_MINUTES_PARAM])*60 < time() \
+                    and not message.manual_activation:
                     PrintTraceInUi(f"Message going inactive ! {message.message}")
                     message.set_inactive()
                     #self.message_list.remove(message)
