@@ -24,7 +24,7 @@ class PluginType(Enum):
     SONG_INFO_PLUGIN = 0
     MESSAGING_PLUGIN = 1
     TIME_AND_CHANNEL_PLUGIN = 2
-    
+
     def PluginTypeFactory(str_name):
         """! Returns the appropriate enum with the name of the plugin """
         if str_name == "SongInfo":
@@ -68,7 +68,7 @@ class PluginBase:
 
     def on_exit(self):
         """! Called at the end of a video playback """
-    
+
     def on_destroy(self):
         """! Called to stop the plugin and release resources """
         self.is_running = False

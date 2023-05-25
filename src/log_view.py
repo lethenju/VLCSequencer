@@ -25,7 +25,7 @@ from listboxes_base import BaseListbox
 class LogListbox(BaseListbox):
 
     def __init__(self, tk_notebook, nb_elements = 10):
-        """! Initialize the listbox 
+        """! Initialize the listbox
             @param tk_notebook : the tk notebook in which add the listbox
             @param nb_elements : the max nb_elements to be displayed at once
         """

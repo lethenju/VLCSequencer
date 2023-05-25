@@ -43,13 +43,13 @@ class MainManager:
     sequence_path = ""
 
     def __init__(self, sequence_file, metadata_file, launch_now):
-        """! The main manager initializer, handles the welcome screen to 
-            select a sequence file and metadata  
+        """! The main manager initializer, handles the welcome screen to
+            select a sequence file and metadata
         """
         self.sequence_path = sequence_file
         self.metadata_path = metadata_file
         self.root = tk.Tk()
-    
+
         if launch_now:
             if not os.path.isfile(self.sequence_path):
                 print("ERROR ", self.sequence_path, " IS NOT A VALID FILE")
@@ -144,7 +144,7 @@ class MainManager:
         metadata_manager = None
         if os.path.isfile(self.metadata_path):
             metadata_manager = MetaDataManager(path=self.metadata_path)
-        
+
         plugin_manager = PluginManager()
 
         player = UiPlayer(tkroot=self.root, vlc_instance=instance,
@@ -174,13 +174,13 @@ class MainManager:
 
 # Prevents this code to be runned if loaded as a module
 if __name__ == '__main__':
-    
+
     parser = argparse.ArgumentParser(prog="VLCSequencer")
     parser.add_argument('-s','--sequence', help="Path of the sequence file to use", action="store")
     parser.add_argument('-m','--metadata', help="Path of the metadata file to use", action="store")
     parser.add_argument('-l','--launch', help="Set if you want to launch directly without going through the main menu", action="store_true")
     args = parser.parse_args()
-        
+
 
     MainManager(sequence_file = args.sequence,
                 metadata_file = args.metadata,

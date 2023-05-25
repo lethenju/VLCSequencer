@@ -25,13 +25,15 @@ from colors import *
 from logger import PrintTraceInUi
 from plugin_base import PluginBase
 
+
 class SongInfoPlugin(PluginBase):
     """! Plugin to show the song info as it plays """
     frame_songinfo = None
     artist = ""
     song = ""
 
-    is_automatic_show_song_info = True # Activated by default
+    # Activated by default
+    is_automatic_show_song_info = True
     is_hiding_info = False
     is_showing_info = False
     timestamp_show_info = 0
@@ -49,17 +51,20 @@ class SongInfoPlugin(PluginBase):
             artist = kwargs["artist"]
             song = kwargs["song"]
 
-            if song is not None and artist is not None and song != "" and artist != "":
+            if song is not None \
+                    and artist is not None \
+                    and song != "" and artist != "":
+
                 # TODO background image maybe ?
                 self.frame_songinfo = tk.Frame(self.player_window, width=20, bg=UI_BACKGROUND_COLOR)
                 font_size = int(self.player_window.winfo_height() /25);
                 PrintTraceInUi("FontSize ", font_size)
                 label_artist = tk.Label(self.frame_songinfo,text=artist, padx=10, pady=10, font=('calibri', font_size, 'bold'),fg="white", bg=UI_BACKGROUND_COLOR)
                 label_song   = tk.Label(self.frame_songinfo,text=song, padx=10, pady=10, font=('calibri', font_size),fg="white", bg=UI_BACKGROUND_COLOR)
-                
+
                 label_artist.pack(side=tk.LEFT)
                 label_song.  pack(side=tk.RIGHT)
-        
+
         if self.maintenance_frame is None and "maintenance_frame" in kwargs:
             PrintTraceInUi("Link maintenance window to us")
             super().setup(maintenance_frame=kwargs["maintenance_frame"])
@@ -79,14 +84,17 @@ class SongInfoPlugin(PluginBase):
                 else:
                     PrintTraceInUi("Song info frame is not ready")
 
-
-            self.show_button = tk.Button(self.maintenance_song_info_frame, text="Show song info", font=('calibri', 11),fg="white",
-                bg=UI_BACKGROUND_COLOR, command=button_show_song_info)
+            self.show_button = tk.Button(self.maintenance_song_info_frame,
+                                         text="Show song info",
+                                         font=('calibri', 11),
+                                         fg="white",
+                                         bg=UI_BACKGROUND_COLOR,
+                                         command=button_show_song_info)
             self.show_button.pack()
 
             def button_toggle_auto_song_info():
-                self.is_automatic_show_song_info = not self.is_automatic_show_song_info 
-                
+                self.is_automatic_show_song_info = not self.is_automatic_show_song_info
+
                 if self.is_automatic_show_song_info:
                     self.toggle_automatic_button.configure(text="Disable automatic song info")
                 else:
@@ -138,7 +146,7 @@ class SongInfoPlugin(PluginBase):
 
 # Private functions
     def _show_song_info_thread(self):
-        """! Thread to handle the display of the song info pane 
+        """! Thread to handle the display of the song info pane
              Single thread that shows and hide !
         """
         self.show_button.configure(state=tk.DISABLED)

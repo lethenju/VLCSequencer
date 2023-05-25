@@ -75,7 +75,7 @@ class SequenceBlock:
     """! Describe a sequence block : a video or a block of videos
 
     Used by the Sequence loader to read the sequence description file and flatten
-    the description loops, resolve random videos. Used afterward as the main sequence, 
+    the description loops, resolve random videos. Used afterward as the main sequence,
     with its UI and block logic"""
 
     inner_sequence = []
@@ -137,7 +137,7 @@ class SequenceBlock:
         return bg_color
 
     def select(self):
-        """! Select the video by putting a different background 
+        """! Select the video by putting a different background
                 to the main ui frame of the block
         """
         self.ui_frame.configure(
@@ -148,7 +148,7 @@ class SequenceBlock:
     def modify_color(self, color):
         """! Modify background colors of the UI elements of the block """
         # TODO "for widget in ui:"
-        # Have a dictionary of widgets 
+        # Have a dictionary of widgets
         self.ui_frame.configure(
             bg=UI_BLOCK_USED_VIDEO_FRAME_COLOR)
         self.ui_playing_time.configure(
@@ -190,22 +190,22 @@ class SequenceBlock:
 
 
 class UiSequenceManager:
-    """! Reads the sequence description and builds the video sequence 
+    """! Reads the sequence description and builds the video sequence
 
-        Open a UI to visualize and modify the sequence 
+        Open a UI to visualize and modify the sequence
     """
     class ListViews:
         log_object = None
         history_object = None
 
         def __init__(self, ui_parent):
-            
+
             listviews = ttk.Notebook(ui_parent)
 
             listviews.columnconfigure(0, weight=1)
             listviews.columnconfigure(1, weight=1)
             listviews.rowconfigure(0, weight=1)
-            
+
             self.history_object = HistoryListbox(listviews)
             self.log_object = LogListbox(listviews)
 
@@ -248,7 +248,7 @@ class UiSequenceManager:
     def __init__(self, tkroot, vlc_instance, ui_player, path, metadata_manager, plugin_manager):
         """! The Sequence manager initializer
 
-            @param path : path the sequence file 
+            @param path : path the sequence file
             @return An instance of a UiSequenceManager
         """
         self.ui_player = ui_player
@@ -365,7 +365,7 @@ class UiSequenceManager:
         if self.metadata_manager is not None:
             self.metadata_manager.reload()
         # TODO Reload UI
-        
+
     def _get_metadata(self, video_name):
             """! Gets the metadata through the API, wraps the None protection
                 @param video_name : name of the video file, key in the metadata dictionary
@@ -409,9 +409,9 @@ class UiSequenceManager:
                 sequence_data_node.inner_sequence.remove(block)
 
     def _find_random_video(self, path, timeout_m, time_programmed_s):
-        """! Returns a video in the directory given by the path parameter and that hasnt played for timeout minutes 
+        """! Returns a video in the directory given by the path parameter and that hasnt played for timeout minutes
           @param path : the path of the directory to search videos in
-          @param timeout_m : Timeout of the needed video in minutes : 
+          @param timeout_m : Timeout of the needed video in minutes :
                              the video must not be chosen if it has been chosen the last timeout_m minutes
           @param time_programmed_s : Timestamp in the future for the programmed video, when its gonna be played
         """
@@ -494,7 +494,7 @@ class UiSequenceManager:
         video.last_playback = time_programmed_s
 
     def _load_video(self, path, video):
-        """! Load video info in the block 
+        """! Load video info in the block
             @param path : full path of the video
             @param video : Reference to the video block to fill
         """
@@ -522,7 +522,7 @@ class UiSequenceManager:
         # Split the path and get the name after the last '/' and get the name before the extension
         video.ui_label.configure(
             text=video.path.split("/").pop().split(".")[0])
-        
+
         metadata = self._get_metadata(video.path.split("/").pop())
 
         if metadata is not None:
@@ -534,7 +534,7 @@ class UiSequenceManager:
         else:
             video.ui_artist_label.pack_forget()
             video.ui_song_label.pack_forget()
-        
+
         ui_playing_label_time = datetime.fromtimestamp(
             video.last_playback).time()
         video.ui_playing_time.configure(text="{:02d}".format(ui_playing_label_time.hour) + ":" +
@@ -652,15 +652,15 @@ class UiSequenceManager:
             if plugin.is_maintenance_frame():
                 PrintTraceInUi("Creating frame for plugin ", plugin.get_name())
                 frame = ttk.Frame(tabControl)
-                plugin.setup(maintenance_frame = frame)
-                tabControl.add(frame, text = plugin.get_name())
+                plugin.setup(maintenance_frame=frame)
+                tabControl.add(frame, text=plugin.get_name())
         tabControl.pack(side=tk.RIGHT, expand=1, fill=tk.BOTH)
 
         # First sequence resolving. After each sequence iteration it will be called
         self._resolve_sequence()
 
     def _change_video(self, video_index):
-        """! Modify the video of the block 
+        """! Modify the video of the block
             @param video_index : Index of the video to modify
         """
         if self.index_playing_video == video_index:
@@ -675,18 +675,18 @@ class UiSequenceManager:
             self._load_video(video_path, video)
             if video.is_on_repeat:
                 video.modify_color(UI_BLOCK_REPEAT_VIDEO_COLOR)
-            else:   
+            else:
                 video.modify_color(UI_BLOCK_NORMAL_VIDEO_COLOR)
 
             self._reconfigure_timestamps(video_index, is_now = False)
-            
+
     def _reconfigure_timestamps(self, from_index, is_now = True):
-        """! Reconfigure all timestamps from the index chosen 
+        """! Reconfigure all timestamps from the index chosen
             @param from_index : Index of the first video to recompute
             @param is_now : true if the first video is to be set from now (default)
                             false if we need to take the already computed time
         """
-        
+
         if is_now:
         # Recompute timestamps
             self.sequence_data.inner_sequence[self.index_playing_video].last_playback = time.time()
@@ -694,7 +694,7 @@ class UiSequenceManager:
             self.sequence_data.inner_sequence[self.index_playing_video].last_playback).time()
             self.sequence_data.inner_sequence[self.index_playing_video].ui_playing_time.configure(text="{:02d}".format(ui_playing_label_time.hour) + ":" +
                                                                                               "{:02d}".format(ui_playing_label_time.minute) + ":" +
-                                                                                              "{:02d}".format(ui_playing_label_time.second))   
+                                                                                              "{:02d}".format(ui_playing_label_time.second))
         # Adding timestamps since the playing video
         for i in range(from_index + 1, len(self.sequence_data.inner_sequence)):
             video_modify = self.sequence_data.inner_sequence[i]
@@ -730,7 +730,7 @@ class UiSequenceManager:
             # Add to the history
             time_last_playback = datetime.fromtimestamp(
                 video.last_playback).time()
-            
+
             self.listviews.history_object.add_entry(timestamp="{:02d}".format(time_last_playback.hour) + ":" +
                                                               "{:02d}".format(time_last_playback.minute) + ":" +
                                                               "{:02d}".format(time_last_playback.second),
@@ -750,12 +750,12 @@ class UiSequenceManager:
             self.index_playing_video + 1) % len(self.sequence_data.inner_sequence)
         video = self.sequence_data.inner_sequence[self.index_playing_video]
         video.select()
-     
+
         self._reconfigure_timestamps(self.index_playing_video)
 
         # Gathering the video details
         return (video.path, video.length)
-    
+
     def set_main_sequencer_stop_cb(self, main_sequencer_kill_cb):
         self.main_sequencer_kill_cb = main_sequencer_kill_cb
 
@@ -764,10 +764,10 @@ class UiSequenceManager:
         PrintTraceInUi("Exiting app")
         self.is_running_flag = False
         self.ui_player.kill()
-        
+
         self.ui_sequence_manager.destroy()
         self._ui_tkroot.destroy()
-        
+
         for plugin in self.plugin_manager.get_plugins():
             PrintTraceInUi("Exiting ", plugin.get_name())
             plugin.on_destroy()
@@ -778,4 +778,3 @@ class UiSequenceManager:
 
         if self.main_sequencer_kill_cb is not None:
             self.main_sequencer_kill_cb()
-        

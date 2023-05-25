@@ -37,11 +37,11 @@ class MessageListboxEntry(tk.Frame):
         self.timestamp_label = tk.Label(self, font=(
             'calibri', 11), bg=UI_BACKGROUND_COLOR, fg="white")
         self.timestamp_label.pack(side=tk.LEFT, expand=False)
-        
+
         self.author_label = tk.Label(self,  font=(
             'calibri', 11, 'bold'), bg=UI_BACKGROUND_COLOR, fg="white")
         self.author_label.pack(side=tk.LEFT, expand=False, padx = 10)
-    
+
         self.message_label = tk.Label(self,  font=(
             'calibri', 11, 'bold'), bg=UI_BACKGROUND_COLOR, fg="white")
         self.message_label.pack(side=tk.LEFT, expand=False, padx = 10)
@@ -53,7 +53,7 @@ class MessageListboxEntry(tk.Frame):
     def setup(self, timestamp, author, message, active_cb, current_cb, activate_toggle_cb):
         """! Setup the widget with the timestamp and video_name """
         PrintTraceInUi("Message list entry ", timestamp, " - ", author, " : ", message)
-    
+
         self.timestamp_label.configure(text=timestamp)
         self.author_label.configure(text=author)
         self.message_label.configure(text=message)
@@ -62,7 +62,7 @@ class MessageListboxEntry(tk.Frame):
         current_cb(self.message_current_callback)
 
         self.button_toggle_active.configure(command=activate_toggle_cb)
-    
+
     def message_active_callback(self, is_active):
         PrintTraceInUi(f"Is this message active : {is_active}")
         if is_active:
@@ -103,7 +103,7 @@ class MessageListboxEntry(tk.Frame):
 class MessageListbox(BasePagingList):
 
     def __init__(self, tk_frame, nb_elements = 10):
-        """! Initialize the listbox 
+        """! Initialize the listbox
             @param tk_frame : the tkinter frame in which add the listbox
             @param nb_elements : the max nb_elements to be displayed at once
         """
@@ -117,7 +117,7 @@ class MessageListbox(BasePagingList):
             @param active_cb : A callback that stores a entry-defined callback in the caller
                                 Args : active_cb( callback )
                                     And this param will be the one actually called :
-                                        -> callback that is called when the 'active' state changes 
+                                        -> callback that is called when the 'active' state changes
                                         (an active message is a message that is programmed to show on the screen)
             @param current_cb : Same but for the 'current' state changes : the message is shown on the screen or not
             @param activate_toggle_cb : Simpler callback (direct callback) for when the user presses the activate/deactivate button on each row

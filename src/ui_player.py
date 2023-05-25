@@ -83,7 +83,7 @@ class UiPlayer():
     def _play_on_specific_frame(self, media, index_media_players, length_s,
                                 metadata = None):
         """! Main play function.
-            @param media : The Vlc Media instance 
+            @param media : The Vlc Media instance
             @param index_media_players the index of the media frame to use this time
 
             Handles audio crossfading and frame switching accordingly
@@ -117,7 +117,7 @@ class UiPlayer():
             player.set_hwnd(h)
         else:
             player.set_xwindow(h)
-        
+
         # Setup the plugins
         for plugin in self.plugin_manager.get_plugins():
             plugin.setup(player_window = self.window, artist=artist, song=song)
@@ -267,7 +267,7 @@ class UiPlayer():
         pass
 
     def mute_trigger(self):
-        """! Toggle mute level 
+        """! Toggle mute level
              FIXME isnt working properly
         """
         player = self._get_active_media_player()

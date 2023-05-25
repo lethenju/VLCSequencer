@@ -24,6 +24,7 @@ import copy
 
 _data_manager = None
 
+
 def GetDataManager():
     """! Returns the DataManager instance"""
     global _data_manager
@@ -31,12 +32,14 @@ def GetDataManager():
         _data_manager = DataManager("internal.dat")
     return _data_manager
 
+
 class DataManager:
     """! Data Manager modules
-        Connects with a sqlite db for internal persisted data between launches in a generic way
+        Connects with a sqlite db for internal
+        persisted data between launches in a generic way
 
         Creates a db if it doesnt exist
-        loads a db 
+        loads a db
         get some data
         insert some data
         check if a table exists
@@ -55,7 +58,7 @@ class DataManager:
         self._db_cursor = self._db_connection.cursor()
 
         while self._is_running:
-            if self._fifo_messages != []:
+            if self._fifo_messages:
                 fifo_messages = copy.copy(self._fifo_messages)
                 self._fifo_messages = []
                 for message in fifo_messages:
@@ -67,20 +70,22 @@ class DataManager:
                         self._db_connection.commit()
                     if message[0] == "IS_EXIST":
                         result = False
-                        list_of_tables = self._db_cursor.execute(message[1]).fetchall()
-                        if list_of_tables != []:
+                        list_of_tables = self._db_cursor. \
+                            execute(message[1]).fetchall()
+                        if list_of_tables:
                             result = True
                         self._results_from_thread.append(result)
                     if message[0] == "SELECT":
                         res = self._db_cursor.execute(message[1])
-                        self._results_from_thread.append(copy.copy(res.fetchall()))
+                        self._results_from_thread. \
+                            append(copy.copy(res.fetchall()))
             # Argh.. not very efficient
             time.sleep(0.2)
 
     def __init__(self, path):
         self.path = path
-        self._is_running  = True
-        self._data_thread  = Thread(target=self._thread_runtime)
+        self._is_running = True
+        self._data_thread = Thread(target=self._thread_runtime)
         self._data_thread.start()
 
     def kill(self):
@@ -89,7 +94,7 @@ class DataManager:
         self._data_thread.join()
 
     def create_table(self, table_name, table_columns_list):
-        """! Creates a sqlite table 
+        """! Creates a sqlite table
             @param table_name    name of the table to be created
             @param table_columns list of the table columns
         """
@@ -104,7 +109,7 @@ class DataManager:
                 columns_str = columns_str + column + ")"
         query_str = query_str + columns_str
         PrintTraceInUi(f"Query str = {query_str}")
-        #self._db_cursor.execute(query_str)
+        # self._db_cursor.execute(query_str)
         self._fifo_messages.append((["CREATE", query_str]))
 
     def is_table_exists(self, table_name):
@@ -112,24 +117,25 @@ class DataManager:
             @param table_name the name of the table to check
             @return true if the table exist, false otherwise
         """
-        query_str = f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table_name}';"
+        query_str = f"SELECT name FROM sqlite_master \
+            WHERE type='table' AND name='{table_name}';"
         self._fifo_messages.append((["IS_EXIST", query_str]))
         # Wait for _results_from_thread
-        while self._results_from_thread == [] and self._is_running:
+        while not self._results_from_thread and self._is_running:
             time.sleep(0.1)
-        if self._results_from_thread != []:
+        if self._results_from_thread:
             # TODO Check if the result is made for us
             result = self._results_from_thread.pop()
             self._results_from_thread = []
             return result
 
-
     def insert_entries(self, table_name, entries_list):
         """! Insert lines in a sqlite table
             @param table_name the name of the table to add entry to
-            @param entries_list the list of arguments to fill the columns of the entry
+            @param entries_list the list of
+                   arguments to fill the columns of the entry
                     ex : [
-                          ('John Doe', 4), 
+                          ('John Doe', 4),
                           ('Toto', 6),
                          ]
         """
@@ -138,7 +144,7 @@ class DataManager:
             PrintTraceInUi(f"The table {table_name} does NOT exist !")
             return
 
-        query_str = "INSERT INTO " +  table_name +  " VALUES ("
+        query_str = "INSERT INTO " + table_name + " VALUES ("
         columns_str = ""
         # Placing placeholders
         for k in range(len(entries_list[0])):
@@ -160,16 +166,16 @@ class DataManager:
 
             @return a list of the entries
         """
-        query_str = "SELECT " + columns + " FROM "+ table_name
+        query_str = "SELECT " + columns + " FROM " + table_name
         if "order_by" in kwargs:
             query_str = query_str + " ORDER BY " + kwargs["order_by"]
 
         PrintTraceInUi(f"Query str = {query_str}")
         self._fifo_messages.append(["SELECT", query_str])
         # Wait for _results_from_thread
-        while self._results_from_thread == [] and self._is_running:
+        while not self._results_from_thread and self._is_running:
             time.sleep(0.1)
-        if self._results_from_thread != []:
+        if self._results_from_thread:
             # TODO Check if the result is made for us
             result = self._results_from_thread.pop()
             self._results_from_thread = []

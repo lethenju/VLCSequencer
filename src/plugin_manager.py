@@ -29,12 +29,12 @@ class PluginManager:
     def __init__(self):
         """! Creates the plugin manager """
         self.active_plugins = []
-    
+
     def get_plugins(self):
         return self.active_plugins
-    
+
     def add_plugin(self, type_of_plugin, params = None):
-        """! Add a plugin with some params as a dictionnary 
+        """! Add a plugin with some params as a dictionnary
             @param type_of_plugin : enum of the plugin type, as defined in the PluginType definition
             @param params : reference to the parameters of the plugins
         """
@@ -45,4 +45,3 @@ class PluginManager:
             self.active_plugins.append(MessagingPlugin(params))
         elif type_of_plugin == PluginType.TIME_AND_CHANNEL_PLUGIN:
             self.active_plugins.append(TimeAndChannelPlugin(params))
-            

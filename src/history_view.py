@@ -32,15 +32,15 @@ class HistoryListboxEntry(tk.Frame):
         self.timestamp_label = tk.Label(self, font=(
             'calibri', 11, 'bold'), bg=UI_BACKGROUND_COLOR, fg="white")
         self.timestamp_label.pack(side=tk.LEFT, expand=False)
-        
+
         self.video_name_label = tk.Label(self,  font=(
             'calibri', 11), bg=UI_BACKGROUND_COLOR, fg="white")
         self.video_name_label.pack(side=tk.RIGHT, expand=True)
-    
+
     def setup(self, timestamp, video_name):
         """! Setup the widget with the timestamp and video_name """
         PrintTraceInUi("History list entry ", timestamp, " - ", video_name)
-    
+
         self.timestamp_label.configure(text=timestamp)
         self.video_name_label.configure(text=video_name)
 
@@ -53,7 +53,7 @@ class HistoryListboxEntry(tk.Frame):
 
 class HistoryListbox(BasePagingList):
     def __init__(self, tk_notebook, nb_elements = 10):
-        """! Initialize the listbox 
+        """! Initialize the listbox
             @param tk_notebook : the tk notebook in which add the listbox
             @param nb_elements : the max nb_elements to be displayed at once
         """

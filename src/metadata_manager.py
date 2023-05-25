@@ -52,7 +52,7 @@ class MetaDataManager:
 
     def __init__(self, path = None):
         """! The MetaData manager initializer
-            @param path : path the csv metadata file 
+            @param path : path the csv metadata file
             @return An instance of a MetaDataManager
         """
         self.metadata_list = []
@@ -85,7 +85,7 @@ class MetaDataManager:
         self.open(self.path)
 
     def get_metadata(self, video_name):
-        """! Get the stored metadata about the video in parameter 
+        """! Get the stored metadata about the video in parameter
             @param video_name : name of the video (as stored in the metadata csv)
             @return a MetaDataEntry structure
         """

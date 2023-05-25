@@ -55,40 +55,45 @@ class MessagingPlugin(PluginBase):
 
     maintenance_listbox = None
     is_server_running = False
-    
+
     _first_loading = True
-    
-    def __init__(self, params = None):
+
+    def __init__(self, params=None):
         super().__init__(params)
-        
+
         if PORT_PARAM not in self.params:
             PrintTraceInUi(f"{PORT_PARAM} is not defined, use default value")
             self.params[PORT_PARAM] = PORT_PARAM_DEFAULT
         if DISPLAY_TIME_PARAM not in self.params:
-            PrintTraceInUi(f"{DISPLAY_TIME_PARAM} is not defined, use default value")
+            PrintTraceInUi(f"{DISPLAY_TIME_PARAM} \
+                            is not defined, use default value")
             self.params[DISPLAY_TIME_PARAM] = DISPLAY_TIME_PARAM_DEFAULT
         if DISPLAY_TIME_LONG_MESSAGE_PARAM not in self.params:
-            PrintTraceInUi(f"{DISPLAY_TIME_LONG_MESSAGE_PARAM} is not defined, use default value")
-            self.params[DISPLAY_TIME_LONG_MESSAGE_PARAM] = DISPLAY_TIME_LONG_MESSAGE_PARAM_DEFAULT
+            PrintTraceInUi(f"{DISPLAY_TIME_LONG_MESSAGE_PARAM} \
+                            is not defined, use default value")
+            self.params[DISPLAY_TIME_LONG_MESSAGE_PARAM] = \
+                DISPLAY_TIME_LONG_MESSAGE_PARAM_DEFAULT
         if DELETE_AFTER_MINUTES_PARAM not in self.params:
-            PrintTraceInUi(f"{DELETE_AFTER_MINUTES_PARAM} is not defined, use default value")
-            self.params[DELETE_AFTER_MINUTES_PARAM] = DELETE_AFTER_MINUTES_PARAM_DEFAULT
+            PrintTraceInUi(f"{DELETE_AFTER_MINUTES_PARAM} \
+                            is not defined, use default value")
+            self.params[DELETE_AFTER_MINUTES_PARAM] = \
+                DELETE_AFTER_MINUTES_PARAM_DEFAULT
         if not GetDataManager().is_table_exists("MESSAGES"):
-            GetDataManager().create_table("MESSAGES", ["TIMESTAMP", "AUTHOR", "MESSAGE"])
-
+            GetDataManager().create_table("MESSAGES",
+                                          ["TIMESTAMP", "AUTHOR", "MESSAGE"])
 
     @dataclass
     class Message:
-        author : str
-        message : str
-        timestamp_activation : float
+        author: str
+        message: str
+        timestamp_activation: float
 
-        _is_active : bool = False
-        _is_current_message_shown : bool = False
+        _is_active: bool = False
+        _is_current_message_shown: bool = False
 
-        _active_state_cb : any = None
-        _current_message_state_cb : any = None
-        manual_activation : bool = False
+        _active_state_cb: any = None
+        _current_message_state_cb: any = None
+        manual_activation: bool = False
 
         def set_current_message(self):
             if not self._is_active:
@@ -100,19 +105,20 @@ class MessagingPlugin(PluginBase):
 
         def set_not_current_message(self):
             self._is_current_message_shown = False
-            
+
             if not self._is_active:
                 PrintTraceInUi(f"This message is not active ! {self.message}")
             else:
-                # Not sending current message state cb if the message is not active !
+                # Not sending current message state cb
+                # if the message is not active !
                 if self._current_message_state_cb is not None:
                     self._current_message_state_cb(False)
-        
+
         def set_active(self):
             self._is_active = True
             if self._active_state_cb is not None:
                 self._active_state_cb(True)
-        
+
         def set_inactive(self):
             self._is_active = False
             if self._active_state_cb is not None:
@@ -120,13 +126,13 @@ class MessagingPlugin(PluginBase):
 
         def is_current_message(self):
             return self._is_current_message_shown
-        
+
         def is_active(self):
             return self._is_active
-        
+
         def store_active_state_cb(self, active_state_cb):
             self._active_state_cb = active_state_cb
-        
+
         def store_current_message_cb(self, current_message_state_cb):
             self._current_message_state_cb = current_message_state_cb
 
@@ -138,20 +144,20 @@ class MessagingPlugin(PluginBase):
                 self.set_active()
 # Plugin interface
 
-
     def start_server(self):
         if not self.is_server_running:
             PrintTraceInUi("Starting http server")
-            self.server_thread = threading.Thread(name="HTTP Server Thread", target=self.my_serve_forever)
+            self.server_thread = threading.Thread(name="HTTP Server Thread",
+                                                  target=self.my_serve_forever)
             self.is_server_running = True
             self.server_thread.start()
         else:
             PrintTraceInUi("Server is already started")
-    
+
     def stop_server(self):
         if self.is_server_running:
             PrintTraceInUi("Stopping http server")
-            self.is_server_running = False    
+            self.is_server_running = False
             self.server_thread.join(timeout=2)
             if self.server_thread.is_alive():
                 PrintTraceInUi("ERR : Thread is still active !")
@@ -171,7 +177,6 @@ class MessagingPlugin(PluginBase):
         while self.is_server_running:
             PrintTraceInUi("HTTP Server Thread Handling request")
             self.http_server.handle_request()
-        
 
     def setup(self, **kwargs):
         """! Setup """
@@ -180,75 +185,103 @@ class MessagingPlugin(PluginBase):
             PrintTraceInUi("Link player window to us")
             super().setup(player_window=kwargs["player_window"])
 
-            # TODO Maybe store/read active messages in file 
-            self.message_ui = self.MessagingUiThread(self.player_window, self.params)
-            self.message_ui_thread = threading.Thread(name="MessageUI Thread", target=self.message_ui.runtime)
+            # TODO Maybe store/read active messages in file
+            self.message_ui = self.MessagingUiThread(
+                self.player_window, self.params)
+            self.message_ui_thread = threading.Thread(
+                name="MessageUI Thread", target=self.message_ui.runtime)
             self.message_ui_thread.start()
 
-            self.http_server = socketserver.TCPServer(("", int(self.params[PORT_PARAM])), partial(self.MyHttpRequestHandler, self.message_ui.add_message))
+            self.http_server = socketserver.TCPServer(
+                ("", int(self.params[PORT_PARAM])),
+                partial(self.MyHttpRequestHandler,
+                        self.message_ui.add_message))
 
         if self.maintenance_frame is None and "maintenance_frame" in kwargs:
             PrintTraceInUi("Link maintenance window to us")
             super().setup(maintenance_frame=kwargs["maintenance_frame"])
             PrintTraceInUi("Setup")
 
-            # status maintenance view 
+            # status maintenance view
             # Provide info about the server/UI being active and provide options
             # to enable and disable the server/UI
 
-            self.status_frame = tk.Frame(self.maintenance_frame, bg=UI_BACKGROUND_COLOR)
+            self.status_frame = tk.Frame(self.maintenance_frame,
+                                         bg=UI_BACKGROUND_COLOR)
             self.status_frame.pack(side=tk.TOP, fill=tk.X)
 
-            self.server_status_frame = tk.Frame(self.status_frame, bg=UI_BACKGROUND_COLOR)
+            self.server_status_frame = tk.Frame(self.status_frame,
+                                                bg=UI_BACKGROUND_COLOR)
             self.server_status_frame.pack(side=tk.LEFT, fill=tk.BOTH)
-            
-            self.message_ui_status_frame = tk.Frame(self.status_frame, bg=UI_BACKGROUND_COLOR)
+
+            self.message_ui_status_frame = tk.Frame(self.status_frame,
+                                                    bg=UI_BACKGROUND_COLOR)
             self.message_ui_status_frame.pack(side=tk.RIGHT, fill=tk.BOTH)
 
-
-            self.server_status_label = tk.Label(self.server_status_frame, text="Server is currently inactive", font=('calibri', 11, 'bold'),fg="white", bg=UI_BACKGROUND_COLOR)
+            self.server_status_label = tk.Label(self.server_status_frame,
+                                                text="Server is currently \
+                                                    inactive",
+                                                font=('calibri', 11, 'bold'),
+                                                fg="white",
+                                                bg=UI_BACKGROUND_COLOR)
             self.server_status_label.pack(side=tk.LEFT)
 
-            self.message_ui_status_label = tk.Label(self.message_ui_status_frame, text="Message UI is currently active", font=('calibri', 11, 'bold'),fg="white", bg=UI_BACKGROUND_COLOR)
+            self.message_ui_status_label = \
+                tk.Label(self.message_ui_status_frame,
+                         text="Message UI is currently active",
+                         font=('calibri', 11, 'bold'),
+                         fg="white",
+                         bg=UI_BACKGROUND_COLOR)
             self.message_ui_status_label.pack(side=tk.LEFT)
-
 
             def server_toggle_button_cmd():
                 if self.is_server_running:
                     self.stop_server()
-                    self.server_status_label.configure(text="Server is currently inactive")
+                    self.server_status_label\
+                        .configure(text="Server is currently inactive")
                 else:
-                    self.start_server() 
-                    self.server_status_label.configure(text="Server is currently active")
+                    self.start_server()
+                    self.server_status_label\
+                        .configure(text="Server is currently active")
 
             def show_toggle_button_cmd():
                 if self.message_ui.is_shown:
                     self.message_ui.hide()
-                    self.message_ui_status_label.configure(text="Message UI is inactive")
+                    self.message_ui_status_label \
+                        .configure(text="Message UI is inactive")
                 else:
                     self.message_ui.show()
-                    self.message_ui_status_label.configure(text="Message UI is active")
+                    self.message_ui_status_label \
+                        .configure(text="Message UI is active")
 
-            
-            self.server_toggle_button = tk.Button(self.server_status_frame, text="Toggle server state", font=('calibri', 11),fg="white",
-             bg=UI_BACKGROUND_COLOR, command=server_toggle_button_cmd)
+            self.server_toggle_button = \
+                tk.Button(self.server_status_frame,
+                          text="Toggle server state",
+                          font=('calibri', 11),
+                          fg="white",
+                          bg=UI_BACKGROUND_COLOR,
+                          command=server_toggle_button_cmd)
             self.server_toggle_button.pack(side=tk.RIGHT)
 
-            self.message_ui_toggle_button = tk.Button(self.message_ui_status_frame, text="Toggle UI state", font=('calibri', 11),fg="white",
-             bg=UI_BACKGROUND_COLOR, command=show_toggle_button_cmd)
+            self.message_ui_toggle_button = \
+                tk.Button(self.message_ui_status_frame,
+                          text="Toggle UI state",
+                          font=('calibri', 11),
+                          fg="white",
+                          bg=UI_BACKGROUND_COLOR,
+                          command=show_toggle_button_cmd)
             self.message_ui_toggle_button.pack(side=tk.RIGHT)
 
             self.list_frame = tk.Frame(self.maintenance_frame)
 
             # Create listbox
             self.maintenance_listbox = MessageListbox(self.list_frame)
-            self.list_frame.pack(side=tk.BOTTOM,fill=tk.BOTH, expand=True)
+            self.list_frame.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
 
-        
-        if self.maintenance_listbox is not None and self.message_ui is not None:
+        if self.maintenance_listbox is not None \
+                and self.message_ui is not None:
             if self._first_loading:
                 self._first_loading = False
-                
                 # Everything is loaded
                 self.message_ui.subscribe_listbox(self.maintenance_listbox)
 
@@ -259,18 +292,18 @@ class MessagingPlugin(PluginBase):
                     if len(entry) == 3:
                         try:
                             time_message = datetime.strptime(entry[0], "%Y-%m-%d %H:%M:%S")
-                            # We cannot use datetime.timestamp() as it is buggy : 
+                            # We cannot use datetime.timestamp() as it is buggy :
                             # cf https://bugs.python.org/issue37527
                             epoch = datetime.utcfromtimestamp(0)
-                            total_seconds =  (time_message - epoch).total_seconds()
+                            total_seconds=(time_message - epoch).total_seconds()
 
                             new_message = MessagingPlugin.Message(entry[1], # Author
-                                                                entry[2], # Message
-                                                                total_seconds)
+                                                                  entry[2], # Message
+                                                                  total_seconds)
                             self.message_ui.load_message(new_message)
                         except:
                             PrintTraceInUi("Time is incorrect in the db ! ")
-                    
+
                     else:
                         PrintTraceInUi("Message not added, not wellformed !")
 
@@ -281,7 +314,7 @@ class MessagingPlugin(PluginBase):
 
     def on_progress(self, time_s):
         """! Called every second of a video playback """
-        
+
     def on_exit(self):
         """! Called at the end of a video playback """
         #  For now, message bar stays on
@@ -294,7 +327,7 @@ class MessagingPlugin(PluginBase):
             self.message_ui.stop()
         self.stop_server()
         self.message_ui_thread.join()
-        # FIXME Workaround to stop the tcp server 
+        # FIXME Workaround to stop the tcp server
         self.http_server._BaseServer__shutdown_request = True
         # self.http_server = None
         GetDataManager().kill()
@@ -304,13 +337,13 @@ class MessagingPlugin(PluginBase):
         # We need a maintenance frame in the messaging plugin :
         # Listbox display current and old messages
         return True
-    
+
     def get_name(self):
         return "Messaging"
 # Private members
 
     class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
-        
+
         cb_add_message = None
         def __init__(self, cb_add_message, *args, **kwargs):
             self.cb_add_message = cb_add_message
@@ -328,7 +361,7 @@ class MessagingPlugin(PluginBase):
             data_string = self.rfile.read(int(self.headers['Content-Length']))
             fields = parse.parse_qs(str(data_string,"UTF-8"))
             PrintTraceInUi(fields)
-            # Subscribe the message in the active list 
+            # Subscribe the message in the active list
             if self.cb_add_message is not None and "message" in fields and "name" in fields:
                 message = fields["message"][0].replace('\r', '').replace('\n', '')
                 self.path = 'src/static/done.html'
@@ -342,7 +375,7 @@ class MessagingPlugin(PluginBase):
                 # Error
                 self.path = 'src/static/ko.html'
             return http.server.SimpleHTTPRequestHandler.do_GET(self)
-        
+
 
     class MessagingUiThread:
         message_list = []
@@ -362,7 +395,7 @@ class MessagingPlugin(PluginBase):
             """! Init """
             self.player_window = tk_root
             self.params = params
-            self.is_shown = False 
+            self.is_shown = False
             self.maintenance_listbox = None
             self.scroll_thread = None
             self.is_running = True
@@ -372,22 +405,24 @@ class MessagingPlugin(PluginBase):
             PrintTraceInUi("FontSize ", font_size)
             self.active_label_author  = tk.Label(self.frame_messages,text="", padx=10, pady=1, font=('calibri', font_size, 'bold'),fg="white", bg=UI_BACKGROUND_COLOR)
             self.active_label_message = tk.Label(self.frame_messages,text="", padx=10, pady=1, font=('calibri', font_size),fg="white", bg=UI_BACKGROUND_COLOR)
-            
+
             self.active_label_author .pack(side=tk.LEFT, anchor=tk.CENTER)
             self.active_label_message.pack(side=tk.LEFT, anchor=tk.CENTER)
-    
+
 
         def runtime_display_message(self):
-            PrintTraceInUi("Index of current message = ", self.index_sequence_message, " Author : ",  
+            PrintTraceInUi("Index of current message = ", self.index_sequence_message, " Author : ",
                 self.message_list[self.index_sequence_message].author, " Message ",
                 self.message_list[self.index_sequence_message].message)
-            
+
             self.message_list[self.index_sequence_message].set_current_message()
             font_size = int(self.player_window.winfo_height() /20);
             PrintTraceInUi("FontSize ", font_size)
-            self.active_label_author.configure(text =self.message_list[self.index_sequence_message].author, 
+            self.active_label_author.configure(
+                text=self.message_list[self.index_sequence_message].author,
                 font=('calibri', font_size, 'bold'))
-            self.active_label_message.configure(text = self.message_list[self.index_sequence_message].message,
+            self.active_label_message.configure(
+                text=self.message_list[self.index_sequence_message].message,
                 font=('calibri', font_size))
             # Let time to recalculate the message size
             sleep(0.1)
@@ -414,12 +449,14 @@ class MessagingPlugin(PluginBase):
                             width = chunk_message.winfo_width()
                             PrintTraceInUi(f"Size of chunk {message[0:5]} : {width}")
                             message = message[6:]
-                            self.active_label_message.configure(text = message)
-                            
+                            self.active_label_message.configure(text=message)
+
                             while width > 0 and self.is_running:
-                                # Thats a big hack to approximately get the size right.. 
-                                # the padx width is not exactly the true 
-                                self.active_label_message.configure(padx = 10 + 1.07*width)
+                                # Thats a big hack to approximately
+                                # get the size right..
+                                # the padx width is not exactly the true
+                                self.active_label_message.configure(
+                                    padx=10 + 1.07*width)
                                 width = width - 2
                                 sleep(0.01)
                             chunk_message.destroy()
@@ -454,8 +491,7 @@ class MessagingPlugin(PluginBase):
                 time_to_wait = 1
                 active_messages = list(filter(lambda message : ( message.is_active() ), self.message_list))
                 if len(active_messages) > 0:
-                    
-                    self.show() # ?
+                    self.show()   # ?
                     # If we display a message, we display it for DISPLAY_TIME seconds
                     time_to_wait = int(self.params[DISPLAY_TIME_PARAM])
                     self.message_list[self.index_sequence_message].set_not_current_message()
@@ -471,12 +507,12 @@ class MessagingPlugin(PluginBase):
                             index_sequence_message = true_message_id
                             is_next_active_message = True
                             break
-                    
+
                     if not is_next_active_message:
                         # Normally impossible because we filtered active messages just before
                         PrintTraceInUi("No more active messages ! ")
                         # If there is no message to show
-                        self.hide()    
+                        self.hide()
                     else:
                         self.index_sequence_message = index_sequence_message
                         self.runtime_display_message()
@@ -504,7 +540,7 @@ class MessagingPlugin(PluginBase):
                         + "{:02d}".format(message_time.hour)   + ":" \
                         + "{:02d}".format(message_time.minute) + ":" \
                         + "{:02d}".format(message_time.second)
-                
+
                 self.maintenance_listbox.add_entry(timestamp,
                                             author=message.author,
                                             message=message.message,
@@ -514,20 +550,20 @@ class MessagingPlugin(PluginBase):
             # if the timestamp is correct, set active
             if message.timestamp_activation + int(self.params[DELETE_AFTER_MINUTES_PARAM])*60 > time():
                 message.set_active()
-                    
+
                 #Recompute show (we now have messages)
                 if self.is_shown:
                     self.show()
 
         def add_message(self, message):
             """! Adding a message in the dictionary of messages """
-            # Remove messages with the same author 
+            # Remove messages with the same author
             for active_message in self.message_list:
                 if active_message.author == message.author:
                     active_message.set_inactive()
-            
+
             self.load_message(message)
-        
+
             message_time = datetime.fromtimestamp(
                 message.timestamp_activation).time()
             message_date = datetime.fromtimestamp(
@@ -541,7 +577,7 @@ class MessagingPlugin(PluginBase):
             if MESSAGE_FILE_PATH_PARAM in self.params:
                 with open(self.params[MESSAGE_FILE_PATH_PARAM], 'a+', encoding='utf-8') as f:
                     f.write(timestamp + " "  +  message.author + " : " + message.message + '\n')
-            
+
             GetDataManager().insert_entries("MESSAGES", [(timestamp, message.author, message.message)])
 
             message.set_active()
@@ -561,7 +597,7 @@ class MessagingPlugin(PluginBase):
 
         def stop(self):
             self.is_running = False
-        
+
         def _compute_messages(self):
             # If its been more than 10 minutes, the message disappears from the sequence
             PrintTraceInUi("Recomputing messages..")
@@ -572,9 +608,9 @@ class MessagingPlugin(PluginBase):
                     PrintTraceInUi(f"Message going inactive ! {message.message}")
                     message.set_inactive()
                     #self.message_list.remove(message)
-    
+
             #self.message_list = list(filter(lambda message: (
             #    message.timestamp_activation + int(self.params[DELETE_AFTER_MINUTES_PARAM])*60 > time()), self.message_list))
-        
+
         def subscribe_listbox(self, listbox):
             self.maintenance_listbox = listbox

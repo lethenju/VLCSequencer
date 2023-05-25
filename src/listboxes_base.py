@@ -27,7 +27,7 @@ class BaseListbox:
     _listbox = None
 
     def __init__(self, tk_frame, title,  nb_elements = 10):
-        """! Initialize the listbox 
+        """! Initialize the listbox
             @param tk_frame : the tkinter frame in which add the listbox
             @param nb_elements : the max nb_elements to be displayed at once
         """
@@ -50,10 +50,10 @@ class BaseListbox:
 
     def get_view(self):
         return self._view
-    
+
     def get_listbox(self):
         return self._listbox
-    
+
     def add_entry(self):
         """! Add an entry in the listbox  : base implementation """
         print("BASE CLASS - SHOULD NOT BE CALLED")
@@ -61,7 +61,7 @@ class BaseListbox:
 
 
 class BasePagingList:
-    """! 
+    """!
         It doesnt work to add custom frames in a listbox entry.
         This is a list that works with pages, and buttons to get to the next page and return to the last page
 
@@ -77,7 +77,7 @@ class BasePagingList:
     current_page = 1
 
     def __init__(self, tk_frame, title, nb_elements = 10):
-        """! Initialize the listbox 
+        """! Initialize the listbox
             @param tk_frame : the tkinter frame in which add the listbox
             @param nb_elements : the max nb_elements to be displayed at once
         """
@@ -97,15 +97,15 @@ class BasePagingList:
         change_page_pane.pack(side=tk.LEFT, fill=tk.Y)
         self.button_next = tk.Button(change_page_pane, text="+", command=self.get_next_page, fg="white", bg=UI_BACKGROUND_COLOR)
         self.button_previous = tk.Button(change_page_pane, text="-", command=self.get_previous_page, fg="white", bg=UI_BACKGROUND_COLOR)
-        
+
         self.button_next.pack(side=tk.TOP, expand=True)
         self.button_previous.pack(side=tk.BOTTOM, expand=True)
 
         self._view.pack(expand=True, fill=tk.BOTH)
-        
+
 
     def get_next_page(self):
-        
+
         PrintTraceInUi(f"Button next page")
         if len(self.all_elements) < self.nb_elements_by_page:
             PrintTraceInUi(f"Not enough elements to enable paging")
@@ -127,7 +127,7 @@ class BasePagingList:
         begin_index_elements_to_show = (self.current_page-1)*self.nb_elements_by_page
         end_index_elements_to_show   = min(self.current_page*self.nb_elements_by_page, len(self.all_elements))
         PrintTraceInUi(f"Showing elements {begin_index_elements_to_show} to {end_index_elements_to_show}")
-        
+
         for element in self.all_elements[begin_index_elements_to_show:end_index_elements_to_show]:
             element.pack(fill=tk.X)
 
@@ -152,7 +152,7 @@ class BasePagingList:
         begin_index_elements_to_show = (self.current_page-1)*self.nb_elements_by_page
         end_index_elements_to_show   = min(self.current_page*self.nb_elements_by_page, len(self.all_elements))
         PrintTraceInUi(f"Showing elements {begin_index_elements_to_show} to {end_index_elements_to_show}")
-        
+
         for element in self.all_elements[begin_index_elements_to_show:end_index_elements_to_show]:
             element.pack(fill=tk.X)
 

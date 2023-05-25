@@ -42,7 +42,7 @@ class Logger():
                 self.ui_trace_listbox.insert(tk.END, " " + trace)
                 self.ui_trace_listbox.yview(tk.END)
         except:
-            print("Log listbox incorrect !")            
+            print("Log listbox incorrect !")
 
 
 def LoggerSubscribeUI(ui_trace_listbox):
