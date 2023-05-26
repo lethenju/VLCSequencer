@@ -534,24 +534,26 @@ class MessagingPlugin(PluginBase):
                     message.timestamp_activation).time()
                 message_date = datetime.fromtimestamp(
                     message.timestamp_activation).date()
-                timestamp = "{:04d}".format(message_date.year)   + "-" \
-                        + "{:02d}".format(message_date.month)  + "-" \
-                        + "{:02d}".format(message_date.day)    + " " \
-                        + "{:02d}".format(message_time.hour)   + ":" \
-                        + "{:02d}".format(message_time.minute) + ":" \
-                        + "{:02d}".format(message_time.second)
+                timestamp = "{:04d}".format(message_date.year) + "-" \
+                    + "{:02d}".format(message_date.month) + "-" \
+                    + "{:02d}".format(message_date.day) + " " \
+                    + "{:02d}".format(message_time.hour) + ":" \
+                    + "{:02d}".format(message_time.minute) + ":" \
+                    + "{:02d}".format(message_time.second)
 
-                self.maintenance_listbox.add_entry(timestamp,
-                                            author=message.author,
-                                            message=message.message,
-                                            active_cb=message.store_active_state_cb,
-                                            current_cb=message.store_current_message_cb,
-                                            activate_toggle_cb=message.activate_toggle_cb)
+                self.maintenance_listbox. \
+                    add_entry(timestamp,
+                              author=message.author,
+                              message=message.message,
+                              active_cb=message.store_active_state_cb,
+                              current_cb=message.store_current_message_cb,
+                              activate_toggle_cb=message.activate_toggle_cb)
             # if the timestamp is correct, set active
-            if message.timestamp_activation + int(self.params[DELETE_AFTER_MINUTES_PARAM])*60 > time():
+            if message.timestamp_activation + \
+               int(self.params[DELETE_AFTER_MINUTES_PARAM])*60 > time():
                 message.set_active()
 
-                #Recompute show (we now have messages)
+                # Recompute show (we now have messages)
                 if self.is_shown:
                     self.show()
 
@@ -568,12 +570,13 @@ class MessagingPlugin(PluginBase):
                 message.timestamp_activation).time()
             message_date = datetime.fromtimestamp(
                 message.timestamp_activation).date()
-            timestamp = "{:04d}".format(message_date.year)   + "-" \
-                    + "{:02d}".format(message_date.month)  + "-" \
-                    + "{:02d}".format(message_date.day)    + " " \
-                    + "{:02d}".format(message_time.hour)   + ":" \
-                    + "{:02d}".format(message_time.minute) + ":" \
-                    + "{:02d}".format(message_time.second)
+            timestamp = "{:04d}".format(message_date.year) + "-" \
+                + "{:02d}".format(message_date.month) + "-" \
+                + "{:02d}".format(message_date.day) + " " \
+                + "{:02d}".format(message_time.hour) + ":" \
+                + "{:02d}".format(message_time.minute) + ":" \
+                + "{:02d}".format(message_time.second)
+
             if MESSAGE_FILE_PATH_PARAM in self.params:
                 with open(self.params[MESSAGE_FILE_PATH_PARAM], 'a+', encoding='utf-8') as f:
                     f.write(timestamp + " "  +  message.author + " : " + message.message + '\n')
