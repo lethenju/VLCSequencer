@@ -46,12 +46,12 @@ python3 -m pip install python-vlc python-magic pillow
 
 Plugins :
 
-- Fix long songinfo !
 - Add screen preview on the sequence window
 - Add clear message button to clear the database table
 - And Delete message button on each message
 - VLC Sound management as a module
 - Choose the next music (music queue list (maybe via the webpage ???))
+
 Ui :
 
 - Add Metadata-related info on the sequence (if fade-in/out are activated, etc..)

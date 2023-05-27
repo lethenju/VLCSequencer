@@ -345,6 +345,7 @@ class MessagingPlugin(PluginBase):
     class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
 
         cb_add_message = None
+
         def __init__(self, cb_add_message, *args, **kwargs):
             self.cb_add_message = cb_add_message
             super().__init__(*args, **kwargs)
@@ -376,7 +377,6 @@ class MessagingPlugin(PluginBase):
                 self.path = 'src/static/ko.html'
             return http.server.SimpleHTTPRequestHandler.do_GET(self)
 
-
     class MessagingUiThread:
         message_list = []
         is_shown = False
@@ -399,16 +399,30 @@ class MessagingPlugin(PluginBase):
             self.maintenance_listbox = None
             self.scroll_thread = None
             self.is_running = True
-            self.frame_messages = tk.Frame(self.player_window, bg=UI_BACKGROUND_COLOR)
+            self.frame_messages = tk.Frame(self.player_window,
+                                           bg=UI_BACKGROUND_COLOR)
 
-            font_size = int(self.player_window.winfo_height() /20);
+            font_size = int(self.player_window.winfo_height() / 20)
             print_trace_in_ui("FontSize ", font_size)
-            self.active_label_author  = tk.Label(self.frame_messages,text="", padx=10, pady=1, font=('calibri', font_size, 'bold'),fg="white", bg=UI_BACKGROUND_COLOR)
-            self.active_label_message = tk.Label(self.frame_messages,text="", padx=10, pady=1, font=('calibri', font_size),fg="white", bg=UI_BACKGROUND_COLOR)
+            self.active_label_author = tk.Label(self.frame_messages,
+                                                text="",
+                                                padx=10,
+                                                pady=1,
+                                                font=('calibri',
+                                                      font_size,
+                                                      'bold'),
+                                                fg="white",
+                                                bg=UI_BACKGROUND_COLOR)
+            self.active_label_message = tk.Label(self.frame_messages,
+                                                 text="",
+                                                 padx=10,
+                                                 pady=1,
+                                                 font=('calibri', font_size),
+                                                 fg="white",
+                                                 bg=UI_BACKGROUND_COLOR)
 
             self.active_label_author .pack(side=tk.LEFT, anchor=tk.CENTER)
             self.active_label_message.pack(side=tk.LEFT, anchor=tk.CENTER)
-
 
         def runtime_display_message(self):
             print_trace_in_ui("Index of current message = ", self.index_sequence_message, " Author : ",
@@ -500,8 +514,11 @@ class MessagingPlugin(PluginBase):
                     is_next_active_message = False
                     index_sequence_message = self.index_sequence_message
 
-                    # Ranging around the message list starting from our index message
-                    for message_id in range(self.index_sequence_message + 1 , self.index_sequence_message + 1 + len(self.message_list)):
+                    # Ranging around the message list starting
+                    # from our index message
+                    for message_id in range(self.index_sequence_message + 1,
+                                            self.index_sequence_message + 1
+                                            + len(self.message_list)):
                         true_message_id = message_id % len(self.message_list)
                         if self.message_list[true_message_id].is_active():
                             index_sequence_message = true_message_id
@@ -509,7 +526,8 @@ class MessagingPlugin(PluginBase):
                             break
 
                     if not is_next_active_message:
-                        # Normally impossible because we filtered active messages just before
+                        # Normally impossible because we filtered active
+                        # messages just before
                         print_trace_in_ui("No more active messages ! ")
                         # If there is no message to show
                         self.hide()
@@ -579,9 +597,10 @@ class MessagingPlugin(PluginBase):
 
             if MESSAGE_FILE_PATH_PARAM in self.params:
                 with open(self.params[MESSAGE_FILE_PATH_PARAM], 'a+', encoding='utf-8') as f:
-                    f.write(timestamp + " "  +  message.author + " : " + message.message + '\n')
+                    f.write(timestamp + " " +  message.author + " : " + message.message + '\n')
 
-            get_data_manager().insert_entries("MESSAGES", [(timestamp, message.author, message.message)])
+            get_data_manager().insert_entries("MESSAGES",
+                [(timestamp, message.author, message.message)])
 
             message.set_active()
 
@@ -590,30 +609,33 @@ class MessagingPlugin(PluginBase):
             print_trace_in_ui("Show message UI")
             self.is_shown = True
             if len(self.message_list) > 0:
-                self.frame_messages.place(relx=0, rely= 0.95, relheight=0.05, relwidth=1)
+                self.frame_messages.place(relx=0,
+                                          rely=0.93,
+                                          relheight=0.07,
+                                          relwidth=1)
 
         def hide(self):
             """! hide api """
             print_trace_in_ui("Hide message UI")
             self.is_shown = False
-            self.frame_messages.place(relx=0, rely= -1)
+            self.frame_messages.place(relx=0,
+                                      rely=-1)
 
         def stop(self):
             self.is_running = False
 
         def _compute_messages(self):
-            # If its been more than 10 minutes, the message disappears from the sequence
+            # If its been more than 10 minutes, the message disappears from
+            # the sequence
             print_trace_in_ui("Recomputing messages..")
             # Change state of messages
             for message in self.message_list:
-                if message.timestamp_activation + int(self.params[DELETE_AFTER_MINUTES_PARAM])*60 < time() \
-                    and not message.manual_activation:
-                    print_trace_in_ui(f"Message going inactive ! {message.message}")
+                if message.timestamp_activation + \
+                   int(self.params[DELETE_AFTER_MINUTES_PARAM])*60 < time() \
+                   and not message.manual_activation:
+                    print_trace_in_ui(
+                        f"Message going inactive ! {message.message}")
                     message.set_inactive()
-                    #self.message_list.remove(message)
-
-            #self.message_list = list(filter(lambda message: (
-            #    message.timestamp_activation + int(self.params[DELETE_AFTER_MINUTES_PARAM])*60 > time()), self.message_list))
 
         def subscribe_listbox(self, listbox):
             self.maintenance_listbox = listbox

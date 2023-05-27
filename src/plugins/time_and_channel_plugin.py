@@ -46,7 +46,7 @@ class TimeAndChannelPlugin(PluginBase):
             self.font_size = int(self.player_window.winfo_height() /30);
             self.label_time = tk.Label(self.frame_time_channel,text="00:00", padx=2, pady=2, font=('calibri', self.font_size, 'bold'),fg="white", bg=UI_BACKGROUND_COLOR)
             self.label_time.pack(side=tk.LEFT)
-            self.frame_time_channel.place(relx = 0.85, rely = 0.06)
+            self.frame_time_channel.place(relx=0.75, rely=0.06)
 
             if PATH_LOGO_PNG in self.params:
                 try:
@@ -73,7 +73,7 @@ class TimeAndChannelPlugin(PluginBase):
                 self.label_time.configure(font=('calibri', self.font_size, 'bold'))
 
             self.label_time.configure(text=strftime('%H:%M'))
-            self.frame_time_channel.place(relx = 0.85, rely = 0.06)
+            self.frame_time_channel.place(relx=0.75, rely=0.06)
 
     def on_exit(self):
         """! Called at the end of a video playback """
