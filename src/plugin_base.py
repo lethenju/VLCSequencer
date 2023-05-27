@@ -16,27 +16,31 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-
+"""! Base module for plugin implementation """
 from enum import Enum
 
 
 class PluginType(Enum):
+    """! Plugin types
+        Add your plugin here
+    """
     SONG_INFO_PLUGIN = 0
     MESSAGING_PLUGIN = 1
     TIME_AND_CHANNEL_PLUGIN = 2
 
-    def plugin_type_factory(str_name):
-        """! Returns the appropriate enum with the name of the plugin """
-        if str_name == "SongInfo":
-            return PluginType.SONG_INFO_PLUGIN
-        if str_name == "Messaging":
-            return PluginType.MESSAGING_PLUGIN
-        if str_name == "TimeAndChannel":
-            return PluginType.TIME_AND_CHANNEL_PLUGIN
 
-        # A plugin name should always be defined
-        # FIXME
-        assert False
+def plugin_type_factory(str_name):
+    """! Returns the appropriate enum with the name of the plugin """
+    if str_name == "SongInfo":
+        return PluginType.SONG_INFO_PLUGIN
+    if str_name == "Messaging":
+        return PluginType.MESSAGING_PLUGIN
+    if str_name == "TimeAndChannel":
+        return PluginType.TIME_AND_CHANNEL_PLUGIN
+
+    # A plugin name should always be defined
+    # FIXME
+    assert False
 
 
 class PluginBase:

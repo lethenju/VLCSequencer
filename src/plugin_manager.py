@@ -16,14 +16,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-
+"""! Manages the active plugins """
 from plugins.song_info_plugin import SongInfoPlugin
 from plugins.messaging_plugin import MessagingPlugin
 from plugins.time_and_channel_plugin import TimeAndChannelPlugin
-from plugin_base import *
+from plugin_base import PluginType
+
 
 class PluginManager:
-    """! Functionnal overlays of the """
+    """! Manages the active plugins """
     active_plugins = []
 
     def __init__(self):
@@ -31,6 +32,7 @@ class PluginManager:
         self.active_plugins = []
 
     def get_plugins(self):
+        """! Returns the active plugins list """
         return self.active_plugins
 
     def add_plugin(self, type_of_plugin, params = None):

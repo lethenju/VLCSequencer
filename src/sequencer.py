@@ -32,7 +32,7 @@ from functools import partial
 # Application related imports
 from colors import *
 from logger import print_trace_in_ui, logger_set_is_stopping
-from plugin_base import PluginType
+from plugin_base import plugin_type_factory
 from history_view import HistoryListbox
 from log_view import LogListbox
 
@@ -662,7 +662,7 @@ class UiSequenceManager:
                     params[param.attrib["name"]] = param.attrib["value"]
 
                 self.plugin_manager.add_plugin(
-                    PluginType.plugin_type_factory(plugin_name), params)
+                    plugin_type_factory(plugin_name), params)
             elif child.tag == "Sequence":
                 print_trace_in_ui("Sequence found!")
                 self.sequence_data = SequenceBlock("sequence")

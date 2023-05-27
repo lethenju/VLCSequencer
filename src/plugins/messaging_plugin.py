@@ -27,9 +27,9 @@ from urllib import parse
 from functools import partial
 from dataclasses import dataclass
 
-from colors import *
+from colors import UI_BACKGROUND_COLOR
 from logger import print_trace_in_ui
-from data_manager import get_data_manager, DataManager
+from data_manager import get_data_manager
 from plugin_base import PluginBase
 from plugins.messaging_view import MessageListbox
 
@@ -61,6 +61,15 @@ class MessagingPlugin(PluginBase):
     def __init__(self, params=None):
         super().__init__(params)
 
+        self.status_frame = None
+        self.server_status_frame = None
+        self.message_ui_status_frame = None
+        self.server_status_label = None
+        self.message_ui_status_label = None
+        self.server_toggle_button = None
+        self.message_ui_toggle_button = None
+        self.list_frame = None
+
         if PORT_PARAM not in self.params:
             print_trace_in_ui(f"{PORT_PARAM} is not defined, use default value")
             self.params[PORT_PARAM] = PORT_PARAM_DEFAULT
@@ -84,6 +93,8 @@ class MessagingPlugin(PluginBase):
 
     @dataclass
     class Message:
+        """! Data definition of a message, both in
+             the player UI and in the maintenance UI """
         author: str
         message: str
         timestamp_activation: float
@@ -96,14 +107,18 @@ class MessagingPlugin(PluginBase):
         manual_activation: bool = False
 
         def set_current_message(self):
+            """! Set this message as the
+                 current displayed one """
             if not self._is_active:
-                print_trace_in_ui(f"This message is not active ! {self.message}")
+                print_trace_in_ui(
+                    f"This message is not active ! {self.message}")
             print_trace_in_ui(f"Message is shown")
             self._is_current_message_shown = True
             if self._current_message_state_cb is not None:
                 self._current_message_state_cb(True)
 
         def set_not_current_message(self):
+            """! Set this message as not currently shown """
             self._is_current_message_shown = False
 
             if not self._is_active:
@@ -115,28 +130,40 @@ class MessagingPlugin(PluginBase):
                     self._current_message_state_cb(False)
 
         def set_active(self):
+            """! Set this message as active (in the show sequence)"""
             self._is_active = True
             if self._active_state_cb is not None:
                 self._active_state_cb(True)
 
         def set_inactive(self):
+            """! Set this message as inactive (not shown)"""
             self._is_active = False
             if self._active_state_cb is not None:
                 self._active_state_cb(False)
 
         def is_current_message(self):
+            """Returns true if the message is
+               currently shown"""
             return self._is_current_message_shown
 
         def is_active(self):
+            """! Returns true if the message is active"""
             return self._is_active
 
         def store_active_state_cb(self, active_state_cb):
+            """! Store the callback to be called when
+                 The activeness of the message changes
+            """
             self._active_state_cb = active_state_cb
 
         def store_current_message_cb(self, current_message_state_cb):
+            """! Store the callback to be called when
+                 The "currentness" of the message changes
+            """
             self._current_message_state_cb = current_message_state_cb
 
         def activate_toggle_cb(self):
+            """! Toggle the activeness of the message """
             if self._is_active:
                 self.set_inactive()
             else:
@@ -145,6 +172,7 @@ class MessagingPlugin(PluginBase):
 # Plugin interface
 
     def start_server(self):
+        """! Starts the HTTP server """
         if not self.is_server_running:
             print_trace_in_ui("Starting http server")
             self.server_thread = threading.Thread(name="HTTP Server Thread",
@@ -155,6 +183,7 @@ class MessagingPlugin(PluginBase):
             print_trace_in_ui("Server is already started")
 
     def stop_server(self):
+        """! Stops the http server """
         if self.is_server_running:
             print_trace_in_ui("Stopping http server")
             self.is_server_running = False
@@ -286,27 +315,32 @@ class MessagingPlugin(PluginBase):
                 self.message_ui.subscribe_listbox(self.maintenance_listbox)
 
                 # Read message list from database
-                entries = get_data_manager().select_entries("MESSAGES", "*", order_by="TIMESTAMP")
+                entries = get_data_manager(). \
+                    select_entries("MESSAGES", "*",
+                                   order_by="TIMESTAMP")
                 for entry in entries:
                     print_trace_in_ui("Reading from database : ", entry)
                     if len(entry) == 3:
                         try:
-                            time_message = datetime.strptime(entry[0], "%Y-%m-%d %H:%M:%S")
+                            time_message = datetime. \
+                                strptime(entry[0],
+                                         "%Y-%m-%d %H:%M:%S")
                             # We cannot use datetime.timestamp() as it is buggy :
                             # cf https://bugs.python.org/issue37527
                             epoch = datetime.utcfromtimestamp(0)
-                            total_seconds=(time_message - epoch).total_seconds()
+                            total_seconds = (time_message - epoch). \
+                                total_seconds()
 
-                            new_message = MessagingPlugin.Message(entry[1], # Author
-                                                                  entry[2], # Message
-                                                                  total_seconds)
+                            new_message = \
+                                MessagingPlugin.Message(
+                                    entry[1],  # Author
+                                    entry[2],  # Message
+                                    total_seconds)
                             self.message_ui.load_message(new_message)
                         except:
                             print_trace_in_ui("Time is incorrect in the db ! ")
-
                     else:
                         print_trace_in_ui("Message not added, not wellformed !")
-
 
     def on_begin(self):
         """! Called at the beginning of a video playback """
@@ -333,7 +367,9 @@ class MessagingPlugin(PluginBase):
         get_data_manager().kill()
 
     def is_maintenance_frame(self):
-        """! Returns True if the plugin needs a maintenance frame, for UI controls """
+        """! Returns True if the plugin needs a maintenance frame,
+             for UI controls
+        """
         # We need a maintenance frame in the messaging plugin :
         # Listbox display current and old messages
         return True
@@ -348,6 +384,7 @@ class MessagingPlugin(PluginBase):
 
         def __init__(self, cb_add_message, *args, **kwargs):
             self.cb_add_message = cb_add_message
+            self.path = None
             super().__init__(*args, **kwargs)
 
         def do_GET(self):
@@ -360,17 +397,23 @@ class MessagingPlugin(PluginBase):
         def do_POST(self):
             print_trace_in_ui("Received a message !")
             data_string = self.rfile.read(int(self.headers['Content-Length']))
-            fields = parse.parse_qs(str(data_string,"UTF-8"))
+            fields = parse.parse_qs(str(data_string, "UTF-8"))
             print_trace_in_ui(fields)
             # Subscribe the message in the active list
-            if self.cb_add_message is not None and "message" in fields and "name" in fields:
-                message = fields["message"][0].replace('\r', '').replace('\n', '')
+            if self.cb_add_message is not None and \
+               "message" in fields and "name" in fields:
+                message = fields["message"][0].replace('\r', ''). \
+                    replace('\n', '')
                 self.path = 'src/static/done.html'
                 # Check if the message is not too long
                 if len(message) < 128:
-                    self.cb_add_message(MessagingPlugin.Message(fields["name"][0], message, time()))
+                    self.cb_add_message(
+                        MessagingPlugin.Message(
+                            fields["name"][0],
+                            message, time()))
                 else:
-                    print_trace_in_ui("Message too long.. Not keeping this one")
+                    print_trace_in_ui(
+                        "Message too long.. Not keeping this one")
                     self.path = 'src/static/ko.html'
             else:
                 # Error
@@ -425,12 +468,16 @@ class MessagingPlugin(PluginBase):
             self.active_label_message.pack(side=tk.LEFT, anchor=tk.CENTER)
 
         def runtime_display_message(self):
-            print_trace_in_ui("Index of current message = ", self.index_sequence_message, " Author : ",
-                self.message_list[self.index_sequence_message].author, " Message ",
+            print_trace_in_ui(
+                "Index of current message = ",
+                self.index_sequence_message,
+                " Author : ",
+                self.message_list[self.index_sequence_message].author,
+                " Message ",
                 self.message_list[self.index_sequence_message].message)
 
             self.message_list[self.index_sequence_message].set_current_message()
-            font_size = int(self.player_window.winfo_height() /20);
+            font_size = int(self.player_window.winfo_height() / 20)
             print_trace_in_ui("FontSize ", font_size)
             self.active_label_author.configure(
                 text=self.message_list[self.index_sequence_message].author,
@@ -440,28 +487,49 @@ class MessagingPlugin(PluginBase):
                 font=('calibri', font_size))
             # Let time to recalculate the message size
             sleep(0.1)
-            print_trace_in_ui("Message size ", self.active_label_message.winfo_width())
-            print_trace_in_ui("Size of message space ", self.player_window.winfo_width() - self.active_label_author.winfo_width())
-            if self.active_label_message.winfo_width() >= self.player_window.winfo_width() - self.active_label_author.winfo_width():
-                print_trace_in_ui("Message is too long, we need to make it scroll")
-                # A long message needs to be let a longer time
-                time_to_wait = int(self.params[DISPLAY_TIME_LONG_MESSAGE_PARAM])
+            print_trace_in_ui("Message size ",
+                              self.active_label_message.winfo_width())
+            print_trace_in_ui(
+                "Size of message space ",
+                self.player_window.winfo_width() -
+                self.active_label_author.winfo_width())
+
+            if self.active_label_message.winfo_width() >= \
+               self.player_window.winfo_width() - \
+               self.active_label_author.winfo_width():
+                print_trace_in_ui(
+                    "Message is too long, we need to make it scroll")
+                # A long message needs to be let a longer time FIXME
+                time_to_wait = int(self.
+                                   params[DISPLAY_TIME_LONG_MESSAGE_PARAM])
+
                 def _scroll_thread():
                     self.active_label_message.configure(anchor=tk.W)
                     current_index_message = self.index_sequence_message
-                    message = self.message_list[self.index_sequence_message].message
+                    message = \
+                        self.message_list[self.index_sequence_message].message
                     # First 2 seconds are fixed
                     sleep(2)
-                    while self.is_running and current_index_message == self.index_sequence_message and self.message_list[current_index_message].is_active():
+                    while self.is_running and \
+                            current_index_message == \
+                            self.index_sequence_message \
+                            and self.message_list[current_index_message]. \
+                            is_active():
                         wait = False
                         # removing first char until it fits
-                        if self.active_label_message.winfo_width() >= self.player_window.winfo_width() - self.active_label_author.winfo_width():
+                        if self.active_label_message.winfo_width() >= \
+                           self.player_window.winfo_width() - \
+                           self.active_label_author.winfo_width():
 
-                            chunk_message = tk.Label(self.frame_messages,text=message[0:5], font=('calibri', font_size))
-                            chunk_message.place(relx=-1,rely=-1)
+                            chunk_message = tk.Label(self.frame_messages,
+                                                     text=message[0:5],
+                                                     font=('calibri',
+                                                           font_size))
+                            chunk_message.place(relx=-1, rely=-1)
                             sleep(0.05)
                             width = chunk_message.winfo_width()
-                            print_trace_in_ui(f"Size of chunk {message[0:5]} : {width}")
+                            print_trace_in_ui(
+                                f"Size of chunk {message[0:5]} : {width}")
                             message = message[6:]
                             self.active_label_message.configure(text=message)
 
@@ -480,20 +548,27 @@ class MessagingPlugin(PluginBase):
 
                         if wait:
                             sleep(2)
-                            if  self.message_list[current_index_message].is_active():
-                                message =  self.message_list[current_index_message].message
-                                self.active_label_message.configure(text = message)
+                            if self.message_list[current_index_message]. \
+                                    is_active():
+                                message = \
+                                    self.message_list[current_index_message]. \
+                                    message
+                                self.active_label_message. \
+                                    configure(text=message)
                                 sleep(2)
                             else:
-                                print_trace_in_ui("Current message is not active anymore ! ")
+                                print_trace_in_ui(
+                                    "Current message is not active anymore ! ")
                         else:
                             sleep(0.08)
-                        self.active_label_message.configure(text = message)
+                        self.active_label_message.configure(text=message)
                 if self.scroll_thread is not None:
                     self.scroll_thread.join()
                     self.scroll_thread = None
 
-                self.scroll_thread = threading.Thread(name="MessageUI Scroll Thread", target=_scroll_thread)
+                self.scroll_thread = \
+                    threading.Thread(name="MessageUI Scroll Thread",
+                                     target=_scroll_thread)
                 self.scroll_thread.start()
 
         def runtime(self):
@@ -503,12 +578,16 @@ class MessagingPlugin(PluginBase):
                 self._compute_messages()
                 # By default, compute messages every second
                 time_to_wait = 1
-                active_messages = list(filter(lambda message : ( message.is_active() ), self.message_list))
+                active_messages = list(filter(
+                    lambda message: (message.is_active()),
+                    self.message_list))
                 if len(active_messages) > 0:
                     self.show()   # ?
-                    # If we display a message, we display it for DISPLAY_TIME seconds
+                    # If we display a message, we display it
+                    # for DISPLAY_TIME seconds
                     time_to_wait = int(self.params[DISPLAY_TIME_PARAM])
-                    self.message_list[self.index_sequence_message].set_not_current_message()
+                    self.message_list[self.index_sequence_message]. \
+                        set_not_current_message()
 
                     # Get the next active message
                     is_next_active_message = False
@@ -544,7 +623,9 @@ class MessagingPlugin(PluginBase):
                 self.scroll_thread = None
 
         def load_message(self, message):
-            """! Loading a message from the database, so not storing it again inside """
+            """! Loading a message from the database,
+                 so not storing it again here
+            """
             self.message_list.append(message)
 
             if self.maintenance_listbox is not None:
@@ -596,11 +677,19 @@ class MessagingPlugin(PluginBase):
                 + "{:02d}".format(message_time.second)
 
             if MESSAGE_FILE_PATH_PARAM in self.params:
-                with open(self.params[MESSAGE_FILE_PATH_PARAM], 'a+', encoding='utf-8') as f:
-                    f.write(timestamp + " " +  message.author + " : " + message.message + '\n')
+                with open(self.params[MESSAGE_FILE_PATH_PARAM],
+                          'a+',
+                          encoding='utf-8') as file:
+                    file.write(timestamp + " "
+                               + message.author
+                               + " : "
+                               + message.message
+                               + '\n')
 
             get_data_manager().insert_entries("MESSAGES",
-                [(timestamp, message.author, message.message)])
+                                              [(timestamp,
+                                                message.author,
+                                                message.message)])
 
             message.set_active()
 
