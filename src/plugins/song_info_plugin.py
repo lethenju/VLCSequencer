@@ -57,7 +57,10 @@ class SongInfoPlugin(PluginBase):
 
                 # TODO background image maybe ?
                 self.frame_songinfo = tk.Frame(self.player_window, width=20, bg=UI_BACKGROUND_COLOR)
-                font_size = int(self.player_window.winfo_height() /25);
+                if len(artist) + len(song) > 30:
+                    font_size = int(self.player_window.winfo_height() / 40)
+                else:
+                    font_size = int(self.player_window.winfo_height() / 25)
                 print_trace_in_ui("FontSize ", font_size)
                 label_artist = tk.Label(self.frame_songinfo,text=artist, padx=10, pady=10, font=('calibri', font_size, 'bold'),fg="white", bg=UI_BACKGROUND_COLOR)
                 label_song   = tk.Label(self.frame_songinfo,text=song, padx=10, pady=10, font=('calibri', font_size),fg="white", bg=UI_BACKGROUND_COLOR)
