@@ -16,11 +16,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
+"""! History list view in the sequence view"""
 import tkinter as tk
 
-from colors import *
-from logger import PrintTraceInUi
+from colors import UI_BACKGROUND_COLOR
+from logger import print_trace_in_ui
 from listboxes_base import BasePagingList
+
 
 class HistoryListboxEntry(tk.Frame):
     """! Represents an entry in the history list view."""
@@ -39,7 +41,7 @@ class HistoryListboxEntry(tk.Frame):
 
     def setup(self, timestamp, video_name):
         """! Setup the widget with the timestamp and video_name """
-        PrintTraceInUi("History list entry ", timestamp, " - ", video_name)
+        print_trace_in_ui("History list entry ", timestamp, " - ", video_name)
 
         self.timestamp_label.configure(text=timestamp)
         self.video_name_label.configure(text=video_name)
@@ -51,15 +53,19 @@ class HistoryListboxEntry(tk.Frame):
         self.timestamp_label.destroy()
         self.video_name_label.destroy()
 
+
 class HistoryListbox(BasePagingList):
-    def __init__(self, tk_notebook, nb_elements = 10):
+    """! History Listbox class """
+    def __init__(self, tk_notebook, nb_elements=10):
         """! Initialize the listbox
             @param tk_notebook : the tk notebook in which add the listbox
             @param nb_elements : the max nb_elements to be displayed at once
         """
         super().__init__(tk_notebook, "History", nb_elements)
-        tk_notebook.add(self._view, text = "History")
+        tk_notebook.add(self._view, text="History")
 
     def add_entry(self, timestamp, video_name):
         """! Add an entry in the HistoryListboxEntry """
-        super().add_entry(HistoryListboxEntry, timestamp=timestamp, video_name=video_name)
+        super().add_entry(HistoryListboxEntry,
+                          timestamp=timestamp,
+                          video_name=video_name)

@@ -22,7 +22,7 @@ from time import sleep, time
 from threading import Thread
 
 from colors import *
-from logger import PrintTraceInUi
+from logger import print_trace_in_ui
 from plugin_base import PluginBase
 
 
@@ -58,7 +58,7 @@ class SongInfoPlugin(PluginBase):
                 # TODO background image maybe ?
                 self.frame_songinfo = tk.Frame(self.player_window, width=20, bg=UI_BACKGROUND_COLOR)
                 font_size = int(self.player_window.winfo_height() /25);
-                PrintTraceInUi("FontSize ", font_size)
+                print_trace_in_ui("FontSize ", font_size)
                 label_artist = tk.Label(self.frame_songinfo,text=artist, padx=10, pady=10, font=('calibri', font_size, 'bold'),fg="white", bg=UI_BACKGROUND_COLOR)
                 label_song   = tk.Label(self.frame_songinfo,text=song, padx=10, pady=10, font=('calibri', font_size),fg="white", bg=UI_BACKGROUND_COLOR)
 
@@ -66,9 +66,9 @@ class SongInfoPlugin(PluginBase):
                 label_song.  pack(side=tk.RIGHT)
 
         if self.maintenance_frame is None and "maintenance_frame" in kwargs:
-            PrintTraceInUi("Link maintenance window to us")
+            print_trace_in_ui("Link maintenance window to us")
             super().setup(maintenance_frame=kwargs["maintenance_frame"])
-            PrintTraceInUi("Setup")
+            print_trace_in_ui("Setup")
             self.maintenance_song_info_frame = tk.Frame(self.maintenance_frame,  bg=UI_BACKGROUND_COLOR)
             self.maintenance_song_info_frame.pack(fill=tk.BOTH, expand=True)
 
@@ -80,9 +80,9 @@ class SongInfoPlugin(PluginBase):
                         self.thread_ui_info = Thread(name="Manual UI song info Thread", target=self._show_song_info_thread)
                         self.thread_ui_info.start()
                     else:
-                        PrintTraceInUi("It is already showing !")
+                        print_trace_in_ui("It is already showing !")
                 else:
-                    PrintTraceInUi("Song info frame is not ready")
+                    print_trace_in_ui("Song info frame is not ready")
 
             self.show_button = tk.Button(self.maintenance_song_info_frame,
                                          text="Show song info",
@@ -113,7 +113,7 @@ class SongInfoPlugin(PluginBase):
             if self.is_automatic_show_song_info:
                 # And it stays only for 10 seconds
                 if time_s == 10 and not self._is_show_song_info_thread_active():
-                    PrintTraceInUi("Showing song info")
+                    print_trace_in_ui("Showing song info")
                     # Recreate thread
                     self.thread_ui_info = Thread(name="Automatic UI song info Thread", target=self._show_song_info_thread)
                     self.thread_ui_info.start()
@@ -122,7 +122,7 @@ class SongInfoPlugin(PluginBase):
         """! Called at the end of a video playback """
         # If we didnt have time to delete the frame info, we do it now to prevent future weird behaviours
         if self.frame_songinfo is not None:
-            PrintTraceInUi("Warning ! Deleting song info lately")
+            print_trace_in_ui("Warning ! Deleting song info lately")
             if self.thread_ui_info is not None and self.thread_ui_info.is_alive():
                 self.thread_ui_info.join()
             self.frame_songinfo = None

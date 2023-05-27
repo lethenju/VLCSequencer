@@ -16,21 +16,28 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
+"""! Data Manager modules
+     Connects with a sqlite db for internal
+     persisted data between launches in a generic way """
+
 import sqlite3
 from threading import Thread
-from logger import PrintTraceInUi
 import time
 import copy
 
-_data_manager = None
+from logger import print_trace_in_ui
+
+_DATA_MANAGER = None
 
 
-def GetDataManager():
+def get_data_manager():
+    # global is necessary for singleton management
+    # pylint: disable=global-statement
     """! Returns the DataManager instance"""
-    global _data_manager
-    if _data_manager is None:
-        _data_manager = DataManager("internal.dat")
-    return _data_manager
+    global _DATA_MANAGER
+    if _DATA_MANAGER is None:
+        _DATA_MANAGER = DataManager("internal.dat")
+    return _DATA_MANAGER
 
 
 class DataManager:
@@ -83,13 +90,15 @@ class DataManager:
             time.sleep(0.2)
 
     def __init__(self, path):
+        """! Initializes the data manager module"""
         self.path = path
         self._is_running = True
         self._data_thread = Thread(target=self._thread_runtime)
         self._data_thread.start()
 
     def kill(self):
-        PrintTraceInUi("Killing the data manager")
+        """! Kills the data manager module"""
+        print_trace_in_ui("Killing the data manager")
         self._is_running = False
         self._data_thread.join()
 
@@ -108,7 +117,7 @@ class DataManager:
                 # This is the last item
                 columns_str = columns_str + column + ")"
         query_str = query_str + columns_str
-        PrintTraceInUi(f"Query str = {query_str}")
+        print_trace_in_ui(f"Query str = {query_str}")
         # self._db_cursor.execute(query_str)
         self._fifo_messages.append((["CREATE", query_str]))
 
@@ -128,6 +137,7 @@ class DataManager:
             result = self._results_from_thread.pop()
             self._results_from_thread = []
             return result
+        return None  # Should be error management there
 
     def insert_entries(self, table_name, entries_list):
         """! Insert lines in a sqlite table
@@ -138,11 +148,12 @@ class DataManager:
                           ('John Doe', 4),
                           ('Toto', 6),
                          ]
+            @return True if ok, False if there was an error
         """
 
         if not self.is_table_exists(table_name):
-            PrintTraceInUi(f"The table {table_name} does NOT exist !")
-            return
+            print_trace_in_ui(f"The table {table_name} does NOT exist !")
+            return False
 
         query_str = "INSERT INTO " + table_name + " VALUES ("
         columns_str = ""
@@ -155,8 +166,9 @@ class DataManager:
                 # This is the last item
                 columns_str = columns_str + "?)"
         query_str = query_str + columns_str
-        PrintTraceInUi(f"Query str = {query_str}")
+        print_trace_in_ui(f"Query str = {query_str}")
         self._fifo_messages.append((["INSERT", query_str, entries_list]))
+        return True
 
     def select_entries(self, table_name, columns,  **kwargs):
         """! Select lines in a sqlite table
@@ -170,7 +182,7 @@ class DataManager:
         if "order_by" in kwargs:
             query_str = query_str + " ORDER BY " + kwargs["order_by"]
 
-        PrintTraceInUi(f"Query str = {query_str}")
+        print_trace_in_ui(f"Query str = {query_str}")
         self._fifo_messages.append(["SELECT", query_str])
         # Wait for _results_from_thread
         while not self._results_from_thread and self._is_running:

@@ -16,17 +16,22 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-
+"""! The LOGGER module """
 import inspect
 import time
 import tkinter as tk
 
 # Static data
-logger = None
+LOGGER = None
 # To be set when the app is stopping
-is_stopping = False
+_IS_STOPPING = False
+
 
 class Logger():
+    """! Logger class : handles logs printing
+        Both in a console and in a user-defined
+        ui listbox
+    """
     # Reference to the tkinter listbox used to gather the logs
     ui_trace_listbox = None
 
@@ -34,6 +39,7 @@ class Logger():
         """! Logging module initialization """
 
     def set_ui_listbox(self, ui_trace_listbox):
+        """! Set the UI listbox to be printing logs into"""
         self.ui_trace_listbox = ui_trace_listbox
 
     def log(self, trace):
@@ -45,30 +51,33 @@ class Logger():
             print("Log listbox incorrect !")
 
 
-def LoggerSubscribeUI(ui_trace_listbox):
-    global logger
+def logger_subscribe_ui(ui_trace_listbox):
+    """! Subscribe a ui listbox into the logger singleton """
+    global LOGGER
     # Logger is a singleton
-    if (logger is None):
-        logger = Logger()
-    logger.set_ui_listbox(ui_trace_listbox)
+    if LOGGER is None:
+        LOGGER = Logger()
+    LOGGER.set_ui_listbox(ui_trace_listbox)
 
 
-def LoggerSetIsStopping():
-    global is_stopping
-    is_stopping = True
+def logger_set_is_stopping():
+    """! Asks the logger to stop """
+    global _IS_STOPPING
+    _IS_STOPPING = True
 
-def PrintTraceInUi(*args):
-    global logger
+
+def print_trace_in_ui(*args):
+    global LOGGER
 
     function_caller_name = inspect.stack()[1].function
     trace = time.strftime('%H:%M:%S') + " " + function_caller_name + "() : "
     for arg in args:
         trace = trace + arg.__str__()
-    if not is_stopping:
+    if not _IS_STOPPING:
         # Logger is a singleton
-        if (logger is None):
-            logger = Logger()
-        logger.log(trace)
+        if (LOGGER is None):
+            LOGGER = Logger()
+        LOGGER.log(trace)
         print(trace)
     else:
         print(trace)

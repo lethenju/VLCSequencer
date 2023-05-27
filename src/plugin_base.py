@@ -25,19 +25,18 @@ class PluginType(Enum):
     MESSAGING_PLUGIN = 1
     TIME_AND_CHANNEL_PLUGIN = 2
 
-    def PluginTypeFactory(str_name):
+    def plugin_type_factory(str_name):
         """! Returns the appropriate enum with the name of the plugin """
         if str_name == "SongInfo":
             return PluginType.SONG_INFO_PLUGIN
-        elif str_name == "Messaging":
+        if str_name == "Messaging":
             return PluginType.MESSAGING_PLUGIN
-        elif str_name == "TimeAndChannel":
+        if str_name == "TimeAndChannel":
             return PluginType.TIME_AND_CHANNEL_PLUGIN
 
         # A plugin name should always be defined
         # FIXME
-        assert(False)
-
+        assert False
 
 
 class PluginBase:
@@ -45,10 +44,13 @@ class PluginBase:
 
         Plugins are extensions of the base program to enable advanced features
     """
-    player_window = None      # Reference to the display window
-    maintenance_frame = None  # Reference to the maintenance frame in the sequencer window, to add UI controls
+    # Reference to the display window
+    player_window = None
+    # Reference to the maintenance frame in the sequencer window,
+    # to add UI controls
+    maintenance_frame = None
 
-    def __init__(self, params = None):
+    def __init__(self, params=None):
         self.params = params
         self.is_running = True
 
@@ -74,9 +76,13 @@ class PluginBase:
         self.is_running = False
 
     def is_maintenance_frame(self):
-        """! Returns True if the plugin needs a maintenance frame, for UI controls """
+        """! Returns True if the plugin needs a maintenance frame,
+            for UI controls """
         # The base class doesnt need a maintenance frame
         return False
 
     def get_name(self):
+        """! Returns the name of the plugin """
+        # The derived class didnt implement
+        # this function
         return "unknown"

@@ -22,7 +22,7 @@ from PIL import Image, ImageTk
 
 
 from colors import *
-from logger import PrintTraceInUi
+from logger import print_trace_in_ui
 from plugin_base import PluginBase
 
 
@@ -56,7 +56,7 @@ class TimeAndChannelPlugin(PluginBase):
                     self.label_channel.image = display
                     self.label_channel.pack(side=tk.RIGHT)
                 except:
-                    PrintTraceInUi(f"ERR No such file or directory : ", self.params[PATH_LOGO_PNG])
+                    print_trace_in_ui(f"ERR No such file or directory : ", self.params[PATH_LOGO_PNG])
 
             print("Show")
     def on_begin(self):
@@ -68,7 +68,7 @@ class TimeAndChannelPlugin(PluginBase):
             # TODO Update time
             new_font_size = int(self.player_window.winfo_height() /25);
             if new_font_size != self.font_size:
-                PrintTraceInUi("Update font size from ", self.font_size, " to ", new_font_size)
+                print_trace_in_ui("Update font size from ", self.font_size, " to ", new_font_size)
                 self.font_size = new_font_size
                 self.label_time.configure(font=('calibri', self.font_size, 'bold'))
 

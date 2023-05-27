@@ -6,7 +6,7 @@ import sys
 
 # Application related imports
 from colors import *
-from logger import PrintTraceInUi
+from logger import print_trace_in_ui
 from plugin_manager import PluginManager, PluginType
 
 class UiPlayer():
@@ -141,7 +141,7 @@ class UiPlayer():
             volume = player.audio_get_volume()
             while (volume < 100 and self.is_running_flag and not self.is_next_asked
                    and nb_video_played < self.nb_video_played + 1):
-                PrintTraceInUi("fade_in Volume : ", volume)
+                print_trace_in_ui("fade_in Volume : ", volume)
                 volume = min(volume + 5, 100)
                 if not self.is_muted:
                     player.audio_set_volume(volume)
@@ -189,7 +189,7 @@ class UiPlayer():
 
         timer = 0
         while (player.get_position() < end_position and self.is_running_flag and not self.is_next_asked):
-            PrintTraceInUi("Current media playing time " +
+            print_trace_in_ui("Current media playing time " +
                            ("{:.2f}".format(player.get_position()*100))+"%")
             # Progress the plugins
             for plugin in self.plugin_manager.get_plugins():
@@ -203,7 +203,7 @@ class UiPlayer():
             time.sleep(1)
             timer = timer + 1
 
-        PrintTraceInUi("End of video")
+        print_trace_in_ui("End of video")
 
         for plugin in self.plugin_manager.get_plugins():
             plugin.on_exit()
@@ -216,7 +216,7 @@ class UiPlayer():
             player.audio_set_volume(0)
 
         if not self.is_running_flag:
-            PrintTraceInUi("Stopping UI_Player ")
+            print_trace_in_ui("Stopping UI_Player ")
             if self.fade_in_thread is not None and self.fade_in_thread.is_alive():
                 self.fade_in_thread.join()
             if self.fade_out_thread is not None and self.fade_out_thread.is_alive():
@@ -236,8 +236,8 @@ class UiPlayer():
 
             self.nb_video_played = self.nb_video_played + 1
 
-            PrintTraceInUi("Total video played ",self.nb_video_played)
-            PrintTraceInUi("Playing on frame number ",self.nb_video_played % 2)
+            print_trace_in_ui("Total video played ",self.nb_video_played)
+            print_trace_in_ui("Playing on frame number ",self.nb_video_played % 2)
 
             # Try to get metadata about this video
             name_of_file = path.split("/").pop()

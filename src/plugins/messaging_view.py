@@ -22,7 +22,7 @@ import tkinter as tk
 import math
 
 from colors import *
-from logger import PrintTraceInUi
+from logger import print_trace_in_ui
 from listboxes_base import BasePagingList
 
 class MessageListboxEntry(tk.Frame):
@@ -52,7 +52,7 @@ class MessageListboxEntry(tk.Frame):
 
     def setup(self, timestamp, author, message, active_cb, current_cb, activate_toggle_cb):
         """! Setup the widget with the timestamp and video_name """
-        PrintTraceInUi("Message list entry ", timestamp, " - ", author, " : ", message)
+        print_trace_in_ui("Message list entry ", timestamp, " - ", author, " : ", message)
 
         self.timestamp_label.configure(text=timestamp)
         self.author_label.configure(text=author)
@@ -64,7 +64,7 @@ class MessageListboxEntry(tk.Frame):
         self.button_toggle_active.configure(command=activate_toggle_cb)
 
     def message_active_callback(self, is_active):
-        PrintTraceInUi(f"Is this message active : {is_active}")
+        print_trace_in_ui(f"Is this message active : {is_active}")
         if is_active:
             super().configure(bg=UI_BLOCK_SELECTED_VIDEO_FRAME_COLOR)
             self.timestamp_label.configure(bg=UI_BLOCK_SELECTED_VIDEO_FRAME_COLOR)
@@ -79,7 +79,7 @@ class MessageListboxEntry(tk.Frame):
             self.button_toggle_active.configure(text="Activate")
 
     def message_current_callback(self, is_current):
-        PrintTraceInUi(f"Is this message current : {is_current}")
+        print_trace_in_ui(f"Is this message current : {is_current}")
         if is_current:
             super().configure(bg=UI_BLOCK_REPEAT_VIDEO_COLOR)
             self.timestamp_label.configure(bg=UI_BLOCK_REPEAT_VIDEO_COLOR)

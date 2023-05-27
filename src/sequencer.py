@@ -31,7 +31,7 @@ from functools import partial
 
 # Application related imports
 from colors import *
-from logger import PrintTraceInUi, LoggerSetIsStopping
+from logger import print_trace_in_ui, logger_set_is_stopping
 from plugin_base import PluginType
 from history_view import HistoryListbox
 from log_view import LogListbox
@@ -67,7 +67,7 @@ class MainSequencer():
             self.ui_player.play(path=path, length_s=length_s)
 
     def kill(self):
-        PrintTraceInUi("End of the main sequencer")
+        print_trace_in_ui("End of the main sequencer")
         self.is_running_flag = False
         self.thread.join()
         self.ui_player.kill()
@@ -122,7 +122,7 @@ class SequenceBlock:
 
     def set_on_repeat(self):
         """! Toggle repeat mode """
-        PrintTraceInUi("Toggling repeat mode")
+        print_trace_in_ui("Toggling repeat mode")
         self.is_on_repeat = not self.is_on_repeat
         if self.is_on_repeat:
             self.modify_color(UI_BLOCK_REPEAT_VIDEO_COLOR)
@@ -426,7 +426,7 @@ class UiSequenceManager:
             self.is_paused = False
 
     def reload_metadata(self):
-        PrintTraceInUi("Reloading metadata")
+        print_trace_in_ui("Reloading metadata")
         if self.metadata_manager is not None:
             self.metadata_manager.reload()
         # TODO Reload UI
@@ -497,18 +497,18 @@ class UiSequenceManager:
                 file = files[random.randrange(len(files))]
                 is_file_selected = file not in forbidden_files
             complete_path = self.path_dirname + "/" + path + "/" + file
-            PrintTraceInUi("Testing " + complete_path)
+            print_trace_in_ui("Testing " + complete_path)
             # Verify its a Media file before trying to play it
 
             if ("Media" in magic.from_file(complete_path)):
                 if complete_path in self.history_knownvideos:
                     video = self.history_knownvideos[complete_path]
 
-                    PrintTraceInUi("Already known video... Last playback on ",
+                    print_trace_in_ui("Already known video... Last playback on ",
                                    datetime.fromtimestamp(video.last_playback),
                                    " and timeout ",
                                    int(timeout_m)*60, "s")
-                    PrintTraceInUi(" and timestamp of the programmed video  ",
+                    print_trace_in_ui(" and timestamp of the programmed video  ",
                                    datetime.fromtimestamp(time_programmed_s))
                     if (video.last_playback + int(timeout_m)*60 <
                             time_programmed_s):
@@ -518,11 +518,11 @@ class UiSequenceManager:
                         self.history_knownvideos[complete_path]. \
                             last_playback = time_programmed_s
                     else:
-                        PrintTraceInUi("Last playback too recent.. ")
+                        print_trace_in_ui("Last playback too recent.. ")
                         # Forbid this video to be tested again
                         forbidden_files.append(complete_path)
                         if len(forbidden_files) == len(files):
-                            PrintTraceInUi(
+                            print_trace_in_ui(
                                 "ERR ! All videos are forbidden ! Selecting ",
                                 complete_path,
                                 " anyway..")
@@ -532,10 +532,10 @@ class UiSequenceManager:
                 else:
                     video_found = complete_path
             else:
-                PrintTraceInUi("Not a video file")
+                print_trace_in_ui("Not a video file")
                 forbidden_files.append(complete_path)
                 if len(forbidden_files) == len(files):
-                    PrintTraceInUi("ERROR ! Trying again...")
+                    print_trace_in_ui("ERROR ! Trying again...")
 
         return video_found
 
@@ -581,9 +581,9 @@ class UiSequenceManager:
         video.path = path
         if (video.path in self.history_knownvideos):
             video.length = self.history_knownvideos[video.path].length
-            PrintTraceInUi(video.path + " : Known video, already parsed length ", video.length)
+            print_trace_in_ui(video.path + " : Known video, already parsed length ", video.length)
         else:
-            PrintTraceInUi(
+            print_trace_in_ui(
                 video.path + " : New video, reading attributes ")
             media = self.vlc_instance.media_new(video.path)
             media.parse_with_options(1, 0)
@@ -632,13 +632,13 @@ class UiSequenceManager:
                 timeout = video.block_args[1]
                 final_path = self._find_random_video(
                     path=path, timeout_m=timeout, time_programmed_s=video.last_playback)
-                PrintTraceInUi("Video " + final_path + " is programmed to be played on ",
+                print_trace_in_ui("Video " + final_path + " is programmed to be played on ",
                                datetime.fromtimestamp(video.last_playback))
             elif (video.block_type == "video"):
                 final_path = self.path_dirname + "/" + video.block_args
 
             if not os.path.isfile(final_path):
-                PrintTraceInUi(final_path + " : The video doesnt exist ! ")
+                print_trace_in_ui(final_path + " : The video doesnt exist ! ")
                 exit(-1)
 
             self._load_video(final_path, video)
@@ -650,11 +650,11 @@ class UiSequenceManager:
         assert (xml_root.tag == 'Document')
         for child in xml_root:
             if child.tag == "Title":
-                PrintTraceInUi(f"Title of the sequence : {child.text}")
+                print_trace_in_ui(f"Title of the sequence : {child.text}")
                 self.title = child.text
             elif child.tag == "Plugin":
                 plugin_name = child.attrib['name']
-                PrintTraceInUi(f"Load plugin {plugin_name}")
+                print_trace_in_ui(f"Load plugin {plugin_name}")
                 # Childs of a plugins are its parameter
                 params = {}
                 for param in child:
@@ -662,14 +662,14 @@ class UiSequenceManager:
                     params[param.attrib["name"]] = param.attrib["value"]
 
                 self.plugin_manager.add_plugin(
-                    PluginType.PluginTypeFactory(plugin_name), params)
+                    PluginType.plugin_type_factory(plugin_name), params)
             elif child.tag == "Sequence":
-                PrintTraceInUi("Sequence found!")
+                print_trace_in_ui("Sequence found!")
                 self.sequence_data = SequenceBlock("sequence")
                 self._build_sequence(sequence_xml_node=child,
                                      sequence_data_node=self.sequence_data)
         self._flatten_sequence(self.sequence_data)
-        PrintTraceInUi(self.sequence_data)
+        print_trace_in_ui(self.sequence_data)
 
         # Fill the UI
         for i, block in enumerate(self.sequence_data.inner_sequence):
@@ -740,7 +740,7 @@ class UiSequenceManager:
         tabControl = ttk.Notebook(self.bottom_view)
         for plugin in self.plugin_manager.get_plugins():
             if plugin.is_maintenance_frame():
-                PrintTraceInUi("Creating frame for plugin ", plugin.get_name())
+                print_trace_in_ui("Creating frame for plugin ", plugin.get_name())
                 frame = ttk.Frame(tabControl)
                 plugin.setup(maintenance_frame=frame)
                 tabControl.add(frame, text=plugin.get_name())
@@ -754,10 +754,10 @@ class UiSequenceManager:
             @param video_index : Index of the video to modify
         """
         if self.index_playing_video == video_index:
-            PrintTraceInUi("You cannot change the current video")
+            print_trace_in_ui("You cannot change the current video")
             return
         video = self.sequence_data.inner_sequence[video_index]
-        PrintTraceInUi("Change video ", video_index)
+        print_trace_in_ui("Change video ", video_index)
         video_path = filedialog.askopenfilename(
             title='Select Video',
             filetypes=[('Video files', '*.mp4')])
@@ -788,7 +788,7 @@ class UiSequenceManager:
         # Adding timestamps since the playing video
         for i in range(from_index + 1, len(self.sequence_data.inner_sequence)):
             video_modify = self.sequence_data.inner_sequence[i]
-            PrintTraceInUi("Changing timestamps of video ",
+            print_trace_in_ui("Changing timestamps of video ",
                         i, " " + video_modify.path)
 
             self._resolve_timestamps(index=i)
@@ -804,7 +804,7 @@ class UiSequenceManager:
     def get_next_video(self):
 
         if not self.is_running_flag:
-            PrintTraceInUi("We are stopping the app")
+            print_trace_in_ui("We are stopping the app")
             return (None, None)
         video = self.sequence_data.inner_sequence[self.index_playing_video]
         # If the current video is set on repeat, we select it again
@@ -850,8 +850,8 @@ class UiSequenceManager:
         self.main_sequencer_kill_cb = main_sequencer_kill_cb
 
     def kill(self):
-        LoggerSetIsStopping()
-        PrintTraceInUi("Exiting app")
+        logger_set_is_stopping()
+        print_trace_in_ui("Exiting app")
         self.is_running_flag = False
         self.ui_player.kill()
 
@@ -859,7 +859,7 @@ class UiSequenceManager:
         self._ui_tkroot.destroy()
 
         for plugin in self.plugin_manager.get_plugins():
-            PrintTraceInUi("Exiting ", plugin.get_name())
+            print_trace_in_ui("Exiting ", plugin.get_name())
             plugin.on_destroy()
 
         if self.clock_thread is not None:
