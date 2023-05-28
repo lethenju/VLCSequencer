@@ -67,6 +67,7 @@ def logger_set_is_stopping():
 
 
 def print_trace_in_ui(*args):
+    """! Prints a trace both in the UI and in the console"""
     global LOGGER
 
     function_caller_name = inspect.stack()[1].function
@@ -75,7 +76,7 @@ def print_trace_in_ui(*args):
         trace = trace + arg.__str__()
     if not _IS_STOPPING:
         # Logger is a singleton
-        if (LOGGER is None):
+        if LOGGER is None:
             LOGGER = Logger()
         LOGGER.log(trace)
         print(trace)

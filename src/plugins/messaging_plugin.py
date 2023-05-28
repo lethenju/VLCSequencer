@@ -16,7 +16,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-
+"""! Messaging plugin
+     Opens a HTTP server for people to add custom messages
+     handles displaying of the message in the main UI Player
+     gives a maintenance view in the sequencer UI to see active and current
+     messages
+"""
 import http.server
 import socketserver
 import threading
@@ -70,6 +75,8 @@ class MessagingPlugin(PluginBase):
         self.message_ui_toggle_button = None
         self.list_frame = None
 
+        self.is_running = True
+
         if PORT_PARAM not in self.params:
             print_trace_in_ui(f"{PORT_PARAM} is not defined, use default value")
             self.params[PORT_PARAM] = PORT_PARAM_DEFAULT
@@ -112,7 +119,7 @@ class MessagingPlugin(PluginBase):
             if not self._is_active:
                 print_trace_in_ui(
                     f"This message is not active ! {self.message}")
-            print_trace_in_ui(f"Message is shown")
+            print_trace_in_ui("Message is shown")
             self._is_current_message_shown = True
             if self._current_message_state_cb is not None:
                 self._current_message_state_cb(True)
@@ -337,7 +344,7 @@ class MessagingPlugin(PluginBase):
                                     entry[2],  # Message
                                     total_seconds)
                             self.message_ui.load_message(new_message)
-                        except:
+                        except ValueError:
                             print_trace_in_ui("Time is incorrect in the db ! ")
                     else:
                         print_trace_in_ui("Message not added, not wellformed !")
@@ -362,7 +369,7 @@ class MessagingPlugin(PluginBase):
         self.stop_server()
         self.message_ui_thread.join()
         # FIXME Workaround to stop the tcp server
-        self.http_server._BaseServer__shutdown_request = True
+        # self.http_server._BaseServer__shutdown_request = True
         # self.http_server = None
         get_data_manager().kill()
 
@@ -375,11 +382,13 @@ class MessagingPlugin(PluginBase):
         return True
 
     def get_name(self):
+        """! Returns the name of this plugin : "Messaging" 
+        """
         return "Messaging"
 # Private members
 
     class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
-
+        """! Http request handler to add messages """
         cb_add_message = None
 
         def __init__(self, cb_add_message, *args, **kwargs):
@@ -388,13 +397,21 @@ class MessagingPlugin(PluginBase):
             super().__init__(*args, **kwargs)
 
         def do_GET(self):
+            """! We received a get from the client :
+                 return the page the client wants
+            """
             if self.path == "/style.css":
                 self.path = "src/static/style.css"
             else:
                 self.path = "src/static/index.html"
             return http.server.SimpleHTTPRequestHandler.do_GET(self)
 
-        def do_POST(self):
+        # We disable the invalid name warning :
+        # do_POST is from the HTTPRequestHandler from the std library
+        def do_POST(self): # pylint: disable=invalid-name
+            """! We received a post from the client :
+                 Handles the message if valid
+            """
             print_trace_in_ui("Received a message !")
             data_string = self.rfile.read(int(self.headers['Content-Length']))
             fields = parse.parse_qs(str(data_string, "UTF-8"))
@@ -421,6 +438,7 @@ class MessagingPlugin(PluginBase):
             return http.server.SimpleHTTPRequestHandler.do_GET(self)
 
     class MessagingUiThread:
+        """! Thread class that handles the displaying of messages """
         message_list = []
         is_shown = False
         player_window = None
@@ -468,6 +486,7 @@ class MessagingPlugin(PluginBase):
             self.active_label_message.pack(side=tk.LEFT, anchor=tk.CENTER)
 
         def runtime_display_message(self):
+            """! Displays the current message in the player UI"""
             print_trace_in_ui(
                 "Index of current message = ",
                 self.index_sequence_message,
@@ -633,12 +652,15 @@ class MessagingPlugin(PluginBase):
                     message.timestamp_activation).time()
                 message_date = datetime.fromtimestamp(
                     message.timestamp_activation).date()
-                timestamp = "{:04d}".format(message_date.year) + "-" \
-                    + "{:02d}".format(message_date.month) + "-" \
-                    + "{:02d}".format(message_date.day) + " " \
-                    + "{:02d}".format(message_time.hour) + ":" \
-                    + "{:02d}".format(message_time.minute) + ":" \
-                    + "{:02d}".format(message_time.second)
+
+                year = f"{message_date.year:04d}"
+                month = f"{message_date.month:02d}"
+                day = f"{message_date.day:02d}"
+                hour = f"{message_time.hour:02d}"
+                minute = f"{message_time.minute:02d}"
+                second = f"{message_time.second:02d}"
+
+                timestamp = f"{year}-{month}-{day} {hour}:{minute}:{second}"
 
                 self.maintenance_listbox. \
                     add_entry(timestamp,
@@ -669,12 +691,14 @@ class MessagingPlugin(PluginBase):
                 message.timestamp_activation).time()
             message_date = datetime.fromtimestamp(
                 message.timestamp_activation).date()
-            timestamp = "{:04d}".format(message_date.year) + "-" \
-                + "{:02d}".format(message_date.month) + "-" \
-                + "{:02d}".format(message_date.day) + " " \
-                + "{:02d}".format(message_time.hour) + ":" \
-                + "{:02d}".format(message_time.minute) + ":" \
-                + "{:02d}".format(message_time.second)
+            year = f"{message_date.year:04d}"
+            month = f"{message_date.month:02d}"
+            day = f"{message_date.day:02d}"
+            hour = f"{message_time.hour:02d}"
+            minute = f"{message_time.minute:02d}"
+            second = f"{message_time.second:02d}"
+
+            timestamp = f"{year}-{month}-{day} {hour}:{minute}:{second}"
 
             if MESSAGE_FILE_PATH_PARAM in self.params:
                 with open(self.params[MESSAGE_FILE_PATH_PARAM],
@@ -690,7 +714,6 @@ class MessagingPlugin(PluginBase):
                                               [(timestamp,
                                                 message.author,
                                                 message.message)])
-
             message.set_active()
 
         def show(self):
@@ -711,6 +734,7 @@ class MessagingPlugin(PluginBase):
                                       rely=-1)
 
         def stop(self):
+            """! Stops the module"""
             self.is_running = False
 
         def _compute_messages(self):
@@ -727,4 +751,5 @@ class MessagingPlugin(PluginBase):
                     message.set_inactive()
 
         def subscribe_listbox(self, listbox):
+            """! Subscribe the maintenance listbox """
             self.maintenance_listbox = listbox

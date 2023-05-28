@@ -17,19 +17,21 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-"""! Handles the message listbox """
+"""! Handles the message paged listbox """
 import tkinter as tk
-import math
 
-from colors import *
+from colors import (UI_BACKGROUND_COLOR,
+                   UI_BLOCK_ACTIVE_MESSAGE_COLOR,
+                   UI_BLOCK_CURRENT_MESSAGE_COLOR)
 from logger import print_trace_in_ui
 from listboxes_base import BasePagingList
+
 
 class MessageListboxEntry(tk.Frame):
     """! Represents an entry in the message list view."""
     timestamp_label = None
-    author_label  = None
-    message_label  = None
+    author_label = None
+    message_label = None
     button_toggle_active = None
 
     def __init__(self, master, **kwargs):
@@ -40,17 +42,23 @@ class MessageListboxEntry(tk.Frame):
 
         self.author_label = tk.Label(self,  font=(
             'calibri', 11, 'bold'), bg=UI_BACKGROUND_COLOR, fg="white")
-        self.author_label.pack(side=tk.LEFT, expand=False, padx = 10)
+        self.author_label.pack(side=tk.LEFT, expand=False, padx=10)
 
         self.message_label = tk.Label(self,  font=(
             'calibri', 11, 'bold'), bg=UI_BACKGROUND_COLOR, fg="white")
-        self.message_label.pack(side=tk.LEFT, expand=False, padx = 10)
+        self.message_label.pack(side=tk.LEFT, expand=False, padx=10)
 
         self.button_toggle_active = tk.Button(self, text="Active",  font=(
             'calibri', 11, 'bold'), bg=UI_BACKGROUND_COLOR, fg="white")
-        self.button_toggle_active.pack(side=tk.RIGHT, expand=False, padx = 10)
+        self.button_toggle_active.pack(side=tk.RIGHT, expand=False, padx=10)
 
-    def setup(self, timestamp, author, message, active_cb, current_cb, activate_toggle_cb):
+    def setup(self,
+              timestamp,
+              author,
+              message,
+              active_cb,
+              current_cb,
+              activate_toggle_cb):
         """! Setup the widget with the timestamp and video_name """
         print_trace_in_ui("Message list entry ", timestamp, " - ", author, " : ", message)
 
@@ -64,12 +72,19 @@ class MessageListboxEntry(tk.Frame):
         self.button_toggle_active.configure(command=activate_toggle_cb)
 
     def message_active_callback(self, is_active):
+        """! Callback called when the 'activeness'
+             of a message changes
+             @param is_active : if the message is active
+        """
         print_trace_in_ui(f"Is this message active : {is_active}")
         if is_active:
-            super().configure(bg=UI_BLOCK_SELECTED_VIDEO_FRAME_COLOR)
-            self.timestamp_label.configure(bg=UI_BLOCK_SELECTED_VIDEO_FRAME_COLOR)
-            self.author_label.configure(bg=UI_BLOCK_SELECTED_VIDEO_FRAME_COLOR)
-            self.message_label.configure(bg=UI_BLOCK_SELECTED_VIDEO_FRAME_COLOR)
+            super().configure(bg=UI_BLOCK_ACTIVE_MESSAGE_COLOR)
+            self.timestamp_label.configure(
+                bg=UI_BLOCK_ACTIVE_MESSAGE_COLOR)
+            self.author_label.configure(
+                bg=UI_BLOCK_ACTIVE_MESSAGE_COLOR)
+            self.message_label.configure(
+                bg=UI_BLOCK_ACTIVE_MESSAGE_COLOR)
             self.button_toggle_active.configure(text="Deactivate")
         else:
             super().configure(bg=UI_BACKGROUND_COLOR)
@@ -79,19 +94,28 @@ class MessageListboxEntry(tk.Frame):
             self.button_toggle_active.configure(text="Activate")
 
     def message_current_callback(self, is_current):
+        """! Callback called when the 'currentness'
+             of a message changes
+             @ is_current : if the message is the current one
+                            displayed
+        """
         print_trace_in_ui(f"Is this message current : {is_current}")
         if is_current:
-            super().configure(bg=UI_BLOCK_REPEAT_VIDEO_COLOR)
-            self.timestamp_label.configure(bg=UI_BLOCK_REPEAT_VIDEO_COLOR)
-            self.author_label.configure(bg=UI_BLOCK_REPEAT_VIDEO_COLOR)
-            self.message_label.configure(bg=UI_BLOCK_REPEAT_VIDEO_COLOR)
+            super().configure(bg=UI_BLOCK_CURRENT_MESSAGE_COLOR)
+            self.timestamp_label.configure(bg=UI_BLOCK_CURRENT_MESSAGE_COLOR)
+            self.author_label.configure(bg=UI_BLOCK_CURRENT_MESSAGE_COLOR)
+            self.message_label.configure(bg=UI_BLOCK_CURRENT_MESSAGE_COLOR)
         else:
-            super().configure(bg=UI_BLOCK_SELECTED_VIDEO_FRAME_COLOR)
-            self.timestamp_label.configure(bg=UI_BLOCK_SELECTED_VIDEO_FRAME_COLOR)
-            self.author_label.configure(bg=UI_BLOCK_SELECTED_VIDEO_FRAME_COLOR)
-            self.message_label.configure(bg=UI_BLOCK_SELECTED_VIDEO_FRAME_COLOR)
+            super().configure(bg=UI_BLOCK_ACTIVE_MESSAGE_COLOR)
+            self.timestamp_label.configure(
+                bg=UI_BLOCK_ACTIVE_MESSAGE_COLOR)
+            self.author_label.configure(
+                bg=UI_BLOCK_ACTIVE_MESSAGE_COLOR)
+            self.message_label.configure(
+                bg=UI_BLOCK_ACTIVE_MESSAGE_COLOR)
 
     def destroy(self):
+        """! Destroy the entry """
         self.timestamp_label.pack_forget()
         self.author_label.pack_forget()
         self.message_label.pack_forget()
@@ -100,27 +124,46 @@ class MessageListboxEntry(tk.Frame):
         self.author_label.destroy()
         self.message_label.destroy()
 
-class MessageListbox(BasePagingList):
 
-    def __init__(self, tk_frame, nb_elements = 10):
+class MessageListbox(BasePagingList):
+    """! Paging module for messaging maintenance pane """
+
+    def __init__(self,
+                 tk_frame,
+                 nb_elements=10):
         """! Initialize the listbox
             @param tk_frame : the tkinter frame in which add the listbox
             @param nb_elements : the max nb_elements to be displayed at once
         """
         super().__init__(tk_frame, "Messages", nb_elements)
 
-    def add_entry(self, timestamp, author, message, active_cb, current_cb, activate_toggle_cb):
+    def add_entry(self,
+                  timestamp,
+                  author,
+                  message,
+                  active_cb,
+                  current_cb,
+                  activate_toggle_cb):
         """! Adds an entry in the message list
-            @param timestamp : Time of the message arrival in float as returned by time()
+            @param timestamp : Time of the message arrival in float
+                               as returned by time()
             @param Author : Author of the message
             @param message : Message in itself
-            @param active_cb : A callback that stores a entry-defined callback in the caller
+            @param active_cb : A callback that stores a entry-defined
+                               callback in the caller
                                 Args : active_cb( callback )
-                                    And this param will be the one actually called :
-                                        -> callback that is called when the 'active' state changes
-                                        (an active message is a message that is programmed to show on the screen)
-            @param current_cb : Same but for the 'current' state changes : the message is shown on the screen or not
-            @param activate_toggle_cb : Simpler callback (direct callback) for when the user presses the activate/deactivate button on each row
+                                    And this param will be the one
+                                    actually called :
+                                        -> callback that is called when the
+                                        'active' state changes
+                                        (an active message is a message
+                                        that is programmed to show on
+                                        the screen)
+            @param current_cb : Same but for the 'current' state changes :
+                                the message is shown on the screen or not
+            @param activate_toggle_cb : Simpler callback (direct callback) for
+                   when the user presses the activate/deactivate button on
+                   each row
         """
         super().add_entry(MessageListboxEntry,
                           timestamp=timestamp,
@@ -129,4 +172,3 @@ class MessageListbox(BasePagingList):
                           active_cb=active_cb,
                           current_cb=current_cb,
                           activate_toggle_cb=activate_toggle_cb)
-

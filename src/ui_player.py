@@ -1,13 +1,32 @@
+# Copyright (C) 2023 Julien LE THENO
+#
+# This file is part of the VLCSequencer package
+# See github.com/lethenju/VLCSequencer
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+"""! Ui Player 
+     Displays the videos and different plugins overlays
+"""
 import tkinter as tk
 import threading
 import time
 import sys
 
-
 # Application related imports
-from colors import *
+from colors import UI_BACKGROUND_COLOR
 from logger import print_trace_in_ui
-from plugin_manager import PluginManager, PluginType
 
 class UiPlayer():
     """! Main UI Window
@@ -15,7 +34,8 @@ class UiPlayer():
         Display the videos in 2 separate frames
         One frame is hidden while the other displays the video
         At the end of a video, the other frame gets the new video and the other frame gets hidden
-        But the video playback of the first video is still going. This enable the audio crossfade capabilities
+        But the video playback of the first video is still going.
+        This enable the audio crossfade capabilities
 
         In the future, different transitions may be added to the program, even visual ones.
     """
@@ -68,9 +88,15 @@ class UiPlayer():
         # 2 players (one for each frame)
         # Initialize media frames with the players and new tk frames.
         self.media_frames = (self.MediaFrame(self.vlc_instance.media_player_new(),
-                                             tk.Frame(self.window, bg=UI_BACKGROUND_COLOR, width=200, height=150)),
+                                             tk.Frame(self.window,
+                                                      bg=UI_BACKGROUND_COLOR,
+                                                      width=200,
+                                                      height=150)),
                              self.MediaFrame(self.vlc_instance.media_player_new(),
-                                             tk.Frame(self.window, bg=UI_BACKGROUND_COLOR, width=200, height=150)))
+                                             tk.Frame(self.window,
+                                                      bg=UI_BACKGROUND_COLOR,
+                                                      width=200,
+                                                      height=150)))
         for i, _ in enumerate(self.media_frames):
             self.media_frames[i].ui_frame.pack(fill="both", expand=True)
 
@@ -112,11 +138,11 @@ class UiPlayer():
             0, lambda: self.media_frames[1 - index_media_players].ui_frame.pack_forget())
         self.window.after(0, lambda: frame.pack(fill="both", expand=True))
 
-        h = frame.winfo_id()
+        window_handle = frame.winfo_id()
         if sys.platform.startswith('win'):
-            player.set_hwnd(h)
+            player.set_hwnd(window_handle)
         else:
-            player.set_xwindow(h)
+            player.set_xwindow(window_handle)
 
         # Setup the plugins
         for plugin in self.plugin_manager.get_plugins():
@@ -287,4 +313,3 @@ class UiPlayer():
         self.is_running_flag = False
         time.sleep(1) # Wait for all processes to stop
         self.vlc_instance.release()
-        #self.window.destroy()

@@ -93,7 +93,9 @@ class MetaDataManager:
                                        fade_out=line[4] == 'y',
                                        artist=line[5],
                                        song=line[6]))
+
     def reload(self):
+        """! Reloads the metadata info from the file """
         self.metadata_list.clear()
         self.open(self.path)
 

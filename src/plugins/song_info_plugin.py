@@ -21,7 +21,7 @@ import tkinter as tk
 from time import sleep, time
 from threading import Thread
 
-from colors import *
+from colors import UI_BACKGROUND_COLOR
 from logger import print_trace_in_ui
 from plugin_base import PluginBase
 
@@ -39,6 +39,9 @@ class SongInfoPlugin(PluginBase):
     timestamp_show_info = 0
 
     thread_ui_info = None
+    show_button = None
+    toggle_automatic_button = None
+    maintenance_song_info_frame = None
 
 # Plugin interface
     def setup(self, **kwargs):
@@ -56,14 +59,30 @@ class SongInfoPlugin(PluginBase):
                     and song != "" and artist != "":
 
                 # TODO background image maybe ?
-                self.frame_songinfo = tk.Frame(self.player_window, width=20, bg=UI_BACKGROUND_COLOR)
+                self.frame_songinfo = tk.Frame(self.player_window,
+                                               width=20,
+                                               bg=UI_BACKGROUND_COLOR)
                 if len(artist) + len(song) > 30:
                     font_size = int(self.player_window.winfo_height() / 40)
                 else:
                     font_size = int(self.player_window.winfo_height() / 25)
                 print_trace_in_ui("FontSize ", font_size)
-                label_artist = tk.Label(self.frame_songinfo,text=artist, padx=10, pady=10, font=('calibri', font_size, 'bold'),fg="white", bg=UI_BACKGROUND_COLOR)
-                label_song   = tk.Label(self.frame_songinfo,text=song, padx=10, pady=10, font=('calibri', font_size),fg="white", bg=UI_BACKGROUND_COLOR)
+                label_artist = tk.Label(
+                    self.frame_songinfo,
+                    text=artist,
+                    padx=10,
+                    pady=10,
+                    font=('calibri', font_size, 'bold'),
+                    fg="white",
+                    bg=UI_BACKGROUND_COLOR)
+                label_song = tk.Label(
+                    self.frame_songinfo,
+                    text=song,
+                    padx=10,
+                    pady=10,
+                    font=('calibri', font_size),
+                    fg="white",
+                    bg=UI_BACKGROUND_COLOR)
 
                 label_artist.pack(side=tk.LEFT)
                 label_song.  pack(side=tk.RIGHT)
@@ -72,7 +91,8 @@ class SongInfoPlugin(PluginBase):
             print_trace_in_ui("Link maintenance window to us")
             super().setup(maintenance_frame=kwargs["maintenance_frame"])
             print_trace_in_ui("Setup")
-            self.maintenance_song_info_frame = tk.Frame(self.maintenance_frame,  bg=UI_BACKGROUND_COLOR)
+            self.maintenance_song_info_frame = \
+                tk.Frame(self.maintenance_frame, bg=UI_BACKGROUND_COLOR)
             self.maintenance_song_info_frame.pack(fill=tk.BOTH, expand=True)
 
             # Provides a button to show the song info manually
@@ -80,7 +100,9 @@ class SongInfoPlugin(PluginBase):
                 if self.frame_songinfo is not None:
                     if not self._is_show_song_info_thread_active():
                         # Recreate thread
-                        self.thread_ui_info = Thread(name="Manual UI song info Thread", target=self._show_song_info_thread)
+                        self.thread_ui_info = \
+                            Thread(name="Manual UI song info Thread",
+                                   target=self._show_song_info_thread)
                         self.thread_ui_info.start()
                     else:
                         print_trace_in_ui("It is already showing !")
@@ -96,15 +118,23 @@ class SongInfoPlugin(PluginBase):
             self.show_button.pack()
 
             def button_toggle_auto_song_info():
-                self.is_automatic_show_song_info = not self.is_automatic_show_song_info
+                self.is_automatic_show_song_info = \
+                    not self.is_automatic_show_song_info
 
                 if self.is_automatic_show_song_info:
-                    self.toggle_automatic_button.configure(text="Disable automatic song info")
+                    self.toggle_automatic_button. \
+                        configure(text="Disable automatic song info")
                 else:
-                    self.toggle_automatic_button.configure(text="Enable automatic song info")
+                    self.toggle_automatic_button. \
+                        configure(text="Enable automatic song info")
 
-            self.toggle_automatic_button = tk.Button(self.maintenance_song_info_frame, text="Disable automatic song info", font=('calibri', 11),fg="white",
-                bg=UI_BACKGROUND_COLOR, command=button_toggle_auto_song_info)
+            self.toggle_automatic_button = \
+                tk.Button(self.maintenance_song_info_frame,
+                          text="Disable automatic song info",
+                          font=('calibri', 11),
+                          fg="white",
+                          bg=UI_BACKGROUND_COLOR,
+                          command=button_toggle_auto_song_info)
             self.toggle_automatic_button.pack()
 
     def on_begin(self):
@@ -115,25 +145,30 @@ class SongInfoPlugin(PluginBase):
         if self.frame_songinfo is not None:
             if self.is_automatic_show_song_info:
                 # And it stays only for 10 seconds
-                if time_s == 10 and not self._is_show_song_info_thread_active():
+                if time_s == 10 and \
+                   not self._is_show_song_info_thread_active():
                     print_trace_in_ui("Showing song info")
                     # Recreate thread
-                    self.thread_ui_info = Thread(name="Automatic UI song info Thread", target=self._show_song_info_thread)
+                    self.thread_ui_info = \
+                        Thread(name="Automatic UI song info Thread",
+                               target=self._show_song_info_thread)
                     self.thread_ui_info.start()
 
     def on_exit(self):
         """! Called at the end of a video playback """
-        # If we didnt have time to delete the frame info, we do it now to prevent future weird behaviours
+        # If we didnt have time to delete the frame info,
+        #  we do it now to prevent future weird behaviours
         if self.frame_songinfo is not None:
             print_trace_in_ui("Warning ! Deleting song info lately")
-            if self.thread_ui_info is not None and self.thread_ui_info.is_alive():
+            if self.thread_ui_info is not None \
+               and self.thread_ui_info.is_alive():
                 self.thread_ui_info.join()
             self.frame_songinfo = None
 
     def is_maintenance_frame(self):
         """! Returns if the plugins has a maintenance frame """
-        # Yes, we give to the user options to show manually the current song info, if available
-
+        # Yes, we give to the user options to show
+        # manually the current song info, if available
         return True
 
     def get_name(self):
@@ -155,10 +190,10 @@ class SongInfoPlugin(PluginBase):
         self.show_button.configure(state=tk.DISABLED)
         self.is_showing_info = True
         self.timestamp_show_info = time()
-        for x in range(-500, 50, 5):
+        for x_pos in range(-500, 50, 5):
             if not self.is_running:
                 break
-            self.frame_songinfo.place(x=x, rely= 0.8)
+            self.frame_songinfo.place(x=x_pos, rely=0.8)
             sleep(0.01)
         self.is_hiding_info = True
         # Wait for 10 seconds if running
@@ -167,14 +202,12 @@ class SongInfoPlugin(PluginBase):
                 break
             sleep(1)
         self.is_showing_info = False
-        for x in range(50, -1000, -5):
+        for x_pos in range(50, -1000, -5):
             if not self.is_running:
                 break
-            self.frame_songinfo.place(x=x, rely= 0.8)
+            self.frame_songinfo.place(x=x_pos, rely=0.8)
             sleep(0.01)
-        #self.frame_songinfo.destroy()
         self.frame_songinfo.pack_forget()
         self.is_hiding_info = False
         self.timestamp_show_info = 0
         self.show_button.configure(state=tk.NORMAL)
-
