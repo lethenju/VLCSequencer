@@ -214,7 +214,8 @@ class UiPlayer():
             plugin.on_begin()
 
         timer = 0
-        while (player.get_position() < end_position and self.is_running_flag and not self.is_next_asked):
+        while (player.get_position() < end_position and \
+              self.is_running_flag and not self.is_next_asked):
             print_trace_in_ui("Current media playing time " +
                            ("{:.2f}".format(player.get_position()*100))+"%")
             # Progress the plugins
@@ -290,7 +291,6 @@ class UiPlayer():
         self.is_paused = not self.is_paused
         player = self._get_active_media_player()
         player.pause()
-        pass
 
     def mute_trigger(self):
         """! Toggle mute level

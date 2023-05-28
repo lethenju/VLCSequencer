@@ -22,6 +22,7 @@
 import tkinter as tk
 from tkinter import filedialog, ttk
 import threading
+import sys
 import os
 import time
 import random
@@ -393,6 +394,7 @@ class UiSequenceManager:
         self.path_dirname = os.path.dirname(path)
 
     def pause_resume_callback(self):
+        """! Toggle pause and resume """
         self.ui_player.pause_resume()
 
         if not self.is_paused:
@@ -656,11 +658,12 @@ class UiSequenceManager:
 
             if not os.path.isfile(final_path):
                 print_trace_in_ui(final_path + " : The video doesnt exist ! ")
-                exit(-1)
+                sys.exit(-1)
 
             self._load_video(final_path, video)
 
     def load_sequence(self):
+        """! Loads the Sequence xml file"""
         xml_root = ET.parse(self.xml_path).getroot()
         if xml_root is None:
             return
@@ -770,14 +773,14 @@ class UiSequenceManager:
                 block.modify_color(block.get_color())
 
         # Add UI plugins
-        tabControl = ttk.Notebook(self.bottom_view)
+        tab_control = ttk.Notebook(self.bottom_view)
         for plugin in self.plugin_manager.get_plugins():
             if plugin.is_maintenance_frame():
                 print_trace_in_ui("Creating frame for plugin ", plugin.get_name())
-                frame = ttk.Frame(tabControl)
+                frame = ttk.Frame(tab_control)
                 plugin.setup(maintenance_frame=frame)
-                tabControl.add(frame, text=plugin.get_name())
-        tabControl.pack(side=tk.RIGHT, expand=1, fill=tk.BOTH)
+                tab_control.add(frame, text=plugin.get_name())
+        tab_control.pack(side=tk.RIGHT, expand=1, fill=tk.BOTH)
 
         # First sequence resolving. After each sequence iteration it will be called
         self._resolve_sequence()

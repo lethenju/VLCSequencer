@@ -66,7 +66,7 @@ class BaseListbox:
     def add_entry(self):
         """! Add an entry in the listbox  : base implementation """
         print("BASE CLASS - SHOULD NOT BE CALLED")
-        assert (0)
+        assert 0
 
 
 class BasePagingList:
