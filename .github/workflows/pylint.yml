@@ -16,7 +16,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-        apt install vlc libvlc-dev python3-pil python3-pil.imagetk
+        sudo apt install vlc libvlc-dev python3-pil python3-pil.imagetk
         python -m pip install --upgrade pip
         pip install pylint python-vlc python-magic pillow
     - name: Analysing the code with pylint
