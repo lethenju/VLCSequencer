@@ -745,7 +745,7 @@ class MessagingPlugin(PluginBase):
             for message in self.message_list:
                 if message.timestamp_activation + \
                    int(self.params[DELETE_AFTER_MINUTES_PARAM])*60 < time() \
-                   and not message.manual_activation:
+                   and not message.manual_activation and message.is_active():
                     print_trace_in_ui(
                         f"Message going inactive ! {message.message}")
                     message.set_inactive()
