@@ -221,7 +221,6 @@ class MessagingPlugin(PluginBase):
             print_trace_in_ui("Link player window to us")
             super().setup(player_window=kwargs["player_window"])
 
-            # TODO Maybe store/read active messages in file
             self.message_ui = self.MessagingUiThread(
                 self.player_window, self.params)
             self.message_ui_thread = threading.Thread(
@@ -252,7 +251,7 @@ class MessagingPlugin(PluginBase):
 
             self.message_ui_status_frame = tk.Frame(self.status_frame,
                                                     bg=UI_BACKGROUND_COLOR)
-            self.message_ui_status_frame.pack(side=tk.RIGHT, fill=tk.BOTH)
+            self.message_ui_status_frame.pack(side=tk.LEFT, fill=tk.BOTH)
 
             self.server_status_label = tk.Label(self.server_status_frame,
                                                 text="Server is currently \

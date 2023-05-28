@@ -192,3 +192,4 @@ class DataManager:
             result = self._results_from_thread.pop()
             self._results_from_thread = []
             return result
+        return None
