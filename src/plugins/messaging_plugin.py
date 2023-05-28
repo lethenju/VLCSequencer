@@ -253,12 +253,12 @@ class MessagingPlugin(PluginBase):
                                                     bg=UI_BACKGROUND_COLOR)
             self.message_ui_status_frame.pack(side=tk.LEFT, fill=tk.BOTH)
 
-            self.server_status_label = tk.Label(self.server_status_frame,
-                                                text="Server is currently \
-                                                    inactive",
-                                                font=('calibri', 11, 'bold'),
-                                                fg="white",
-                                                bg=UI_BACKGROUND_COLOR)
+            self.server_status_label = \
+                tk.Label(self.server_status_frame,
+                         text="Server is currently inactive",
+                         font=('calibri', 11, 'bold'),
+                         fg="white",
+                         bg=UI_BACKGROUND_COLOR)
             self.server_status_label.pack(side=tk.LEFT)
 
             self.message_ui_status_label = \

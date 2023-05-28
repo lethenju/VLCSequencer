@@ -30,7 +30,7 @@ PATH_LOGO_PNG = "PathLogoPng"
 
 class TimeAndChannelPlugin(PluginBase):
     """! Plugin to show the song info as it plays """
-    frame_time_channel = None
+    frame_time = None
 
     font_size = 0        # Stored font size, update if the window height changes
     label_time = None    # Label of the current time
@@ -42,11 +42,11 @@ class TimeAndChannelPlugin(PluginBase):
         if super().player_window is None and "player_window" in kwargs:
             super().setup(player_window=kwargs["player_window"])
 
-            self.frame_time_channel = tk.Frame(self.player_window,
+            self.frame_time = tk.Frame(self.player_window,
                                                width=20,
                                                bg=UI_BACKGROUND_COLOR)
             self.font_size = int(self.player_window.winfo_height() /30)
-            self.label_time = tk.Label(self.frame_time_channel,
+            self.label_time = tk.Label(self.frame_time,
                                        text="00:00",
                                        padx=2,
                                        pady=2,
@@ -54,13 +54,13 @@ class TimeAndChannelPlugin(PluginBase):
                                        fg="white",
                                        bg=UI_BACKGROUND_COLOR)
             self.label_time.pack(side=tk.LEFT)
-            self.frame_time_channel.place(relx=0.75, rely=0.06)
+            self.frame_time.place(relx=0.10, rely=0.06)
 
             if PATH_LOGO_PNG in self.params:
                 try:
                     display = ImageTk.PhotoImage(Image.open(self.params[PATH_LOGO_PNG]))
 
-                    self.label_channel = tk.Label(self.frame_time_channel, image=display)
+                    self.label_channel = tk.Label(self.player_window, image=display)
                     self.label_channel.image = display
                     self.label_channel.pack(side=tk.RIGHT)
                 except FileNotFoundError:
@@ -72,8 +72,7 @@ class TimeAndChannelPlugin(PluginBase):
 
     def on_progress(self, time_s):
         """! Called every second of a video playback """
-        if self.frame_time_channel is not None:
-            # TODO Update time
+        if self.frame_time is not None:
             new_font_size = int(self.player_window.winfo_height() /25)
             if new_font_size != self.font_size:
                 print_trace_in_ui("Update font size from ", self.font_size, " to ", new_font_size)
@@ -81,7 +80,8 @@ class TimeAndChannelPlugin(PluginBase):
                 self.label_time.configure(font=('calibri', self.font_size, 'bold'))
 
             self.label_time.configure(text=strftime('%H:%M'))
-            self.frame_time_channel.place(relx=0.75, rely=0.06)
+            self.frame_time.place(relx=0.10, rely=0.06)
+            self.label_channel.place(relx=0.85, rely=0.06)
 
     def on_exit(self):
         """! Called at the end of a video playback """
